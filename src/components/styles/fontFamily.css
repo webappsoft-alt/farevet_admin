@@ -1,0 +1,126 @@
+/*-------------------- Manrope ::start ---------------*/
+@font-face {
+    font-family: 'manrope_bold';
+    src: url('./Manrope/static/Manrope-Bold.ttf');
+}
+
+@font-face {
+    font-family: 'manrope_medium';
+    src: url('./Manrope/static/Manrope-Medium.ttf');
+}
+
+@font-face {
+    font-family: 'manrope_regular';
+    src: url('./Manrope/static/Manrope-Regular.ttf');
+}
+
+@font-face {
+    font-family: 'manrope_semibold';
+    src: url('./Manrope/static/Manrope-SemiBold.ttf');
+}
+
+@font-face {
+    font-family: 'manrope_light';
+    src: url('./Manrope/static/Manrope-Light.ttf');
+}
+
+/*-------------------- Poppins ::start ---------------*/
+@font-face {
+    font-family: 'poppins_bold';
+    src: url('./Popins/Poppins-Bold.ttf');
+}
+
+@font-face {
+    font-family: 'poppins_medium';
+    src: url('./Popins/Poppins-Medium.ttf');
+}
+
+@font-face {
+    font-family: 'poppins_regular';
+    src: url('./Popins/Poppins-Regular.ttf');
+}
+
+@font-face {
+    font-family: 'poppins_semibold';
+    src: url('./Popins/Poppins-SemiBold.ttf');
+}
+
+@font-face {
+    font-family: 'poppins_light';
+    src: url('./Popins/Poppins-Light.ttf');
+}
+
+/*-------------------- roboto ::start ---------------*/
+@font-face {
+    font-family: 'roboto_bold';
+    src: url('./roboto/Roboto-Bold.ttf');
+}
+
+@font-face {
+    font-family: 'roboto_medium';
+    src: url('./roboto/Roboto-Medium.ttf');
+}
+
+@font-face {
+    font-family: 'roboto_regular';
+    src: url('./roboto/Roboto-Regular.ttf');
+}
+
+
+@font-face {
+    font-family: 'roboto_light';
+    src: url('./roboto/Roboto-Light.ttf');
+}
+
+/*-------------------- Manrope ::start ---------------*/
+@font-face {
+    font-family: 'plusJakara_bold';
+    src: url('./PlusJakarta/static/PlusJakartaSans-Bold.ttf');
+}
+
+@font-face {
+    font-family: 'plusJakara_medium';
+    src: url('./PlusJakarta/static/PlusJakartaSans-Medium.ttf');
+}
+
+@font-face {
+    font-family: 'plusJakara_regular';
+    src: url('./PlusJakarta/static/PlusJakartaSans-Regular.ttf');
+}
+
+@font-face {
+    font-family: 'plusJakara_semibold';
+    src: url('./PlusJakarta/static/PlusJakartaSans-SemiBold.ttf');
+}
+
+@font-face {
+    font-family: 'plusJakara_light';
+    src: url('./PlusJakarta/static/PlusJakartaSans-Light.ttf');
+}
+
+
+/*-------------------- Inter ::start ---------------*/
+@font-face {
+    font-family: 'inter_bold';
+    src: url('./Inter/static/Inter-Bold.ttf');
+}
+
+@font-face {
+    font-family: 'inter_medium';
+    src: url('./Inter/static/Inter-Medium.ttf');
+}
+
+@font-face {
+    font-family: 'inter_regular';
+    src: url('./Inter/static/Inter-Regular.ttf');
+}
+
+@font-face {
+    font-family: 'inter_semibold';
+    src: url('./Inter/static/Inter-SemiBold.ttf');
+}
+
+@font-face {
+    font-family: 'inter_light';
+    src: url('./Inter/static/Inter-Light.ttf');
+}

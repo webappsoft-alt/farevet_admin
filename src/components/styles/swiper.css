@@ -1,0 +1,29 @@
+
+.items_swiper .swiper-button-next {
+    right: 10px !important;
+    width: 50px !important;
+    height: 50px !important;
+
+}
+
+.items_swiper .swiper-button-prev {
+    left: 10px !important;
+    width: 50px !important;
+    height: 50px !important;
+}
+
+.items_swiper .swiper-button-next::after {
+    content: '' !important;
+    background-image: url('../assets/svg/arrowrightswiper.svg');
+    background-size: cover;
+    width: 100%;
+    height: 100%;
+}
+
+.items_swiper .swiper-button-prev::after {
+    content: '' !important;
+    background-image: url('../assets/svg/arrowleftswiper.svg');
+    background-size: cover;
+    width: 100%;
+    height: 100%;
+}
