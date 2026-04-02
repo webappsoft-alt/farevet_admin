@@ -8,7 +8,7 @@ import { apiRequest } from "../../../api/auth_api";
 import { CircularProgress } from "@mui/material";
 
 const reportedByArray = [{ title: "Admin" }, { title: "User" }];
-const currencyArray = [{ title: "CAD" }, { title: "USD" }];
+const currencyArray = [{ title: "CAD" }, { title: "USD" }, { title: "GBP" }];
 const petsArray = [
     // { title: "All", value: 'all' },
     { title: "Dog", value: 'dog' },
@@ -99,6 +99,7 @@ const CreatePetService = () => {
             const res = await apiRequest({ body });
             setLoading(false);
             if (res && res?.data) {
+                // console.log('res', res)
                 setServiceNames(res.data);
             } else {
                 setServiceNames([]);
@@ -242,7 +243,7 @@ const CreatePetService = () => {
     };
 
     // console.log(servicePet);
-
+    console.log('selectedServiceId', selectedServiceId)
     // Update main subservices when main service changes
     useEffect(() => {
         const parsedArray =
@@ -298,7 +299,7 @@ const CreatePetService = () => {
     }, [count2, valueFilter]);
 
     const handleSubmit = async (values) => {
-        setIsProcessing(true);
+        // setIsProcessing(true);
         if (!servicePet || servicePet.length === 0) {
             message.error('Please select at least one sub-service');
             setIsProcessing(false);
@@ -314,6 +315,7 @@ const CreatePetService = () => {
         body.append("sub_service", JSON.stringify(servicePet));
         body.append("weight", weightPet);
         body.append("pet_type", pet);
+        body.append("service_id", selectedServiceId);
         body.append("pay_type", pay);
         body.append("currency", currency);
         body.append("description", values?.descriptionPet);
@@ -326,7 +328,8 @@ const CreatePetService = () => {
                 body.append("additional_subservice_name", JSON.stringify(additionalServicePet));
             }
         }
-
+        // console.log('body', body)
+        // return
         await apiRequest({ body })
             .then(async (res) => {
                 setIsProcessing(false);

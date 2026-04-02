@@ -7,23 +7,20 @@ import { ArrowLeft } from "react-feather";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiRequest } from "../../../api/auth_api";
 
-const currencyArray = [{ title: "CAD" }, { title: "USD" }];
+const currencyArray = [{ title: "CAD" }, { title: "USD" }, { title: "GBP" }];
 const petsArray = [
   // { title: "All", value: 'all' },
-  { title: "Dog", value: 'dog' },
-  { title: "Cat", value: 'cat' },
-  { title: "Other", value: 'other' }
+  { title: "Dog", value: "dog" },
+  { title: "Cat", value: "cat" },
+  { title: "Other", value: "other" },
 ];
 
 const payArray = [
-  { title: "Card", value: 'card' },
-  { title: "Clinic", value: 'clinic' },
+  { title: "Card", value: "card" },
+  { title: "Clinic", value: "clinic" },
 ];
 
-const reportedByArray = [
-  { title: 'Admin' },
-  { title: 'User' },
-]
+const reportedByArray = [{ title: "Admin" }, { title: "User" }];
 
 const costOfPet = [
   { title: "Exact Cost" },
@@ -58,14 +55,19 @@ const UpdatePetService = () => {
 
   // Additional service states
   const [additionalServiceName, setAdditionalServiceName] = useState(null);
-  const [selectedAdditionalServiceId, setSelectedAdditionalServiceId] = useState(null);
+  const [selectedAdditionalServiceId, setSelectedAdditionalServiceId] =
+    useState(null);
   const [additionalServicePet, setAdditionalServicePet] = useState([]);
-  const [parsedAdditionalSubservicesArray, setParsedAdditionalSubservicesArray] = useState([]);
-  const [selectedAdditionalServiceExists, setSelectedAdditionalServiceExists] = useState(true);
+  const [
+    parsedAdditionalSubservicesArray,
+    setParsedAdditionalSubservicesArray,
+  ] = useState([]);
+  const [selectedAdditionalServiceExists, setSelectedAdditionalServiceExists] =
+    useState(true);
 
   // Other states
-  const [valueFilter, setValueFilter] = useState('')
-  const [reportedBy, setReportedBy] = useState('Admin')
+  const [valueFilter, setValueFilter] = useState("");
+  const [reportedBy, setReportedBy] = useState("Admin");
   const [weightPet, setWeightPet] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [cost, setCost] = useState("");
@@ -74,9 +76,9 @@ const UpdatePetService = () => {
   const [currency, setCurrency] = useState("");
   const [subservices, setSubservices] = useState([]);
   const [count, setCount] = useState("");
-  const [hasLoader, setHasLoader] = useState(false)
+  const [hasLoader, setHasLoader] = useState(false);
   const [count2, setCount2] = useState("");
-  const [hasLoader2, setHasLoader2] = useState(false)
+  const [hasLoader2, setHasLoader2] = useState(false);
   const [businessCategories, setBusinessCategories] = useState([]);
   const [serviceNames, setServiceNames] = useState([]);
   const [selectedBusinessId, setSelectedBusinessId] = useState(null);
@@ -86,17 +88,18 @@ const UpdatePetService = () => {
     descriptionPet: serviceData?.description || "",
     servicesNames: serviceData?.service_name || "",
     weightOfPet: serviceData?.weight || "",
-    selectBusiness: serviceData?.business?.name + ' (' + serviceData?.business?.address + ')',
+    selectBusiness:
+      serviceData?.business?.name + " (" + serviceData?.business?.address + ")",
     additionalServiceName: serviceData?.additional_service_name || "",
   });
 
   const handleFetchData = async () => {
     try {
       const body = new FormData();
-      body.append('type', 'get_data');
-      body.append('table_name', 'services_list');
-      body.append('service_type', 'business');
-      body.append('limit', 50);
+      body.append("type", "get_data");
+      body.append("table_name", "services_list");
+      body.append("service_type", "business");
+      body.append("limit", 50);
       const res = await apiRequest({ body });
       if (res && res?.data) {
         setServiceNames(res.data);
@@ -110,7 +113,7 @@ const UpdatePetService = () => {
 
   const handleBusinessStore = (value) => {
     const searchValue = value?.toLowerCase().trim();
-    setCount2('');
+    setCount2("");
     setValueFilter(searchValue);
     handleFetchBusiness(searchValue);
   };
@@ -122,7 +125,7 @@ const UpdatePetService = () => {
       Math.ceil(target.clientHeight)
     ) {
       if (!hasLoader) {
-        return handleFetchData()
+        return handleFetchData();
       }
     }
   };
@@ -132,9 +135,9 @@ const UpdatePetService = () => {
       const body = new FormData();
       body.append("type", "get_data");
       body.append("table_name", "businesses");
-      body.append("status", '1');
+      body.append("status", "1");
       body.append("limit", 50);
-      if (valueFilter && valueFilter !== '') {
+      if (valueFilter && valueFilter !== "") {
         body.append("search", valueFilter);
       }
       const res = await apiRequest({ body });
@@ -150,26 +153,26 @@ const UpdatePetService = () => {
 
   const handleFetchDataSubservice = async () => {
     let allServiceName = [];
-    let currentPage = 1
+    let currentPage = 1;
     try {
       while (true) {
         const body = new FormData();
         body.append("type", "get_list");
-        body.append("table_name", 'sub_services_list');
+        body.append("table_name", "sub_services_list");
         body.append("page", currentPage);
-        const res = await apiRequest({ body })
+        const res = await apiRequest({ body });
         if (res && res?.data && res?.data?.length > 0) {
-          allServiceName = allServiceName.concat(res?.data)
+          allServiceName = allServiceName.concat(res?.data);
           currentPage++;
         } else {
           break;
         }
       }
-      setSubservices(allServiceName)
+      setSubservices(allServiceName);
     } catch (error) {
       console.log(error);
     }
-  }
+  };
 
   // Main service change handler
   const handleServiceChange = (selectedServiceName) => {
@@ -238,7 +241,10 @@ const UpdatePetService = () => {
     setParsedSubservicesArray(parsedArray);
 
     // Don't reset servicePet when it's initial load with serviceData
-    if (!serviceData || (serviceData && selectedServiceId !== getInitialServiceId())) {
+    if (
+      !serviceData ||
+      (serviceData && selectedServiceId !== getInitialServiceId())
+    ) {
       setServicePet([]);
     }
   }, [selectedServiceId]);
@@ -246,7 +252,9 @@ const UpdatePetService = () => {
   useEffect(() => {
     const parsedArray =
       subservices
-        ?.filter((subservice) => subservice?.service_id === selectedAdditionalServiceId)
+        ?.filter(
+          (subservice) => subservice?.service_id === selectedAdditionalServiceId
+        )
         .map((subservice) => ({
           ...subservice,
           data: JSON.parse(subservice?.name || "{}"),
@@ -254,7 +262,11 @@ const UpdatePetService = () => {
     setParsedAdditionalSubservicesArray(parsedArray);
 
     // Don't reset additionalServicePet when it's initial load with serviceData
-    if (!serviceData || (serviceData && selectedAdditionalServiceId !== getInitialAdditionalServiceId())) {
+    if (
+      !serviceData ||
+      (serviceData &&
+        selectedAdditionalServiceId !== getInitialAdditionalServiceId())
+    ) {
       setAdditionalServicePet([]);
     }
   }, [selectedAdditionalServiceId]);
@@ -270,7 +282,8 @@ const UpdatePetService = () => {
 
   // Helper function to get initial additional service ID
   const getInitialAdditionalServiceId = () => {
-    if (!serviceData?.additional_service_name || !serviceNames.length) return null;
+    if (!serviceData?.additional_service_name || !serviceNames.length)
+      return null;
     const initialServiceObject = serviceNames.find(
       (item) => item?.name === serviceData.additional_service_name
     );
@@ -312,7 +325,9 @@ const UpdatePetService = () => {
         setWeightPet(serviceData?.weight);
 
         if (serviceData?.additional_subservice_name) {
-          const parsedAdditionalName = JSON.parse(serviceData?.additional_subservice_name || "[]");
+          const parsedAdditionalName = JSON.parse(
+            serviceData?.additional_subservice_name || "[]"
+          );
           setAdditionalServicePet(parsedAdditionalName);
         }
       } catch (error) {
@@ -352,7 +367,7 @@ const UpdatePetService = () => {
   const handleSubmit = async (values) => {
     setIsProcessing(true);
     if (!servicePet || servicePet.length === 0) {
-      message.error('Please select at least one sub-service');
+      message.error("Please select at least one sub-service");
       setIsProcessing(false);
       return;
     }
@@ -370,13 +385,19 @@ const UpdatePetService = () => {
     body.append("pay_type", pay);
     body.append("currency", currency);
     body.append("description", values?.descriptionPet);
-    body.append("business_id", selectedBusinessId ? selectedBusinessId : serviceData?.business_id);
+    body.append(
+      "business_id",
+      selectedBusinessId ? selectedBusinessId : serviceData?.business_id
+    );
     body.append("business_created", "admin");
 
     if (additionalServiceName) {
       body.append("additional_service_name", additionalServiceName);
       if (additionalServicePet.length > 0) {
-        body.append("additional_subservice_name", JSON.stringify(additionalServicePet));
+        body.append(
+          "additional_subservice_name",
+          JSON.stringify(additionalServicePet)
+        );
       }
     }
 
@@ -385,7 +406,7 @@ const UpdatePetService = () => {
         setIsProcessing(false);
         if (res?.result === true) {
           message.success("Service Updated Successfully");
-          navigate(-1)
+          navigate(-1);
           form.resetFields();
         } else {
           message.error("Creation failed...");
@@ -407,7 +428,8 @@ const UpdatePetService = () => {
           onClick={() => {
             navigate(-1);
           }}
-          className="flex items-center justify-center w-[36px] h-[36px] bg_primary rounded-lg">
+          className="flex items-center justify-center w-[36px] h-[36px] bg_primary rounded-lg"
+        >
           <ArrowLeft className="text_white" />
         </button>
         <span className="inter_semibold text-xl md:text-2xl text_dark">
@@ -431,10 +453,11 @@ const UpdatePetService = () => {
               <button
                 key={i}
                 type="button"
-                className={`border cursor-pointer rounded-lg gap-1 px-[1rem] py-2 inter_medium text-sm flex justify-center items-center ${pet === item?.value
-                  ? "bg-[#F8F2FD] text_primary"
-                  : "bg_white text_secondary"
-                  }`}
+                className={`border cursor-pointer rounded-lg gap-1 px-[1rem] py-2 inter_medium text-sm flex justify-center items-center ${
+                  pet === item?.value
+                    ? "bg-[#F8F2FD] text_primary"
+                    : "bg_white text_secondary"
+                }`}
                 onClick={() => handlePetType(item?.value)}
               >
                 {item?.title}
@@ -452,10 +475,11 @@ const UpdatePetService = () => {
                 key={i}
                 type="button"
                 style={{ cursor: "pointer" }}
-                className={`border cursor-pointer rounded-3 gap-1 px-[1rem] py-2 inter_medium text-sm flex justify-center items-center ${pay === item?.value
-                  ? "bg-[#F8F2FD] text_primary"
-                  : "bg_white text_secondary"
-                  }`}
+                className={`border cursor-pointer rounded-3 gap-1 px-[1rem] py-2 inter_medium text-sm flex justify-center items-center ${
+                  pay === item?.value
+                    ? "bg-[#F8F2FD] text_primary"
+                    : "bg_white text_secondary"
+                }`}
                 onClick={() => handlePayType(item?.value)}
               >
                 {item?.title}
@@ -487,7 +511,9 @@ const UpdatePetService = () => {
                 placeholder="Search business store"
                 allowClear
                 value={selectedBusinessId}
-                onChange={(value) => setSelectedBusinessId(value?.split(' ').pop())}
+                onChange={(value) =>
+                  setSelectedBusinessId(value?.split(" ").pop())
+                }
                 onSearch={(value) => handleBusinessStore(value)}
               >
                 {businessCategories?.map((item) => (
@@ -545,22 +571,25 @@ const UpdatePetService = () => {
             <Form.Item className="w-full mb-0" name="subService">
               {selectedServiceExists ? (
                 parsedSubservicesArray?.map((item, i) => (
-                  <div key={i}
+                  <div
+                    key={i}
                     className="flex flex-wrap gap-2 mb-2 items-center w-100"
                   >
-                    {item?.data && Object.keys(item?.data)?.map((key, j) => (
-                      <button
-                        key={j}
-                        type="button"
-                        className={`border cursor-pointer rounded-lg mb-2 gap-1 px-3 py-2 inter_medium text-sm flex justify-center items-center ${servicePet.includes(item?.data[key])
-                          ? "bg-[#F8F2FD] text_primary"
-                          : "bg_white text_secondary"
+                    {item?.data &&
+                      Object.keys(item?.data)?.map((key, j) => (
+                        <button
+                          key={j}
+                          type="button"
+                          className={`border cursor-pointer rounded-lg mb-2 gap-1 px-3 py-2 inter_medium text-sm flex justify-center items-center ${
+                            servicePet.includes(item?.data[key])
+                              ? "bg-[#F8F2FD] text_primary"
+                              : "bg_white text_secondary"
                           }`}
-                        onClick={() => toggleCategory(item?.data[key])}
-                      >
-                        {item?.data[key]}
-                      </button>
-                    ))}
+                          onClick={() => toggleCategory(item?.data[key])}
+                        >
+                          {item?.data[key]}
+                        </button>
+                      ))}
                   </div>
                 ))
               ) : (
@@ -570,7 +599,9 @@ const UpdatePetService = () => {
                   </span>
                   <button
                     onClick={() => {
-                      navigate("/service-names/create-subservice", { state: { serviceId: selectedServiceId } });
+                      navigate("/service-names/create-subservice", {
+                        state: { serviceId: selectedServiceId },
+                      });
                     }}
                     className="bg_primary text_white px-3 py-2 rounded-lg inter_regular"
                   >
@@ -588,10 +619,7 @@ const UpdatePetService = () => {
             Additional Service Name (Optional)
           </span>
           <div className="w-full md:w-[70%] flex flex-wrap gap-2 items-center">
-            <Form.Item
-              className="w-full mb-0"
-              name="additionalServiceName"
-            >
+            <Form.Item className="w-full mb-0" name="additionalServiceName">
               <Select
                 showSearch
                 style={{
@@ -622,22 +650,27 @@ const UpdatePetService = () => {
               <Form.Item className="w-full mb-0" name="additionalSubService">
                 {selectedAdditionalServiceExists ? (
                   parsedAdditionalSubservicesArray?.map((item, i) => (
-                    <div key={i}
+                    <div
+                      key={i}
                       className="flex flex-wrap gap-2 mb-2 items-center w-100"
                     >
-                      {item?.data && Object.keys(item?.data)?.map((key, j) => (
-                        <button
-                          key={j}
-                          type="button"
-                          className={`border cursor-pointer rounded-lg mb-2 gap-1 px-3 py-2 inter_medium text-sm flex justify-center items-center ${additionalServicePet.includes(item?.data[key])
-                            ? "bg-[#F8F2FD] text_primary"
-                            : "bg_white text_secondary"
+                      {item?.data &&
+                        Object.keys(item?.data)?.map((key, j) => (
+                          <button
+                            key={j}
+                            type="button"
+                            className={`border cursor-pointer rounded-lg mb-2 gap-1 px-3 py-2 inter_medium text-sm flex justify-center items-center ${
+                              additionalServicePet.includes(item?.data[key])
+                                ? "bg-[#F8F2FD] text_primary"
+                                : "bg_white text_secondary"
                             }`}
-                          onClick={() => toggleAdditionalCategory(item?.data[key])}
-                        >
-                          {item?.data[key]}
-                        </button>
-                      ))}
+                            onClick={() =>
+                              toggleAdditionalCategory(item?.data[key])
+                            }
+                          >
+                            {item?.data[key]}
+                          </button>
+                        ))}
                     </div>
                   ))
                 ) : (
@@ -647,7 +680,9 @@ const UpdatePetService = () => {
                     </span>
                     <button
                       onClick={() => {
-                        navigate("/service-names/create-subservice", { state: { serviceId: selectedAdditionalServiceId } });
+                        navigate("/service-names/create-subservice", {
+                          state: { serviceId: selectedAdditionalServiceId },
+                        });
                       }}
                       className="bg_primary text_white px-3 py-2 rounded-lg inter_regular"
                     >
@@ -684,10 +719,7 @@ const UpdatePetService = () => {
             Amount
           </span>
           <div className="w-full md:w-[70%] flex flex-wrap gap-2 items-center">
-            <Form.Item
-              className="w-full mb-0"
-              name="amountPet"
-            >
+            <Form.Item className="w-full mb-0" name="amountPet">
               <Input type="number" rows={2} size="large" />
             </Form.Item>
           </div>
@@ -701,10 +733,11 @@ const UpdatePetService = () => {
               <button
                 key={i}
                 type="button"
-                className={`border cursor-pointer rounded-lg gap-1 px-[1rem] py-2 inter_medium text-sm flex justify-center items-center ${currency === item?.title
-                  ? "bg-[#F8F2FD] text_primary"
-                  : "bg_white text_secondary"
-                  }`}
+                className={`border cursor-pointer rounded-lg gap-1 px-[1rem] py-2 inter_medium text-sm flex justify-center items-center ${
+                  currency === item?.title
+                    ? "bg-[#F8F2FD] text_primary"
+                    : "bg_white text_secondary"
+                }`}
                 onClick={() => handleCurrency(item?.title)}
               >
                 {item?.title}
@@ -721,10 +754,11 @@ const UpdatePetService = () => {
               <button
                 key={i}
                 type="button"
-                className={`border cursor-pointer rounded-lg gap-1 px-[1rem] py-2 inter_medium text-sm flex justify-center items-center ${cost === item?.title
-                  ? "bg-[#F8F2FD] text_primary"
-                  : "bg_white text_secondary"
-                  }`}
+                className={`border cursor-pointer rounded-lg gap-1 px-[1rem] py-2 inter_medium text-sm flex justify-center items-center ${
+                  cost === item?.title
+                    ? "bg-[#F8F2FD] text_primary"
+                    : "bg_white text_secondary"
+                }`}
                 onClick={() => handleCost(item?.title)}
               >
                 {item?.title}
@@ -769,13 +803,17 @@ const UpdatePetService = () => {
           <span className="inter_medium text-sm text_dark w-full md:w-[30%]">
             Service Reported By
           </span>
-          <div className='w-full md:w-[70%] flex flex-wrap gap-2 items-center'>
+          <div className="w-full md:w-[70%] flex flex-wrap gap-2 items-center">
             {reportedByArray.map((item, i) => (
               <button
                 key={i}
-                type='button'
-                style={{ cursor: 'pointer' }}
-                className={`border cursor-pointer rounded-3 gap-1 px-[1rem] py-2 inter_medium text-sm flex justify-center items-center ${reportedBy === item?.title ? 'bg-[#F8F2FD] text_primary' : 'bg_white text_secondary'}`}
+                type="button"
+                style={{ cursor: "pointer" }}
+                className={`border cursor-pointer rounded-3 gap-1 px-[1rem] py-2 inter_medium text-sm flex justify-center items-center ${
+                  reportedBy === item?.title
+                    ? "bg-[#F8F2FD] text_primary"
+                    : "bg_white text_secondary"
+                }`}
                 onClick={() => handleReported(item?.title)}
               >
                 {item?.title}
@@ -803,8 +841,8 @@ const UpdatePetService = () => {
             </button>
           )}
         </div>
-      </Form >
-    </main >
+      </Form>
+    </main>
   );
 };
 

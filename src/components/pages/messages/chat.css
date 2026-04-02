@@ -153,8 +153,8 @@
   border-radius: 1rem 1rem 1rem 0vh;
   background-color: #edeef0;
   color: #000000;
-  white-space: nowrap;
-  overflow: hidden;
+  /* white-space: nowrap; */
+  /* overflow: hidden; */
   text-overflow: ellipsis;
   /* min-width: 6rem; */
 }

@@ -3,13 +3,7 @@
 import { CircularProgress } from "@mui/material";
 import { Input, Select, message } from "antd";
 import React, { useEffect, useState } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Plus,
-  Search,
-  Trash2
-} from "react-feather";
+import { ArrowLeft, ArrowRight, Plus, Search, Trash2 } from "react-feather";
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "../../api/auth_api";
 const { Option } = Select;
@@ -19,7 +13,7 @@ const PetService = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [categories, setCategories] = useState([]);
-  const [value, setValue] = useState('')
+  const [value, setValue] = useState("");
   const [totalPages, setTotalPages] = useState(null);
   const [totalDataCount, setTotalDataCount] = useState(0);
 
@@ -29,7 +23,7 @@ const PetService = () => {
     body.append("type", "get_list");
     body.append("table_name", "services");
     body.append("page", page);
-    if (value && value !== '') {
+    if (value && value !== "") {
       body.append("search", value);
     }
     await apiRequest({ body })
@@ -138,17 +132,18 @@ const PetService = () => {
         </div>
       ) : (
         <div className="d-flex flex-wrap gap-3 mb-4 justify-content-center justify-content-lg-start">
-          {!categories || categories?.length === 0 ?
+          {!categories || categories?.length === 0 ? (
             <div className="my-5 flex justify-center items-center w-full">
               <span className="text_dark inter_medium">No Service Found</span>
-            </div> :
+            </div>
+          ) : (
             categories?.map((item, i) => (
               <div
                 key={i}
                 className="border border-[#EDF2F6] box_styling no-underline bg_white shadow-sm rounded-lg gap-1 flex justify-between flex-col items-start w-full h-auto p-2"
               >
                 <button
-                  disabled={item?.business_created === 'user'}
+                  disabled={item?.business_created === "user"}
                   onClick={() => handleBusinessClick(item)}
                   className="w-full"
                 >
@@ -158,43 +153,64 @@ const PetService = () => {
                         {item?.service_name} , {item?.additional_service_name}
                       </span>
                       <span className="text_dark text-start text-sm plusJakara_regular">
-                        {item && item?.sub_service ? (
-                          (() => {
-                            try {
-                              const parsedSubService = JSON.parse(item?.sub_service || "[]");
-                              const parsedAdditionalSubService = item?.additional_subservice_name
-                                ? JSON.parse(item?.additional_subservice_name || "[]")
-                                : [];
+                        {item && item?.sub_service
+                          ? (() => {
+                              try {
+                                const parsedSubService = JSON.parse(
+                                  item?.sub_service || "[]"
+                                );
+                                const parsedAdditionalSubService =
+                                  item?.additional_subservice_name
+                                    ? JSON.parse(
+                                        item?.additional_subservice_name || "[]"
+                                      )
+                                    : [];
 
-                              // Combine both arrays
-                              const allSubservices = [...parsedSubService];
-                              if (parsedAdditionalSubService.length > 0) {
-                                allSubservices.push(...parsedAdditionalSubService);
-                              }
+                                // Combine both arrays
+                                const allSubservices = [...parsedSubService];
+                                if (parsedAdditionalSubService.length > 0) {
+                                  allSubservices.push(
+                                    ...parsedAdditionalSubService
+                                  );
+                                }
 
-                              if (Array.isArray(allSubservices)) {
-                                return allSubservices.map((subService, index) => (
-                                  <React.Fragment key={index}>
-                                    {index > 0 && ", "}
-                                    {subService}
-                                  </React.Fragment>
-                                ));
-                              } else {
-                                console.error("Combined subservices is not an array:", allSubservices);
+                                if (Array.isArray(allSubservices)) {
+                                  return allSubservices.map(
+                                    (subService, index) => (
+                                      <React.Fragment key={index}>
+                                        {index > 0 && ", "}
+                                        {subService}
+                                      </React.Fragment>
+                                    )
+                                  );
+                                } else {
+                                  console.error(
+                                    "Combined subservices is not an array:",
+                                    allSubservices
+                                  );
+                                  return null;
+                                }
+                              } catch (error) {
+                                console.error(
+                                  "Error parsing subservice JSON:",
+                                  error
+                                );
                                 return null;
                               }
-                            } catch (error) {
-                              console.error("Error parsing subservice JSON:", error);
-                              return null;
-                            }
-                          })()
-                        ) : ""}
+                            })()
+                          : ""}
                       </span>
-
                     </div>
                     <div className="d-flex flex-column w-full flex-wrap align-items-end">
                       <span className="text-xl text_dark plusJakara_bold">
-                        {(item?.amount === 0 ? 'Free' : (item?.amount === '' || item?.amount == null || item?.amount === 'undefined') ? 'Need to update' : '$' + item?.amount)}
+                        {item?.amount === 0
+                          ? "Free"
+                          : item?.amount === "" ||
+                            item?.amount == null ||
+                            item?.amount === "undefined"
+                          ? "Need to update"
+                          : (item?.currency === "GBP" ? "£" : "$") +
+                            item?.amount}
                       </span>
                       <span className="text_dark text-sm plusJakara_regular">
                         {item?.cost_type}
@@ -208,51 +224,64 @@ const PetService = () => {
                   </div>
                 </button>
                 <div className="flex justify-end w-full">
-                  {item?.business_created === 'admin' ?
+                  {item?.business_created === "admin" ? (
                     <button
                       className=""
                       onClick={() => {
                         handleDeleteService(item?.id);
                       }}
                     >
-                      <Trash2 style={{ color: 'red' }} />
+                      <Trash2 style={{ color: "red" }} />
                     </button>
-                    : <span className="text_primary plusJakara_medium">Created by User</span>}
+                  ) : (
+                    <span className="text_primary plusJakara_medium">
+                      Created by User
+                    </span>
+                  )}
                 </div>
               </div>
-            ))}
+            ))
+          )}
         </div>
       )}
       <div className="mt-auto">
         <div className="flex justify-between items-center border shadow-sm bg_white rounded-3 w-full py-2 px-3 w-100 overflow-x-auto">
-          <span style={{ minWidth: '200px' }} className="text_secondary inter_medium text">{`Total showing ${totalDataCount}`}</span>
+          <span
+            style={{ minWidth: "200px" }}
+            className="text_secondary inter_medium text"
+          >{`Total showing ${totalDataCount}`}</span>
           <div className="flex">
             <button
-              className={`px-3 py-1 text-sm border rounded-l-md ${currentPage === 1 ? "bg_white text_dark cursor-not-allowed" : ""
-                }`}
+              className={`px-3 py-1 text-sm border rounded-l-md ${
+                currentPage === 1 ? "bg_white text_dark cursor-not-allowed" : ""
+              }`}
               onClick={handlePrevPage}
               disabled={currentPage === 1}
             >
               <ArrowLeft size={16} className="text_secondary" />
             </button>
             <div className="flex">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page, i) => (
-                <button
-                  key={i}
-                  className={`px-3 py-1 text-sm border ${currentPage === page
-                    ? "bg_primary text_white cursor-not-allowed"
-                    : "bg_white text_dark"
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page, i) => (
+                  <button
+                    key={i}
+                    className={`px-3 py-1 text-sm border ${
+                      currentPage === page
+                        ? "bg_primary text_white cursor-not-allowed"
+                        : "bg_white text_dark"
                     }`}
-                  disabled={currentPage === page}
-                  onClick={() => handlePageClick(page)}
-                >
-                  {page}
-                </button>
-              ))}
+                    disabled={currentPage === page}
+                    onClick={() => handlePageClick(page)}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
             </div>
             <button
-              className={`px-3 py-1 text-sm border rounded-r-md ${currentPage >= totalPages ? "cursor-not-allowed" : ""
-                }`}
+              className={`px-3 py-1 text-sm border rounded-r-md ${
+                currentPage >= totalPages ? "cursor-not-allowed" : ""
+              }`}
               onClick={handleNextPage}
               disabled={currentPage >= totalPages}
             >

@@ -64,8 +64,15 @@ const PetInsurance = () => {
   };
 
   const calculateDiscountedAmount = (discount, services) => {
-    const validAmounts = services?.filter((service) => service?.amount !== null && service?.amount !== undefined)?.map((service) => (parseFloat(service?.amount) || 0));
-    const totalCost = validAmounts?.reduce((acc, serviceCost) => acc + serviceCost, 0);
+    const validAmounts = services
+      ?.filter(
+        (service) => service?.amount !== null && service?.amount !== undefined,
+      )
+      ?.map((service) => parseFloat(service?.amount) || 0);
+    const totalCost = validAmounts?.reduce(
+      (acc, serviceCost) => acc + serviceCost,
+      0,
+    );
     const discountValue = parseFloat(discount) || 0;
     const discountedAmount = totalCost * (1 - discountValue / 100);
     const result = discountedAmount?.toFixed(2);
@@ -118,7 +125,9 @@ const PetInsurance = () => {
   };
 
   const handleEditClick = (insurance) => {
-    navigate(`/pet-insurance/update`, { state: { insuranceDetail: insurance } });
+    navigate(`/pet-insurance/update`, {
+      state: { insuranceDetail: insurance },
+    });
   };
 
   return (
@@ -147,7 +156,9 @@ const PetInsurance = () => {
         <div className="d-flex flex-wrap gap-3 my-5 justify-content-center justify-content-lg-start">
           {!petInsurances || petInsurances?.length === 0 ? (
             <div className="my-5 flex justify-center items-center w-full">
-              <span className="text_dark inter_medium">No Pet Insurance Found</span>
+              <span className="text_dark inter_medium">
+                No Pet Insurance Found
+              </span>
             </div>
           ) : (
             petInsurances?.map((item, i) => (
@@ -157,10 +168,12 @@ const PetInsurance = () => {
                 onClick={() => handleEditClick(item)}
               >
                 <div className="deal_label">
-                  <button onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteClick(item);
-                  }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteClick(item);
+                    }}
+                  >
                     <IoClose className="text_white" />
                   </button>
                 </div>
@@ -170,7 +183,7 @@ const PetInsurance = () => {
                       style={{
                         width: "64px",
                         height: "64px",
-                        objectFit: 'cover'
+                        objectFit: "cover",
                       }}
                       className="rounded-lg cursor-pointer object-cover"
                       alt=""
@@ -207,16 +220,22 @@ const PetInsurance = () => {
                   <span className="text-xl plusJakara_medium text-[#FF6F61]">
                     ${item?.cost}
                   </span>
+                  <div className="flex gap-1">
+                    <img src={clock} height={16} width={16} alt="" />
+                    <span className="text-xs plusJakara_medium text_secondary">
+                      Updated: {new Date(item?.updated_at).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex cursor-pointer gap-1">
+                {/* <div className="flex cursor-pointer gap-1">
                   <span className="text_secondary plusJakara_medium text-xs">
                     Highlight:
                   </span>
                   <span className="text_primary plusJakara_medium text-sm">
                     {item?.highlight || 'N/A'}
                   </span>
-                </div>
-                <div className="flex cursor-pointer justify-between flex-wrap gap-2 items-center">
+                </div> */}
+                {/* <div className="flex cursor-pointer justify-between flex-wrap gap-2 items-center">
                   <div className="flex gap-1">
                     <span className="text_secondary plusJakara_medium text-xs">
                       Coverage:
@@ -233,7 +252,7 @@ const PetInsurance = () => {
                       Updated: {new Date(item?.updated_at).toLocaleDateString()}
                     </span>
                   </div>
-                </div>
+                </div> */}
               </div>
             ))
           )}
@@ -244,8 +263,9 @@ const PetInsurance = () => {
           <span className="text_secondary inter_medium text">{`Total showing ${totalDataCount}`}</span>
           <div className="flex">
             <button
-              className={`px-3 py-1 text-sm border rounded-l-md ${currentPage === 1 ? "bg_white text_dark cursor-not-allowed" : ""
-                }`}
+              className={`px-3 py-1 text-sm border rounded-l-md ${
+                currentPage === 1 ? "bg_white text_dark cursor-not-allowed" : ""
+              }`}
               onClick={handlePrevPage}
               disabled={currentPage === 1}
             >
@@ -256,21 +276,23 @@ const PetInsurance = () => {
                 (page, i) => (
                   <button
                     key={i}
-                    className={`px-3 py-1 text-sm border ${currentPage === page
-                      ? "bg_primary text_white cursor-not-allowed"
-                      : "bg_white text_dark"
-                      }`}
+                    className={`px-3 py-1 text-sm border ${
+                      currentPage === page
+                        ? "bg_primary text_white cursor-not-allowed"
+                        : "bg_white text_dark"
+                    }`}
                     disabled={currentPage === page}
                     onClick={() => handlePageClick(page)}
                   >
                     {page}
                   </button>
-                )
+                ),
               )}
             </div>
             <button
-              className={`px-3 py-1 text-sm border rounded-r-md ${currentPage >= totalPages ? "cursor-not-allowed" : ""
-                }`}
+              className={`px-3 py-1 text-sm border rounded-r-md ${
+                currentPage >= totalPages ? "cursor-not-allowed" : ""
+              }`}
               onClick={handleNextPage}
               disabled={currentPage >= totalPages}
             >
@@ -307,21 +329,25 @@ const PetInsurance = () => {
         <div className="flex justify-center gap-2 w-full my-3">
           <button
             type="button"
-            className={`border cursor-pointer rounded-lg gap-1 px-3 py-2 inter_medium text-sm flex justify-center items-center ${deleteAction === "yes"
-              ? "bg_primary text_white"
-              : "bg_white text_secondary"}`}
+            className={`border cursor-pointer rounded-lg gap-1 px-3 py-2 inter_medium text-sm flex justify-center items-center ${
+              deleteAction === "yes"
+                ? "bg_primary text_white"
+                : "bg_white text_secondary"
+            }`}
             disabled={loading}
             onClick={() => handleDeletePetInsurance(selectItem)}
           >
-            {loading ? <CircularProgress size={15} color="inherit" /> : 'Yes'}
+            {loading ? <CircularProgress size={15} color="inherit" /> : "Yes"}
           </button>
           <button
             type="button"
-            className={`border cursor-pointer rounded-lg gap-1 px-3 py-2 inter_medium text-sm flex justify-center items-center ${deleteAction === "no"
-              ? "bg_primary text_white"
-              : "bg_white text_secondary"
-              }`}
-            onClick={() => setShowDeleteModal(false)}>
+            className={`border cursor-pointer rounded-lg gap-1 px-3 py-2 inter_medium text-sm flex justify-center items-center ${
+              deleteAction === "no"
+                ? "bg_primary text_white"
+                : "bg_white text_secondary"
+            }`}
+            onClick={() => setShowDeleteModal(false)}
+          >
             No
           </button>
         </div>
@@ -337,7 +363,9 @@ const PetInsurance = () => {
       >
         {detailItem && (
           <div className="p-2">
-            <h2 className="text-2xl text_dark plusJakara_medium mb-4">Pet Insurance Details</h2>
+            <h2 className="text-2xl text_dark plusJakara_medium mb-4">
+              Pet Insurance Details
+            </h2>
 
             <div className="flex gap-4 mb-4">
               {detailItem?.image && (
@@ -365,7 +393,10 @@ const PetInsurance = () => {
                     {detailItem?.discount}% off
                   </span>
                   <span className="text_secondary plusJakara_medium text-sm">
-                    Code: <span className="text_primary">{detailItem?.promo_code}</span>
+                    Code:{" "}
+                    <span className="text_primary">
+                      {detailItem?.promo_code}
+                    </span>
                   </span>
                 </div>
 
@@ -380,32 +411,48 @@ const PetInsurance = () => {
 
             {detailItem?.description && (
               <div className="mb-4">
-                <h4 className="text-lg text_dark plusJakara_medium mb-1">Description</h4>
+                <h4 className="text-lg text_dark plusJakara_medium mb-1">
+                  Description
+                </h4>
                 <p className="text_secondary">{detailItem?.description}</p>
               </div>
             )}
 
-            {detailItem?.insurance_services && detailItem.insurance_services.length > 0 && (
-              <div className="mb-4">
-                <h4 className="text-lg text_dark plusJakara_medium mb-1">Covered Services</h4>
-                <div className="border rounded-lg p-2">
-                  {detailItem.insurance_services.map((service, idx) => (
-                    <div key={idx} className="flex justify-between items-center border-b py-2 last:border-b-0">
-                      <span className="text_dark">{service.name}</span>
-                      <span className="text_primary font-medium">${parseFloat(service.amount).toFixed(2)}</span>
-                    </div>
-                  ))}
-                  {detailItem?.insurance_type === 'premium' && (
-                    <div className="flex justify-between items-center mt-2 pt-2 border-t">
-                      <span className="text_dark font-medium">Total After Discount</span>
-                      <span className="text-[#06D6A0] font-medium">
-                        ${calculateDiscountedAmount(detailItem?.discount, detailItem?.insurance_services)}
-                      </span>
-                    </div>
-                  )}
+            {detailItem?.insurance_services &&
+              detailItem.insurance_services.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-lg text_dark plusJakara_medium mb-1">
+                    Covered Services
+                  </h4>
+                  <div className="border rounded-lg p-2">
+                    {detailItem.insurance_services.map((service, idx) => (
+                      <div
+                        key={idx}
+                        className="flex justify-between items-center border-b py-2 last:border-b-0"
+                      >
+                        <span className="text_dark">{service.name}</span>
+                        <span className="text_primary font-medium">
+                          ${parseFloat(service.amount).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                    {detailItem?.insurance_type === "premium" && (
+                      <div className="flex justify-between items-center mt-2 pt-2 border-t">
+                        <span className="text_dark font-medium">
+                          Total After Discount
+                        </span>
+                        <span className="text-[#06D6A0] font-medium">
+                          $
+                          {calculateDiscountedAmount(
+                            detailItem?.discount,
+                            detailItem?.insurance_services,
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             <div className="flex justify-end gap-2 mt-4">
               <button

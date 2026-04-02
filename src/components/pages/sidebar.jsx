@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useState, useEffect, useRef } from 'react';
 import { Menu, MenuItem, Sidebar, SubMenu } from 'react-pro-sidebar';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../authRoutes/useAuth';
@@ -14,6 +14,7 @@ import {
     reportdark, reportwhite
 } from '../icons/icon';
 import { useSelector } from 'react-redux';
+import { apiRequest } from '../../api/auth_api';
 
 const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
     const [collapsed, setCollapsed] = useState(false);
@@ -25,11 +26,100 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
     const isLogin = useAuth();
     const user_type = window.localStorage.getItem('user_type');
     const adminData = JSON.parse(window.localStorage.getItem('login_farevet_formData'));
+    const [unseenCounts, setUnseenCounts] = useState({});
+    const intervalRef = useRef(null);
+    const prevPathRef = useRef(location.pathname);
+    const isLoadingRef = useRef(false);
+
+    // Route to table_name mapping
+    const routeToTableMap = {
+        '/quotes': 'quotes',
+        '/fund_campaign': 'fund_campaign',
+        '/pet_services_budget': 'services_budget',
+        '/support': 'support'
+    };
+
+    // Map table names to API response keys
+    const tableToApiKeyMap = {
+        'quotes': 'quotes_count',
+        'fund_campaign': 'fund_campaign_count',
+        'services_budget': 'service_budget_count',
+        'support': 'support_count'
+    };
+
+    // Fetch unseen counts
+    const fetchUnseenCounts = async () => {
+        if (isLoadingRef.current) return;
+        
+        isLoadingRef.current = true;
+        try {
+            const body = new FormData();
+            body.append('type', 'get_unseen_sidebar');
+            const result = await apiRequest({ body });
+            if (result) {
+                setUnseenCounts(result);
+            }
+        } catch (error) {
+            // Error handling - minimal console as requested
+        } finally {
+            isLoadingRef.current = false;
+        }
+    };
+
+    // Update unseen when user visits a route
+    const updateUnseen = async (tableName) => {
+        try {
+            const body = new FormData();
+            body.append('type', 'update_unseen');
+            body.append('table_name', tableName);
+            await apiRequest({ body });
+            // Refresh counts after update with a small delay
+            setTimeout(() => {
+                fetchUnseenCounts();
+            }, 500);
+        } catch (error) {
+            // Error handling - minimal console as requested
+        }
+    };
+
+    // Fetch counts on mount and set up polling
+    useEffect(() => {
+        if (isLogin) {
+            fetchUnseenCounts();
+            // Set up polling every 10 seconds for real-time updates (reduced frequency)
+            intervalRef.current = setInterval(() => {
+                if (!isLoadingRef.current) {
+                    fetchUnseenCounts();
+                }
+            }, 10000);
+        }
+
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
+        };
+    }, [isLogin]);
+
+    // Handle route changes and update unseen
+    useEffect(() => {
+        const currentPath = location.pathname;
+        const prevPath = prevPathRef.current;
+
+        // Check if route changed to one of the tracked routes
+        if (currentPath !== prevPath && routeToTableMap[currentPath] && isLogin) {
+            const tableName = routeToTableMap[currentPath];
+            updateUnseen(tableName);
+        }
+
+        prevPathRef.current = currentPath;
+    }, [location.pathname, isLogin]);
 
     const menuItems2 = [
         { badge: false, image: dashboarddark, image2: dashboardwhite, items: "Dashboard", path: '/dashboard' },
         { badge: false, image: appoointmentdark, image2: appoointmentwhite, items: "Individual Users", path: '/individual-users' },
         { badge: false, image: appoointmentdark, image2: appoointmentwhite, items: "Vets", path: '/vets' },
+        { badge: false, image: appoointmentdark, image2: appoointmentwhite, items: "Vet Pro", path: '/vet-pro' },
         { badge: false, image: businessdark, image2: businesswhite, items: "Services List", path: '/service-names' },
         { badge: false, image: businessdark, image2: businesswhite, items: "Services", path: '/services' },
         { badge: false, image: businessdark, image2: businesswhite, items: "Business", path: '/business' },
@@ -54,11 +144,11 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
         { badge: false, image: dealdark, image2: dealwhite, items: "Community", path: "/community" },
         { badge: false, image: dealdark, image2: dealwhite, items: "Community Messages", path: "/messge-community" },
         { badge: false, image: dealdark, image2: dealwhite, items: "Emergency", path: "/emergency" },
-        { badge: false, image: dealdark, image2: dealwhite, items: "Quotes", path: "/quotes" },
-        { badge: false, image: dealdark, image2: dealwhite, items: "Fund Campaign", path: "/fund_campaign" },
-        { badge: false, image: dealdark, image2: dealwhite, items: "Services Budget", path: "/pet_services_budget" },
-        { badge: false, image: dealdark, image2: dealwhite, items: "Customer Support", path: "/support" },
-        { badge: true, image: applicationdark, image2: applicationwhite, items: "Chat", path: "/chat" },
+        { badge: true, image: dealdark, image2: dealwhite, items: "Quotes", path: "/quotes", tableName: "quotes" },
+        { badge: true, image: dealdark, image2: dealwhite, items: "Fund Campaign", path: "/fund_campaign", tableName: "fund_campaign" },
+        { badge: true, image: dealdark, image2: dealwhite, items: "Services Budget", path: "/pet_services_budget", tableName: "services_budget" },
+        { badge: true, image: dealdark, image2: dealwhite, items: "Customer Support", path: "/support", tableName: "support" },
+        { badge: false, image: applicationdark, image2: applicationwhite, items: "Chat", path: "/chat" },
         { badge: false, image: padlock, image2: padlocklight, items: "Change Password", path: '/change-password' }
     ];
 
@@ -78,14 +168,20 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
     } else if (user_type === 'vet') {
         menuItems = [
             { badge: false, image: applicationdark, image2: applicationwhite, items: "Profile", path: "/profile" },
-            { badge: true, image: applicationdark, image2: applicationwhite, items: "Chat", path: "/chat" }
+            { badge: false, image: applicationdark, image2: applicationwhite, items: "Chat", path: "/chat" }
         ]
     }
 
-    const handleLinkClick = (itemId, path) => {
+    const handleLinkClick = (itemId, path, tableName) => {
         setSelectedLink(itemId);
         setToggled(false);
         setShow(false);
+        
+        // Call update_unseen API if tableName exists
+        if (tableName && routeToTableMap[path]) {
+            updateUnseen(tableName);
+        }
+        
         navigate(path);
     };
 
@@ -154,7 +250,7 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
                                                     </SubMenu>
                                                 ) : (
                                                     <MenuItem
-                                                        onClick={() => handleLinkClick(i.toString(), item.path)}
+                                                        onClick={() => handleLinkClick(i.toString(), item.path, item.tableName)}
                                                         component={<Link to={item.path} />}
                                                         className={`w-full rounded-lg mb-2 ${isChildPath(item.path, location.pathname)
                                                             ? 'bg_primary text_white inter_medium'
@@ -166,19 +262,33 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
                                                                 <img src={isChildPath(item.path, location.pathname) ? item.image2 : item.image} alt="" />
                                                                 <div className='inter_semibold'>{item.items}</div>
                                                             </div>
-                                                            {item.badge && chatCount > 0 && (
-                                                                <div
-                                                                    className="rounded-5 plusJakara_medium text_white"
-                                                                    style={{
-                                                                        zIndex: 99,
-                                                                        fontSize: "12px",
-                                                                        backgroundColor: "red",
-                                                                        padding: chatCount === 1 ? "0px 6px" : chatCount > 9 ? "2px 4px" : "0px 5px", // Adjusted padding
-                                                                    }}
-                                                                >
-                                                                    {chatCount > 9 ? "+9" : chatCount}
-                                                                </div>
-                                                            )}
+                                                            {item.badge && item.items !== "Chat" && (() => {
+                                                                let count = 0;
+                                                                if (item.tableName) {
+                                                                    const apiKey = tableToApiKeyMap[item.tableName];
+                                                                    if (apiKey && unseenCounts[apiKey]) {
+                                                                        count = parseInt(unseenCounts[apiKey], 10) || 0;
+                                                                    }
+                                                                }
+                                                                if (count === 0) return null;
+                                                                
+                                                                const displayCount = count > 100 ? "99+" : count;
+                                                                const isThreeDigits = count > 99;
+                                                                
+                                                                return (
+                                                                    <div
+                                                                        className="rounded-5 plusJakara_medium text_white"
+                                                                        style={{
+                                                                            zIndex: 99,
+                                                                            fontSize: "12px",
+                                                                            backgroundColor: "red",
+                                                                            padding: isThreeDigits ? "2px 5px" : count < 10 ? "0px 6px" : "0px 5px",
+                                                                        }}
+                                                                    >
+                                                                        {displayCount}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </MenuItem>
                                                 )}

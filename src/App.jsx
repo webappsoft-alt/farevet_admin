@@ -55,6 +55,7 @@ import CreateVetBills from "./components/pages/vetBills/createVetBills";
 import Quotes from "./components/pages/quotes";
 import FundCampaign from "./components/pages/fundCampaign";
 import ServicesBudget from "./components/pages/servicesBudget";
+import VetPro from "./components/pages/vetPro";
 import { apiRequest } from "./api/auth_api";
 import { setChatCount } from "./redux/videoCall";
 
@@ -162,6 +163,7 @@ function App() {
               <Route path="/support" element={<Support />} />
               <Route path="/profile" element={<EditProfile />} />
               <Route path="/vets" element={<Vets />} />
+              <Route path="/vet-pro" element={<VetPro />} />
               <Route path="/video-call" element={<VideoCall />} />
               <Route path="/business/:id" element={<PreviewBusiness />} />
               <Route path="/service-names/create-service" element={<CreateService />} />
@@ -213,6 +215,7 @@ function App() {
               <Route path="/support" element={<Support />} />
               <Route path="/profile" element={<EditProfile />} />
               <Route path="/vets" element={<Vets />} />
+              <Route path="/vet-pro" element={<VetPro />} />
               <Route path="/video-call" element={<VideoCall />} />
               <Route path="/business/:id" element={<PreviewBusiness />} />
               <Route path="/service-names/create-service" element={<CreateService />} />
