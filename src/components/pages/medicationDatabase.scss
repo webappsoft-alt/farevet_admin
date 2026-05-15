@@ -1,0 +1,566 @@
+/* Medication Database — matches fareVet-admin-panel.html (scoped) */
+.medication-panel {
+  --med-bg: #f4f5f7;
+  --med-bg2: #ffffff;
+  --med-bg3: #f9f9fb;
+  --med-ink: #1a1a2e;
+  --med-ink2: #4a4a68;
+  --med-ink3: #9b9bb5;
+  --med-border: #e8e8f0;
+  --med-primary: #8930f9;
+  --med-primL: #f3e8ff;
+  --med-green: #00b894;
+  --med-greenL: #e0f7f3;
+  --med-amber: #f39c12;
+  --med-amberL: #fef5e7;
+  --med-red: #e74c3c;
+  --med-redL: #fdecea;
+  --med-blue: #2980b9;
+  --med-blueL: #eaf4fb;
+
+  padding: 24px;
+  background: var(--med-bg);
+  font-family: "Inter", sans-serif;
+  color: var(--med-ink);
+  font-size: 13px;
+  line-height: 1.5;
+  min-height: 100%;
+
+  .med-page-hdr {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .med-page-title {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--med-ink);
+    margin-bottom: 3px;
+  }
+
+  .med-page-sub {
+    font-size: 12px;
+    color: var(--med-ink3);
+  }
+
+  .med-stat-grid {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 16px;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @media (max-width: 1100px) {
+    .med-stat-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 520px) {
+    .med-stat-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .med-stat-card {
+    background: var(--med-bg2);
+    border: 1px solid var(--med-border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .med-stat-lbl {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--med-ink3);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 6px;
+  }
+
+  .med-stat-val {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--med-ink);
+    margin-bottom: 3px;
+  }
+
+  .med-stat-delta {
+    font-size: 11px;
+  }
+
+  .med-up {
+    color: var(--med-green);
+  }
+  .med-dn {
+    color: var(--med-red);
+  }
+  .med-nt {
+    color: var(--med-ink3);
+  }
+
+  .med-stale-alert {
+    background: var(--med-amberL);
+    border: 1px solid rgba(243, 156, 18, 0.3);
+    border-radius: 10px;
+    padding: 11px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .med-stale-alert-text {
+    font-size: 12px;
+    color: #92400e;
+  }
+
+  .med-card {
+    background: var(--med-bg2);
+    border: 1px solid var(--med-border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .med-ph {
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--med-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .med-pt {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--med-ink);
+  }
+
+  .med-pb {
+    padding: 16px;
+  }
+
+  .med-tbl {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .med-tbl th {
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--med-ink3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--med-border);
+    background: var(--med-bg3);
+  }
+
+  .med-tbl td {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--med-ink2);
+    border-bottom: 1px solid var(--med-border);
+  }
+
+  .med-tbl tr:last-child td {
+    border-bottom: none;
+  }
+
+  .med-tbl tr:hover td {
+    background: var(--med-bg3);
+  }
+
+  .med-bold {
+    font-weight: 600;
+    color: var(--med-ink);
+  }
+
+  .med-tag {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 5px;
+    display: inline-block;
+  }
+
+  .med-tg-a {
+    background: var(--med-amberL);
+    color: var(--med-amber);
+  }
+
+  .med-tg-b {
+    background: var(--med-blueL);
+    color: var(--med-blue);
+  }
+
+  .med-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 14px;
+    border-radius: 7px;
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+
+  .med-btn-primary {
+    background: var(--med-primary);
+    color: white;
+  }
+  .med-btn-primary:hover {
+    background: #7820e8;
+  }
+
+  .med-btn-ghost {
+    background: transparent;
+    border: 1px solid var(--med-border);
+    color: var(--med-ink2);
+  }
+  .med-btn-ghost:hover {
+    border-color: var(--med-ink3);
+  }
+
+  .med-btn-amber {
+    background: var(--med-amber);
+    color: white;
+  }
+
+  .med-btn-sm {
+    padding: 4px 10px;
+    font-size: 10px;
+  }
+
+  .med-status {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 9px;
+  }
+
+  .med-s-active {
+    background: var(--med-greenL);
+    color: var(--med-green);
+  }
+
+  .med-s-urgent {
+    background: var(--med-redL);
+    color: var(--med-red);
+  }
+
+  .med-fsel {
+    border: 1px solid var(--med-border);
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    color: var(--med-ink);
+    background: var(--med-bg2);
+    cursor: pointer;
+    outline: none;
+  }
+
+  .med-finput {
+    border: 1px solid var(--med-border);
+    border-radius: 7px;
+    padding: 7px 10px;
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    color: var(--med-ink);
+    background: var(--med-bg3);
+    outline: none;
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+
+  .med-finput:focus {
+    border-color: var(--med-primary);
+    background: white;
+  }
+
+  .med-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  @media (max-width: 960px) {
+    .med-two-col {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .med-field-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--med-ink3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 5px;
+  }
+
+  .med-pet-row {
+    display: flex;
+    gap: 4px;
+  }
+
+  .med-pet-pill {
+    flex: 1;
+    padding: 6px;
+    border: 1.5px solid var(--med-border);
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--med-ink3);
+    cursor: pointer;
+    text-align: center;
+    background: var(--med-bg2);
+    font-weight: 500;
+  }
+
+  .med-pet-pill.is-on {
+    border-color: var(--med-primary);
+    font-weight: 600;
+    color: var(--med-primary);
+    background: var(--med-primL);
+  }
+
+  .med-vet-box {
+    background: var(--med-redL);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+
+  .med-vet-box-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--med-red);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .med-pharm-block {
+    background: var(--med-bg3);
+    border: 1px solid var(--med-border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  .med-pharm-grid {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 8px;
+  }
+
+  .med-price-red {
+    color: var(--med-red);
+    font-weight: 600;
+    font-family: ui-monospace, monospace;
+  }
+
+  .med-price-green {
+    color: var(--med-green);
+    font-weight: 600;
+    font-family: ui-monospace, monospace;
+  }
+
+  .med-date-warn {
+    color: var(--med-red);
+  }
+}
+
+/* Details modal — Ant Design renders outside .medication-panel */
+.med-detail-modal-wrap .med-detail-modal-title {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: #1a1a2e;
+}
+
+.med-detail-modal-wrap .med-detail-modal-sub {
+  font-weight: 600;
+  font-size: 14px;
+  color: #9b9bb5;
+}
+
+.med-detail-modal-body {
+  max-height: min(72vh, 640px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.med-detail-block {
+  margin-bottom: 4px;
+}
+
+.med-detail-block:last-child {
+  margin-bottom: 0;
+}
+
+.med-detail-block:first-child .med-detail-section-label {
+  margin-top: 0;
+}
+
+.med-detail-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9b9bb5;
+  margin: 14px 0 10px;
+}
+
+.med-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  margin: 0;
+}
+
+@media (max-width: 520px) {
+  .med-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.med-detail-item {
+  margin: 0;
+  min-width: 0;
+}
+
+.med-detail-dt {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9b9bb5;
+  margin-bottom: 4px;
+}
+
+.med-detail-dd {
+  margin: 0;
+  font-size: 13px;
+  color: #1a1a2e;
+  word-break: break-word;
+}
+
+.med-detail-item-full {
+  grid-column: 1 / -1;
+}
+
+.med-detail-strong {
+  font-weight: 700;
+}
+
+.med-detail-multiline {
+  white-space: pre-wrap;
+}
+
+.med-detail-notes-block .med-detail-section-label {
+  margin-bottom: 8px;
+}
+
+.med-detail-notes-scroll {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  border: 1px solid #e8e8f0;
+  border-radius: 8px;
+  background: #f9f9fb;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1a1a2e;
+}
+
+.med-detail-link {
+  color: #8930f9;
+  word-break: break-all;
+}
+
+.med-detail-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.med-detail-modal-footer .med-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-family: "Inter", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+
+.med-detail-modal-footer .med-btn-primary {
+  background: #8930f9;
+  color: white;
+}
+
+.med-detail-modal-footer .med-btn-primary:hover {
+  background: #7820e8;
+}
+
+.med-detail-modal-footer .med-btn-ghost {
+  background: transparent;
+  border: 1px solid #e8e8f0;
+  color: #4a4a68;
+}
+
+.med-detail-modal-footer .med-btn-ghost:hover {
+  border-color: #9b9bb5;
+}
+
+.med-detail-modal-wrap .med-status {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9px;
+}
+
+.med-detail-modal-wrap .med-s-active {
+  background: #e0f7f3;
+  color: #00b894;
+}
+
+.med-detail-modal-wrap .med-s-urgent {
+  background: #fdecea;
+  color: #e74c3c;
+}
+
+.med-detail-modal-wrap .med-price-red {
+  color: #e74c3c;
+  font-weight: 600;
+  font-family: ui-monospace, monospace;
+}
+
+.med-detail-modal-wrap .med-price-green {
+  color: #00b894;
+  font-weight: 600;
+  font-family: ui-monospace, monospace;
+}

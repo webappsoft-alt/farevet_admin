@@ -2,22 +2,32 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import { CircularProgress } from "@mui/material";
-import { Form, message } from "antd";
+import { message } from "antd";
 import React, { useEffect, useState } from "react";
 import { Modal } from "react-bootstrap";
-import { ArrowLeft, Check, Plus, Trash2 } from "react-feather";
-import { useLocation, useNavigate } from "react-router-dom";
+import {
+  ArrowLeft,
+  Check,
+  Clock,
+  Edit2,
+  Globe,
+  MapPin,
+  Phone,
+  Plus,
+  Star,
+  Trash2,
+} from "react-feather";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Autoplay, FreeMode, Navigation, Pagination } from "swiper";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { apiRequest } from "../../../api/auth_api";
+import { avatar2 } from "../../icons/icon";
+import { parseStringList } from "./businessOptions";
+import "./previewBusiness.scss";
 import {
-  clock2,
-  googlemap,
-  internet,
-  phone2,
   spotlight1,
   spotlight10,
   spotlight11,
@@ -91,9 +101,72 @@ const spotlightArray = [
 
 const PreviewBusiness = () => {
   const navigate = useNavigate();
-  const [inputValue, setInputValue] = useState("");
+  const { id: routeBusinessId } = useParams();
   const { state } = useLocation();
-  const businessDetail = state?.businessStore || null;
+  const [businessDetail, setBusinessDetail] = useState(
+    () => state?.businessStore ?? null,
+  );
+
+  useEffect(() => {
+    if (
+      state?.businessStore &&
+      routeBusinessId &&
+      String(state.businessStore.id) === String(routeBusinessId)
+    ) {
+      setBusinessDetail(state.businessStore);
+    }
+  }, [state?.businessStore, routeBusinessId]);
+
+  useEffect(() => {
+    if (!routeBusinessId) return;
+    if (
+      state?.businessStore &&
+      String(state.businessStore.id) === String(routeBusinessId)
+    ) {
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const body = new FormData();
+        body.append("type", "get_data");
+        body.append("table_name", "businesses");
+        body.append("id", String(routeBusinessId));
+        const res = await apiRequest({ body });
+        let row = null;
+        if (Array.isArray(res?.data) && res.data.length > 0) {
+          row = res.data[0];
+        } else if (
+          res?.data &&
+          typeof res.data === "object" &&
+          !Array.isArray(res.data)
+        ) {
+          row = res.data;
+        } else if (Array.isArray(res) && res.length > 0) {
+          row = res[0];
+        } else if (res && typeof res === "object" && !Array.isArray(res)) {
+          row = res;
+        }
+        if (cancelled) return;
+        if (row) {
+          setBusinessDetail(row);
+        } else {
+          message.error("Business not found.");
+          navigate("/business");
+        }
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) {
+          message.error("Could not load business.");
+          navigate("/business");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [routeBusinessId, state?.businessStore, navigate]);
+  const [inputValue, setInputValue] = useState("");
   const [vetImages, setVetImages] = useState([]);
   const [services, setServices] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -254,6 +327,23 @@ const PreviewBusiness = () => {
     }
   }, [businessDetail]);
 
+  const certifications = parseStringList(
+    businessDetail?.certifications ??
+      businessDetail?.certification ??
+      businessDetail?.certificates,
+  );
+  const clinicTypeValue =
+    businessDetail?.clinic_type || businessDetail?.type || "";
+  const ownershipValue =
+    businessDetail?.ownership || businessDetail?.owner_type || "";
+  const ratingValue = parseFloat(
+    businessDetail?.rating?.rating ?? businessDetail?.rating ?? 0,
+  );
+  const ratingStars =
+    Number.isFinite(ratingValue) && ratingValue > 0
+      ? Math.min(5, Math.round(ratingValue))
+      : 0;
+
   useEffect(() => {
     const currentDay = new Date()
       .toLocaleDateString("en-US", { weekday: "long" })
@@ -307,362 +397,381 @@ const PreviewBusiness = () => {
   };
 
   return (
-    <main className="container m-auto min-h-screen py-4">
-      <div className="flex justify-between flex-wrap gap-3 items-center mb-4">
+    <main className="business-preview">
+      <div className="bp-topbar">
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => {
-              navigate(-1);
-            }}
-            className="flex items-center justify-center w-[36px] h-[36px] bg_primary rounded-lg"
+            onClick={() => navigate(-1)}
+            className="bp-back"
+            aria-label="Go back"
           >
-            <ArrowLeft className="text_white" />
+            <ArrowLeft size={18} />
           </button>
-          <span className="inter_semibold text-xl md:text-2xl text_dark">
-            Business Detail
-          </span>
+          <span className="bp-title">Business Detail</span>
         </div>
         <button
           onClick={() => handleUpdate(businessDetail)}
           type="button"
-          className="flex justify-center bg_primary py-[12px] px-[1rem] rounded-lg items-center button_shadow"
+          className="bp-edit-btn"
         >
-          <span className="inter_semibold text-sm text_white">
-            Edit Business
-          </span>
+          <Edit2 size={14} />
+          Edit Business
         </button>
       </div>
-      <Form
-        layout="verticle"
-        onFinish={handleSubmit}
-        className="w-full lg:w-[90%] xl:w-[80%] m-auto bg_white rounded-lg shadow-md p-[1rem] md:p-[2rem]"
-      >
-        <div className="w-full items_swiper overflow-hidden mb-4">
+
+      {vetImages && vetImages.length > 0 ? (
+        <div className="bp-hero">
           <Swiper
             spaceBetween={10}
             navigation={true}
             freeMode={true}
             modules={[Navigation, Autoplay, FreeMode, Pagination]}
             className="mySwiper"
-            autoplay={{
-              delay: 2000,
-              disableOnInteraction: true,
-            }}
+            autoplay={{ delay: 2500, disableOnInteraction: true }}
             slidesPerView={"auto"}
           >
-            {vetImages &&
-              vetImages?.map((image, index) => (
-                <SwiperSlide key={index} className="bg_img w-full">
-                  <img
-                    src={`${global.IMAGEURL}/${image}`}
-                    style={{ height: "25rem" }}
-                    className="object-cover object-center w-full rounded-4"
-                    alt=""
-                  />
-                </SwiperSlide>
-              ))}
+            {vetImages.map((image, index) => (
+              <SwiperSlide key={index} className="bg_img w-full">
+                <img src={`${global.IMAGEURL}/${image}`} alt="" />
+              </SwiperSlide>
+            ))}
           </Swiper>
         </div>
-        <h1 className="inter_semibold text-3xl text_dark">
-          {businessDetail?.name}
-        </h1>
-        <h6 className="text_secondary text-xl md:text-2xl inter_regular mb-3">
-          {businessDetail?.bio}
-        </h6>
-        <h6 className="text_dark text-xl md:text-2xl inter_semibold mb-0">
-          Eligibility Criteria
-        </h6>
-        <span className="text_secondary text-lg inter_regular">
-          {businessDetail?.eligibility_criteria || "No Criteria"}
-        </span>
-        <div className="flex flex-wrap items-center gap-3 my-3">
-          <button
-            onClick={handleWebsite}
-            className="border no-underline rounded-lg flex justify-center items-center gap-2"
-            style={{ width: "7rem", height: "3rem" }}
-          >
-            <img src={internet} alt="" />
-            <span className="inter_medium text_secondary">Website</span>
-          </button>
-          <a
-            href={`tel:${businessDetail?.phone}`}
-            className="border no-underline rounded-lg flex justify-center items-center gap-2"
-            style={{ width: "7rem", height: "3rem" }}
-          >
-            <img src={phone2} alt="" />
-            <span className="inter_medium text_secondary">Phone</span>
-          </a>
-          <button
-            onClick={handleShowTiming}
-            className="border rounded-lg flex justify-center items-center gap-2"
-            style={{ width: "7rem", height: "3rem" }}
-          >
-            <img src={clock2} alt="" />
-            <span className="inter_medium text_secondary">Hours</span>
-          </button>
-        </div>
-        {businessDetail?.business_type === "standard" && (
-          <div
-            className="flex items-center gap-3 mb-4"
-            onClick={handleMapClick}
-          >
-            <img src={googlemap} className="cursor-pointer" alt="" />
-            <span className="text_secondary text-lg md:text-xl inter_regular cursor-pointer">
-              {businessDetail.address}
-            </span>
-          </div>
-        )}
-        <h1 className="text_dark text-xl inter_semibold">Business Type</h1>
-        <div className="flex flex-wrap gap-2 mb-4 items-center">
-          <button
-            type="button"
-            className={`border cursor-pointer rounded-3 gap-1 px-[1rem] py-2 inter_medium text-sm flex justify-center items-center bg-[#F8F2FD] text_primary`}
-          >
-            {businessDetail?.business_type === "mobile"
-              ? "Mobile Vet Clinic"
-              : "Standard Clinic"}
-          </button>
-        </div>
-        {businessDetail?.business_type === "mobile" && (
-          <>
-            <h1 className="text_dark text-xl inter_semibold">
-              Clinic Addresses
-            </h1>
-            <div className="flex flex-wrap gap-2 mb-4 items-center">
-              <div className="d-flex flex-wrap gap-3 mb-4 justify-content-center justify-content-lg-start">
-                {multipleBusinesses === 0 ||
-                !businessDetail?.mobile_vet_detail ? (
-                  <div className="d-flex w-full justify-content-center">
-                    <span className="inter_regular text-lg text_black">
-                      No Address Found
-                    </span>
+      ) : (
+        <div className="bp-hero-empty">No business images uploaded</div>
+      )}
+
+      <div className="bp-layout">
+        <div>
+          {/* Profile header */}
+          <section className="bp-card bp-header-card">
+            <div className="bp-header-top">
+              <img
+                src={
+                  businessDetail?.logo
+                    ? `${global.IMAGEURL}/${businessDetail?.logo}`
+                    : avatar2
+                }
+                className="bp-logo"
+                alt=""
+              />
+              <div className="bp-header-text">
+                <span className="bp-business-name">
+                  {businessDetail?.name || "—"}
+                </span>
+                {businessDetail?.bio ? (
+                  <span className="bp-business-bio">{businessDetail?.bio}</span>
+                ) : null}
+                <div className="bp-rating-row">
+                  <span className="bp-stars" aria-hidden>
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <Star
+                        key={i}
+                        size={15}
+                        strokeWidth={0}
+                        fill={i < ratingStars ? "#EFD01D" : "#cbd5e1"}
+                      />
+                    ))}
+                  </span>
+                  <span className="bp-rating-value">
+                    {Number.isFinite(ratingValue) && ratingValue > 0
+                      ? `${ratingValue.toFixed(1)} / 5`
+                      : "No reviews yet"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {(clinicTypeValue ||
+              ownershipValue ||
+              certifications.length > 0 ||
+              businessDetail?.business_type) && (
+              <div className="bp-chip-row">
+                {businessDetail?.business_type ? (
+                  <span className="bp-chip is-primary">
+                    {businessDetail?.business_type === "mobile"
+                      ? "Mobile Vet Clinic"
+                      : "Standard Clinic"}
+                  </span>
+                ) : null}
+                {clinicTypeValue ? (
+                  <span className="bp-chip is-clinic">{clinicTypeValue}</span>
+                ) : null}
+                {ownershipValue ? (
+                  <span className="bp-chip is-ownership">{ownershipValue}</span>
+                ) : null}
+                {certifications.map((c) => (
+                  <span key={c} className="bp-chip is-cert">
+                    {c}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="bp-actions-row">
+              <button
+                type="button"
+                onClick={handleWebsite}
+                className="bp-action-btn"
+                disabled={!businessDetail?.website_link}
+              >
+                <Globe />
+                <span>Website</span>
+              </button>
+              <a
+                href={`tel:${businessDetail?.phone}`}
+                className="bp-action-btn"
+              >
+                <Phone />
+                <span>Phone</span>
+              </a>
+              <button
+                type="button"
+                onClick={handleShowTiming}
+                className="bp-action-btn"
+              >
+                <Clock />
+                <span>Hours</span>
+              </button>
+            </div>
+          </section>
+
+          {/* About / eligibility */}
+          {(businessDetail?.eligibility_criteria ||
+            businessDetail?.address) && (
+            <section className="bp-card">
+              {businessDetail?.business_type === "standard" &&
+              businessDetail?.address ? (
+                <>
+                  <h3 className="bp-section-title">Address</h3>
+                  <div
+                    className="bp-address-row"
+                    onClick={handleMapClick}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <MapPin size={18} />
+                    <span>{businessDetail.address}</span>
                   </div>
-                ) : (
-                  multipleBusinesses?.map((item, i) => (
-                    <div
-                      key={i}
-                      className="border border-[#EDF2F6] box_styling no-underline bg_white shadow-sm rounded-lg gap-3 flex flex-col items-start p-3"
-                    >
-                      <div className="flex flex-col gap-1 w-full">
-                        <h5 className="text_dark text-lg mb-0 inter_medium">
-                          Address
-                        </h5>
+                </>
+              ) : null}
+              {businessDetail?.eligibility_criteria ? (
+                <>
+                  <h3
+                    className="bp-section-title"
+                    style={{ marginTop: businessDetail?.address ? 18 : 0 }}
+                  >
+                    Eligibility Criteria
+                  </h3>
+                  <p
+                    style={{
+                      color: "#4b5563",
+                      fontSize: 13.5,
+                      lineHeight: 1.55,
+                      margin: 0,
+                    }}
+                  >
+                    {businessDetail.eligibility_criteria}
+                  </p>
+                </>
+              ) : null}
+            </section>
+          )}
+
+          {/* Mobile clinic addresses */}
+          {businessDetail?.business_type === "mobile" && (
+            <section className="bp-card">
+              <h3 className="bp-section-title">Clinic Addresses</h3>
+              {!multipleBusinesses || multipleBusinesses.length === 0 ? (
+                <div className="bp-empty">No address found</div>
+              ) : (
+                <div className="bp-clinic-grid">
+                  {multipleBusinesses.map((item, i) => (
+                    <div key={i} className="bp-clinic-card">
+                      <div>
+                        <div className="bp-clinic-label">Address</div>
                         <button
+                          type="button"
                           onClick={() => handleMapClick2(item?.lat, item?.lng)}
-                          className="flex justify-start items-start gap-1"
+                          className="bp-clinic-link"
                         >
-                          <img
-                            src={googlemap}
-                            className="cursor-pointer"
-                            style={{ width: "24px", height: "auto" }}
-                            alt=""
-                          />
-                          <span className="text_dark text-start inter_regular">
-                            {item?.address}
+                          <MapPin size={14} />
+                          <span className="bp-clinic-value">
+                            {item?.address || "—"}
                           </span>
                         </button>
                       </div>
-                      <div className="flex flex-col gap-1 w-full">
-                        <h5 className="text_dark text-lg mb-0 inter_medium">
-                          Description
-                        </h5>
-                        <span className="text_dark inter_regular">
-                          {item?.description}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center w-full">
-                        <div className="flex flex-col gap-1 w-full">
-                          <h5 className="text_dark text-lg mb-0 inter_medium">
-                            Start Date
-                          </h5>
-                          <span className="text_dark inter_regular">
-                            {item?.startDate}
-                          </span>
+                      {item?.description ? (
+                        <div>
+                          <div className="bp-clinic-label">Description</div>
+                          <div className="bp-clinic-value">
+                            {item?.description}
+                          </div>
                         </div>
-                        <div className="flex flex-col gap-1 w-full">
-                          <h5 className="text_dark text-lg mb-0 inter_medium">
-                            End Date
-                          </h5>
-                          <span className="text_dark inter_regular">
-                            {item?.endDate}
-                          </span>
+                      ) : null}
+                      <div className="bp-clinic-dates">
+                        <div>
+                          <div className="bp-clinic-label">Start Date</div>
+                          <div className="bp-clinic-value">
+                            {item?.startDate || "—"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="bp-clinic-label">End Date</div>
+                          <div className="bp-clinic-value">
+                            {item?.endDate || "—"}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </>
-        )}
-        <h1 className="text_dark text-xl inter_semibold">
-          Available Payment Methods
-        </h1>
-        <div className="flex flex-wrap gap-2 mb-4 items-center">
-          {paymentMethods &&
-            paymentMethods?.map((method, index) => (
-              <button
-                key={index}
-                type="button"
-                className={`border cursor-pointer rounded-3 gap-1 px-[1rem] py-2 inter_medium text-sm flex justify-center items-center bg-[#F8F2FD] text_primary`}
-              >
-                <Check className="text_primary" size={16} />
-                {method}
-              </button>
-            ))}
-        </div>
-        <h1 className="text_dark text-xl inter_semibold">Spotlight</h1>
-        <div className="flex flex-wrap gap-2 mb-4 items-center">
-          {spotLights &&
-            spotLights?.map((spotlight, index) => (
-              <button
-                key={index}
-                type="button"
-                className={`border cursor-pointer rounded-3 gap-1 px-3 py-2 text-sm flex justify-center items-center bg-[#F8F2FD] text_primary`}
-              >
-                <div className="flex items-center gap-1">
-                  <img
-                    src={
-                      spotlightArray.find((spot) => spot?.title === spotlight)
-                        ?.icon
-                    }
-                    style={{ height: "20px", width: "auto" }}
-                    className="w-4 h-4 object-cover"
-                    alt=""
-                  />
-                  {spotlight}
+                  ))}
                 </div>
-              </button>
-            ))}
-        </div>
-        {galleryImages && (
-          <>
-            <h1 className="text_dark text-xl inter_semibold mb-3">
-              Vet Gallary
-            </h1>
-            <div className="flex gap-3 items-center mb-4 flex-wrap">
-              {galleryImages.length > 0 &&
-                galleryImages?.map((image, i) => (
+              )}
+            </section>
+          )}
+
+          {/* Spotlight */}
+          {spotLights && spotLights.length > 0 ? (
+            <section className="bp-card bp-spotlight-row">
+              <h3 className="bp-section-title">Spotlight</h3>
+              <div className="bp-chip-row">
+                {spotLights.map((spotlight, index) => {
+                  const icon = spotlightArray.find(
+                    (spot) => spot?.title === spotlight,
+                  )?.icon;
+                  return (
+                    <span key={index} className="bp-chip is-primary">
+                      {icon ? <img src={icon} alt="" /> : null}
+                      {spotlight}
+                    </span>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
+
+          {/* Gallery */}
+          {galleryImages && galleryImages.length > 0 ? (
+            <section className="bp-card">
+              <h3 className="bp-section-title">Vet Gallery</h3>
+              <div className="bp-gallery">
+                {galleryImages.map((image, i) => (
                   <img
-                    style={{ width: "7rem", height: "5rem" }}
                     key={i}
                     src={`${global.IMAGEURL}/${image}`}
-                    className="rounded-lg object-cover"
                     alt=""
                   />
                 ))}
-            </div>
-          </>
-        )}
-        {portfolios.length > 0 && businessDetail?.portfolio !== "[{}]" && (
-          <>
-            <h1 className="text_dark text-xl inter_semibold mb-3">
-              Vet Portfolio
-            </h1>
-            {portfolios?.slice(0, 1).map((portfolio, i) => (
-              <div key={i} className="flex gap-3 mb-4">
-                <img
-                  style={{ width: "7rem", height: "5rem" }}
-                  src={portfolio?.image}
-                  className="rounded-lg object-cover"
-                  alt=""
-                />
-                <div className="flex flex-col gap-1">
-                  <span className="inter_medium text-xl text_dark">
-                    {portfolio?.name}
-                  </span>
-                  <span className="inter_medium text_secondary">
-                    {portfolio?.job_title}
-                  </span>
+              </div>
+            </section>
+          ) : null}
+
+          {/* Portfolio */}
+          {portfolios.length > 0 && businessDetail?.portfolio !== "[{}]" && (
+            <section className="bp-card">
+              <h3 className="bp-section-title">Vet Portfolio</h3>
+              {portfolios.slice(0, 1).map((portfolio, i) => (
+                <div key={i} className="bp-people-row">
+                  <div className="bp-person">
+                    <img
+                      src={portfolio?.image}
+                      className="bp-person-avatar"
+                      alt=""
+                    />
+                    <div className="bp-person-text">
+                      <span className="bp-person-name">{portfolio?.name}</span>
+                      <span className="bp-person-role">
+                        {portfolio?.job_title}
+                      </span>
+                    </div>
+                  </div>
                   <button
+                    type="button"
                     onClick={handleShowPortfolio}
-                    className="inter_medium rounded-3 w-fit px-5 py-2 bg-[#F8F2FD] text_primary"
+                    className="bp-view-all"
                   >
-                    View All
+                    View all
                   </button>
                 </div>
-              </div>
-            ))}
-          </>
-        )}
-        {teamMembers.length > 0 && businessDetail?.team_members !== "[{}]" && (
-          <>
-            <h1 className="text_dark text-xl inter_semibold mb-3">
-              Team Members
-            </h1>
-            {teamMembers.slice(0, 1).map((member, i) => (
-              <div key={i} className="flex gap-3 mb-4">
-                <img
-                  src={member?.image}
-                  style={{ width: "6rem", height: "5rem" }}
-                  className="rounded-lg object-cover"
-                  alt=""
+              ))}
+            </section>
+          )}
+
+          {/* Team members */}
+          {teamMembers.length > 0 &&
+            businessDetail?.team_members !== "[{}]" && (
+              <section className="bp-card">
+                <h3 className="bp-section-title">Team Members</h3>
+                {teamMembers.slice(0, 1).map((member, i) => (
+                  <div key={i} className="bp-people-row">
+                    <div className="bp-person">
+                      <img
+                        src={member?.image}
+                        className="bp-person-avatar"
+                        alt=""
+                      />
+                      <div className="bp-person-text">
+                        <span className="bp-person-name">{member?.name}</span>
+                        <span className="bp-person-role">
+                          {member?.job_title}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleShow}
+                      className="bp-view-all"
+                    >
+                      View all
+                    </button>
+                  </div>
+                ))}
+              </section>
+            )}
+
+          {/* Services */}
+          <section className="bp-card">
+            <div className="bp-services-head">
+              <h3 className="bp-section-title" style={{ margin: 0 }}>
+                Services
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  navigate("/services/create-service", {
+                    state: { businessData: businessDetail },
+                  });
+                }}
+                className="bp-add-service"
+              >
+                <Plus size={14} />
+                Create service
+              </button>
+            </div>
+            {isProcessing ? (
+              <div className="flex w-full justify-center items-center my-3">
+                <CircularProgress
+                  className="text_primary"
+                  size={28}
+                  thickness={3}
                 />
-                <div className="flex flex-col gap-1">
-                  <span className="inter_medium text-xl text_dark">
-                    {member?.name}
-                  </span>
-                  <span className="inter_medium text_secondary">
-                    {member?.job_title}
-                  </span>
-                  <button
-                    onClick={handleShow}
-                    className="inter_medium rounded-3 px-5 w-fit py-2 bg-[#F8F2FD] text_primary"
-                  >
-                    View All
-                  </button>
-                </div>
               </div>
-            ))}
-          </>
-        )}
-        <div className="flex w-full justify-between my-4 items-center flex-wrap">
-          <h1 className="text_dark text-xl inter_semibold">Services</h1>
-          <button
-            onClick={() => {
-              navigate("/services/create-service", {
-                state: { businessData: businessDetail },
-              });
-            }}
-            className="flex justify-center bg_primary p-2 rounded-lg items-center gap-2 button_shadow"
-          >
-            <Plus size={18} className="hidden md:block text_white" />
-            <span className="inter_semibold max-md:text-xs text-sm text_white">
-              Create service
-            </span>
-          </button>
-        </div>
-        {isProcessing ? (
-          <div className="flex w-full justify-center items-center my-5">
-            <CircularProgress
-              className="text_primary"
-              size={30}
-              thickness={3}
-            />
-          </div>
-        ) : (
-          <div className="d-flex flex-wrap gap-3 mb-4 justify-content-center justify-content-lg-start">
-            {!services || services?.length === 0 ? (
-              <div className="my-5 flex justify-center items-center w-full">
-                <span className="text_dark inter_medium">No Service Found</span>
-              </div>
+            ) : !services || services.length === 0 ? (
+              <div className="bp-empty">No service found</div>
             ) : (
-              services?.map((item, i) => (
-                <div
-                  key={i}
-                  className="border border-[#EDF2F6] box_styling no-underline bg_white shadow-sm rounded-lg gap-1 flex flex-col items-start w-full h-auto p-2"
-                >
-                  <div
-                    onClick={() => handleBusinessClick(item)}
-                    className="cursor-pointer w-full"
-                  >
-                    <div className="flex w-full gap-2 justify-between">
-                      <div className="flex flex-col flex-wrap w-full">
-                        <span className="text_dark plusJakara_bold">
+              <div className="bp-services-list">
+                {services.map((item, i) => (
+                  <div key={i} className="bp-service">
+                    <div
+                      className="bp-service-head"
+                      onClick={() => handleBusinessClick(item)}
+                    >
+                      <div className="flex flex-col min-w-0">
+                        <span className="bp-service-name">
                           {item?.service_name}
                         </span>
-                        <span className="text_dark text-sm plusJakara_regular">
+                        <span className="bp-service-sub">
                           {item && item.sub_service
                             ? (() => {
                                 const parsedSubService = safeJSONParse(
@@ -682,37 +791,99 @@ const PreviewBusiness = () => {
                             : ""}
                         </span>
                       </div>
-                      <div className="d-flex flex-column w-full flex-wrap align-items-end">
-                        <span className="text-xl text_dark plusJakara_bold">
-                          {item?.amount}
-                        </span>
-                        <span className="text_dark text-sm plusJakara_regular">
+                      <div className="flex flex-col items-end shrink-0">
+                        <span className="bp-service-price">{item?.amount}</span>
+                        <span className="bp-service-cost-type">
                           {item?.cost_type}
                         </span>
                       </div>
                     </div>
-                    <div className="flex w-full flex-wrap justify-start my-2">
-                      <span className="text-sm plusJakara_regular text_dark">
-                        {item?.description}
-                      </span>
+                    {item?.description ? (
+                      <p className="bp-service-desc">{item?.description}</p>
+                    ) : null}
+                    <div className="bp-service-foot">
+                      <button
+                        type="button"
+                        className="bp-service-delete"
+                        onClick={() => handleDeleteService(item?.id)}
+                        aria-label="Delete service"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex justify-end w-full">
-                    <button
-                      className=""
-                      onClick={() => {
-                        handleDeleteService(item?.id);
-                      }}
-                    >
-                      <Trash2 style={{ color: "red" }} />
-                    </button>
-                  </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
-          </div>
-        )}
-      </Form>
+          </section>
+        </div>
+
+        {/* Sidebar */}
+        <aside>
+          {paymentMethods && paymentMethods.length > 0 ? (
+            <section className="bp-card">
+              <h3 className="bp-section-title">Payment Methods</h3>
+              <div className="bp-chip-row">
+                {paymentMethods.map((method, index) => (
+                  <span key={index} className="bp-chip is-primary">
+                    <Check size={12} />
+                    {method}
+                  </span>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          <section className="bp-card">
+            <h3 className="bp-section-title">Quick info</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {businessDetail?.phone ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Phone size={15} color="#7b3ff2" />
+                  <span style={{ fontSize: 13, color: "#374151" }}>
+                    {businessDetail.phone}
+                  </span>
+                </div>
+              ) : null}
+              {businessDetail?.website_link ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Globe size={15} color="#7b3ff2" />
+                  <span
+                    style={{
+                      fontSize: 13,
+                      color: "#374151",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    {businessDetail.website_link}
+                  </span>
+                </div>
+              ) : null}
+              {availability && availability.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={handleShowTiming}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    background: "transparent",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    color: "#374151",
+                    fontSize: 13,
+                    textAlign: "left",
+                  }}
+                >
+                  <Clock size={15} color="#7b3ff2" />
+                  <span>View opening hours</span>
+                </button>
+              ) : null}
+            </div>
+          </section>
+        </aside>
+      </div>
       <Modal show={showPortfolio} onHide={handleClosePortfolio} centered>
         <Modal.Header closeButton>
           <span className="text-2xl plusJakara_medium text_dark">

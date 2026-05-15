@@ -21,13 +21,13 @@ const NavHeader = ({ broken, setToggled, toggled }) => {
     return (
         <>
             <Navbar bg="white" expand="lg" sticky="top" className='p-3 shadow-sm w-[100%]' id="navbar">
-                <Container fluid="lg" className='w-full' >
+                <Container fluid className="w-full max-w-none px-3">
                     <div className='flex items-center gap-3 md:w-1/2'>
-                        {broken && (
+                        {/* {broken && (
                             <button className="sb-button" onClick={() => navigate('/dashboard')}>
                                 <img src={logofarevet} className='max-md:w-[70%]' alt="" />
                             </button>
-                        )}
+                        )} */}
                         {broken && (
                             <button className="sb-button" onClick={() => setToggled(!toggled)}>
                                 <MdMenu size={28} />

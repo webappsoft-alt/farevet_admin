@@ -1,4 +1,5 @@
 import logoDynomo from "../assets/svg/logo.svg";
+import noDataIcon from "../assets/png/emptyIcon.png";
 import logofarevet from "../assets/svg/farevetlogo.svg";
 import techLogin from "../assets/svg/techLoginImage.svg";
 import cat1 from "../assets/png/cat1.png";
@@ -468,5 +469,6 @@ export {
   cat12,
   cat13,
   cat14,
+  noDataIcon,
   cat15,
 };

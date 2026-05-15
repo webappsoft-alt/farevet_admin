@@ -12,6 +12,61 @@ const statusOptions = [
   { value: "offline", label: "Offline" },
 ];
 
+function getVetAvailabilityStyle(raw) {
+  const s = String(raw ?? "")
+    .toLowerCase()
+    .trim();
+  const online =
+    s === "online" || s === "1" || s === "true" || s === "on";
+  const offline =
+    s === "offline" || s === "0" || s === "false" || s === "off";
+  if (online) {
+    return {
+      text: "Online",
+      background: "#e8f8f5",
+      color: "#059669",
+      border: "1px solid #a7e9d9",
+    };
+  }
+  if (offline) {
+    return {
+      text: "Offline",
+      background: "#f1f3f5",
+      color: "#6c757d",
+      border: "1px solid #dee2e6",
+    };
+  }
+  const display =
+    raw == null || String(raw).trim() === "" ? "—" : String(raw);
+  return {
+    text: display,
+    background: "#fff8e6",
+    color: "#b35c00",
+    border: "1px solid #ffe0a3",
+  };
+}
+
+function VetStatusPill({ value }) {
+  const st = getVetAvailabilityStyle(value);
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        padding: "4px 12px",
+        borderRadius: "999px",
+        fontSize: "12px",
+        fontWeight: 600,
+        lineHeight: 1.3,
+        background: st.background,
+        color: st.color,
+        border: st.border,
+      }}
+    >
+      {st.text}
+    </span>
+  );
+}
+
 const Vets = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [count, setCount] = useState(0);
@@ -241,11 +296,13 @@ const Vets = () => {
       name: "Chat Status",
       sortable: true,
       selector: (row) => row?.chat_status,
+      cell: (row) => <VetStatusPill value={row?.chat_status} />,
     },
     {
       name: "Video Status",
       sortable: true,
       selector: (row) => row?.video_status,
+      cell: (row) => <VetStatusPill value={row?.video_status} />,
     },
     {
       name: "Action",

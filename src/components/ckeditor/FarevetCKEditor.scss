@@ -1,0 +1,65 @@
+/* Stretch Classic editor content to match wrapper (min-height via CSS var). */
+.farevet-ck-editor {
+  --farevet-ck-min-h: 280px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0; /* grid/flex: allow column to shrink so text wraps */
+  min-height: var(--farevet-ck-min-h);
+
+  /* Root injected by @ckeditor/ckeditor5-react */
+  .ck.ck-editor {
+    display: flex !important;
+    flex-direction: column;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: var(--farevet-ck-min-h);
+  }
+
+  .ck-editor__top,
+  .ck.ck-toolbar {
+    flex: 0 0 auto;
+  }
+
+  .ck-editor__main {
+    flex: 1 1 auto !important;
+    display: flex !important;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* Editable surface — this is what was staying ~one line tall */
+  .ck-editor__main .ck-editor__editable,
+  .ck-editor__main .ck.ck-editor__editable {
+    flex: 1 1 auto !important;
+    min-height: var(--farevet-ck-min-h) !important;
+    max-height: none !important;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    /* Long URLs / pasted tokens without spaces — wrap instead of stretching layout */
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    word-wrap: break-word;
+  }
+
+  .ck-editor__main .ck-editor__editable a,
+  .ck-editor__main .ck.ck-editor__editable a {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .ck-editor__main .ck-editor__editable img,
+  .ck-editor__main .ck.ck-editor__editable img,
+  .ck-editor__main .ck-editor__editable figure,
+  .ck-editor__main .ck.ck-editor__editable figure {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .ck-editor__main .ck-editor__editable table,
+  .ck-editor__main .ck.ck-editor__editable table {
+    max-width: 100%;
+  }
+}

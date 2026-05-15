@@ -555,3 +555,15 @@
     max-width: 100%;
   }
 }
+
+/* Admin shell: main column beside sidebar — full usable width.
+   Bootstrap `.container` and Tailwind `lg:container` cap max-width (~1140px),
+   which left empty space on large screens. */
+.farevet-admin-main .container {
+  max-width: 100% !important;
+  width: 100%;
+}
+
+.farevet-admin-main .lg\:container {
+  max-width: 100% !important;
+}

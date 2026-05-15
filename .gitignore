@@ -10,7 +10,12 @@
 
 # production
 /build
+/build-old
+/build.zip
 
+
+.fareVet-admin-panel.html
+fareVet-admin-panel.html
 # misc
 .DS_Store
 .env.local

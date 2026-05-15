@@ -7,7 +7,14 @@ import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
 import { apiRequest } from "../../api/auth_api";
 import ProductTable from "../DataTable/productTable";
-import { avatar2, cameradark, edit2, trash } from "../icons/icon";
+import {
+  avatar2,
+  cameradark,
+  edit2,
+  profileavatar,
+  tickgreen as recover,
+  trash,
+} from "../icons/icon";
 import dayjs from "dayjs";
 
 const VetPro = () => {
@@ -273,6 +280,41 @@ const VetPro = () => {
     });
   };
 
+  const handleRecover = async (row) => {
+    Modal.confirm({
+      title: "Are you sure you want to activate this Vet Pro?",
+      content: "This will set the subscription status to Active.",
+      okText: "Yes, Activate",
+      okButtonProps: {
+        style: {
+          backgroundColor: "#8930F9",
+          color: "white",
+        },
+      },
+      cancelText: "No",
+      onOk: async () => {
+        const body = new FormData();
+        body.append("type", "update_data");
+        body.append("table_name", "users");
+        body.append("id", row?.id);
+        body.append("vetPro_status", "1");
+        body.append("widget_code", row?.widget_code || "1");
+        try {
+          const res = await apiRequest({ body });
+          if (res?.result === true) {
+            message.success("Vet Pro Activated Successfully");
+            handleFetchVetPros();
+          } else {
+            message.error(res?.message || "Activation failed...");
+          }
+        } catch (error) {
+          console.error(error);
+          message.error("Something went wrong!");
+        }
+      },
+    });
+  };
+
   const columns = [
     {
       name: "Logo",
@@ -282,7 +324,7 @@ const VetPro = () => {
           <div className="flex w-full gap-2 items-center">
             <img
               onClick={() =>
-                setSelectedImage(`${global.IMAGEURL}/${row?.vetPro_logo}`)
+                setSelectedImage(`${row?.vetPro_logo ? `${global.IMAGEURL + "/" + row?.vetPro_logo}` : profileavatar}`)
               }
               alt=""
               style={{
@@ -292,9 +334,9 @@ const VetPro = () => {
                 height: "35px",
                 objectFit: "cover",
               }}
-              src={`${global.IMAGEURL + "/" + row?.vetPro_logo}`}
+              src={`${row?.vetPro_logo ? `${global.IMAGEURL + "/" + row?.vetPro_logo}` : profileavatar}`}
               onError={(e) => {
-                e.target.src = avatar2;
+                e.target.src = profileavatar;
               }}
             />
           </div>
@@ -336,17 +378,44 @@ const VetPro = () => {
       allowoverflow: true,
       cell: (row) => (
         <div className="flex gap-1">
-          <button
-            className="bg-[#ED5D67] flex justify-center rounded-3 items-center"
-            style={{
-              width: "24px",
-              height: "24px",
-              backgroundColor: "#ED5D67",
-            }}
-            onClick={() => handleDelete(row)}
-          >
-            <img style={{ width: "14px", height: "auto" }} src={trash} alt="" />
-          </button>
+          {String(row?.vetPro_status) === "1" && (
+            <button
+              className="bg-[#ED5D67] flex justify-center rounded-3 items-center"
+              style={{
+                width: "24px",
+                height: "24px",
+                backgroundColor: "#ED5D67",
+              }}
+              onClick={() => handleDelete(row)}
+            >
+              <img
+                style={{ width: "14px", height: "auto" }}
+                src={trash}
+                alt=""
+              />
+            </button>
+          )}
+          {String(row?.vetPro_status) === "0" && (
+            <button
+              className="bg-[#28a745] text-white flex justify-center rounded-3 items-center"
+              style={{
+                width: "24px",
+                height: "24px",
+                backgroundColor: "#28a745",
+              }}
+              onClick={() => handleRecover(row)}
+            >
+              <img
+                style={{
+                  width: "14px",
+                  height: "auto",
+                  filter: "brightness(0) invert(1)",
+                }}
+                src={recover}
+                alt=""
+              />
+            </button>
+          )}
           <button
             className="bg-[#54A6FF] flex justify-center rounded-3 items-center"
             style={{
@@ -479,12 +548,12 @@ const VetPro = () => {
                                 src={
                                   selectedFile
                                     ? selectedFile.fileURL
-                                    : `${global.IMAGEURL}/${loadselectedFile}`
+                                    : `${loadselectedFile ? `${global.IMAGEURL + "/" + loadselectedFile}` : profileavatar}`
                                 }
                                 alt="Vet Pro Logo"
                                 className="h-full w-full object-cover"
                                 onError={(e) => {
-                                  e.target.src = avatar2;
+                                  e.target.src = profileavatar;
                                 }}
                               />
                               {/* Hover Overlay - Only when image exists */}

@@ -8,6 +8,10 @@ import { apiRequest } from "../../../api/auth_api";
 import { CircularProgress } from "@mui/material";
 
 const reportedByArray = [{ title: "Admin" }, { title: "User" }];
+const sourceOptions = [
+    { label: "Clinic verified", value: "clinic_verified" },
+    { label: "User submitted", value: "user_submitted" },
+];
 const currencyArray = [{ title: "CAD" }, { title: "USD" }, { title: "GBP" }];
 const petsArray = [
     // { title: "All", value: 'all' },
@@ -48,6 +52,7 @@ const CreatePetService = () => {
     const [pet, setPet] = useState("dog");
     const [pay, setPay] = useState("card");
     const [reportedBy, setReportedBy] = useState("Admin");
+    const [source, setSource] = useState(undefined);
     const [selectedServiceId, setSelectedServiceId] = useState(null);
     const [value, setValue] = useState(null);
     const [valueFilter, setValueFilter] = useState('')
@@ -321,6 +326,7 @@ const CreatePetService = () => {
         body.append("description", values?.descriptionPet);
         body.append("business_id", businessData ? businessData?.id : selectedBusinessId);
         body.append("business_created", "admin");
+        body.append("source", source || "");
 
         if (additionalServiceName) {
             body.append("additional_service_name", additionalServiceName);
@@ -740,6 +746,25 @@ const CreatePetService = () => {
                                     setWeightPet(e);
                                 }}
                                 treeData={weightData}
+                            />
+                        </Form.Item>
+                    </div>
+                </div>
+                <div className="flex gap-3 mb-4 w-full max-md:flex-col justify-start">
+                    <span className="inter_medium text-sm text_dark w-full md:w-[30%]">
+                        Source
+                    </span>
+                    <div className="w-full md:w-[70%]">
+                        <Form.Item name="source" className="rounded-lg w-full mb-0">
+                            <Select
+                                allowClear
+                                size="large"
+                                style={{ width: "100%" }}
+                                placeholder="Select source"
+                                value={source}
+                                onChange={(v) => setSource(v)}
+                                options={sourceOptions}
+                                optionLabelProp="label"
                             />
                         </Form.Item>
                     </div>

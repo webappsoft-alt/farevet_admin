@@ -2,42 +2,91 @@
 /* eslint-disable no-unused-vars */
 import { CircularProgress } from "@mui/material";
 import { Input, Modal, Select, message } from "antd";
-import React, { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Plus, Search } from "react-feather";
+import React, { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, ArrowRight, Plus, Search, Star } from "react-feather";
 import { IoClose } from "react-icons/io5";
-import { useLocation, useNavigate } from "react-router-dom";
-import StarRatings from "react-star-ratings";
+import { useNavigate } from "react-router-dom";
 import { apiRequest } from "../../api/auth_api";
-import { HiDuplicate } from "react-icons/hi";
+import { HiDuplicate, HiPencil } from "react-icons/hi";
 import { avatar2 } from "../icons/icon";
-const { Option } = Select;
+import {
+  CERTIFICATION_OPTIONS,
+  CLINIC_TYPE_OPTIONS,
+  OWNERSHIP_OPTIONS,
+} from "./businessComponents/businessOptions";
+import "./business.scss";
+
+/**
+ * Read a (possibly stringified JSON / CSV) list field on a business row.
+ * Backend may return: array, JSON string, or comma-separated text.
+ */
+function readListField(row, ...keys) {
+  for (const k of keys) {
+    const v = row?.[k];
+    if (v == null || v === "") continue;
+    if (Array.isArray(v)) return v.filter(Boolean).map((x) => String(x).trim());
+    if (typeof v === "string") {
+      const s = v.trim();
+      if (!s) continue;
+      if (s.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(s);
+          if (Array.isArray(parsed)) {
+            return parsed.filter(Boolean).map((x) => String(x).trim());
+          }
+        } catch {
+          /* fall through to CSV */
+        }
+      }
+      return s
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean);
+    }
+  }
+  return [];
+}
+
+function readScalarField(row, ...keys) {
+  for (const k of keys) {
+    const v = row?.[k];
+    if (v == null) continue;
+    const s = String(v).trim();
+    if (s) return s;
+  }
+  return "";
+}
 
 const Business = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showDeleteDeal, setShowDeleteDeal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [totalPages, setTotalPages] = useState(null);
-  const [deleteDeal, setDeleteDeal] = useState("no");
-  const [value, setValue] = useState('')
-  const [selectItem, setSelectItem] = useState(null)
+  const [selectItem, setSelectItem] = useState(null);
+  const [value, setValue] = useState("");
   const [totalDataCount, setTotalDataCount] = useState(0);
   const [categories, setCategories] = useState([]);
+
+  // Filters
+  const [certifications, setCertifications] = useState([]);
+  const [clinicType, setClinicType] = useState(undefined);
+  const [ownership, setOwnership] = useState(undefined);
+
   const navigate = useNavigate();
 
   const handleClick = (row) => {
-    setSelectItem(row)
-    setShowDeleteDeal(true)
-  }
+    setSelectItem(row);
+    setShowDeleteDeal(true);
+  };
 
   const handlePageClick = (page) => {
     setCurrentPage(page);
-    handleFetchData(page);
   };
 
   const handleChange = (e) => {
     const searchValue = e?.target?.value?.toLowerCase().trim();
     setValue(searchValue);
-    handleFetchData(currentPage, searchValue);
+    setCurrentPage(1);
   };
 
   const handleFetchData = async (page) => {
@@ -48,7 +97,7 @@ const Business = () => {
     body.append("business_created", "admin");
     body.append("page", page);
 
-    if (value && value !== '') {
+    if (value && value !== "") {
       body.append("search", value);
     }
     try {
@@ -57,7 +106,7 @@ const Business = () => {
       if (res) {
         setCategories(res?.data || []);
         setTotalDataCount(res?.count || 0);
-        setTotalPages(Math.ceil(res?.count / 10));
+        setTotalPages(Math.ceil((res?.count || 0) / 10));
       } else {
         console.error("Creation failed...");
       }
@@ -79,7 +128,7 @@ const Business = () => {
         if (res) {
           message.success("Business Deleted Successfully");
           handleFetchData(currentPage);
-          setShowDeleteDeal(false)
+          setShowDeleteDeal(false);
         } else {
           message.error("Deletion failed...");
         }
@@ -98,6 +147,7 @@ const Business = () => {
   const handlePrevPage = () => {
     setCurrentPage((prevPage) => Math.max(prevPage - 1, 1));
   };
+
   useEffect(() => {
     handleFetchData(currentPage, value);
   }, [currentPage, value]);
@@ -108,12 +158,61 @@ const Business = () => {
     });
   };
 
+  /** Apply client-side filtering on top of the server-fetched list. */
+  const filteredBusinesses = useMemo(() => {
+    return (categories || []).filter((item) => {
+      if (certifications.length) {
+        const rowCerts = readListField(
+          item,
+          "certifications",
+          "certification",
+          "certificates",
+          "tags",
+        ).map((c) => c.toLowerCase());
+        const allMatch = certifications.every((sel) =>
+          rowCerts.includes(String(sel).toLowerCase()),
+        );
+        if (!allMatch) return false;
+      }
+      if (clinicType) {
+        const rowType = readScalarField(
+          item,
+          "clinic_type",
+          "type",
+          "business_type",
+        ).toLowerCase();
+        if (rowType !== String(clinicType).toLowerCase()) return false;
+      }
+      if (ownership) {
+        const rowOwn = readScalarField(item, "ownership", "owner_type").toLowerCase();
+        if (rowOwn !== String(ownership).toLowerCase()) return false;
+      }
+      return true;
+    });
+  }, [categories, certifications, clinicType, ownership]);
+
+  const activeFilterCount =
+    (certifications.length > 0 ? 1 : 0) +
+    (clinicType ? 1 : 0) +
+    (ownership ? 1 : 0);
+
+  const clearFilters = () => {
+    setCertifications([]);
+    setClinicType(undefined);
+    setOwnership(undefined);
+  };
+
   return (
-    <main className="container m-auto height_calc flex-grow flex flex-col p-3">
-      <div className="flex w-full justify-between my-4 items-center flex-wrap">
-        <span className="text_dark plusJakara_medium text-2xl md:text-3xl">
-          Business
-        </span>
+    <main className="business-page container m-auto height_calc flex-grow flex flex-col p-3">
+      <div className="flex w-full justify-between my-4 items-center flex-wrap gap-3">
+        <div className="flex flex-col">
+          <span className="text_dark plusJakara_medium text-2xl md:text-3xl">
+            Business
+          </span>
+          <span className="text_secondary inter_regular text-xs md:text-sm">
+            Browse, filter, and manage business profiles.
+          </span>
+        </div>
         <button
           onClick={() => {
             navigate("/business/create-business");
@@ -126,137 +225,213 @@ const Business = () => {
           </span>
         </button>
       </div>
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div>
-          <Input
-            prefix={<Search className="text_secondary" size={16} />}
-            className="py-2 rounded-3 bg_white search_input_antd"
-            onChange={handleChange}
-            placeholder={`Search by Name or Address`}
-            type="text"
-            size="large"
-          />
-        </div>
-        {/* <div className="select_ant">
-          <Select
-            size="large"
-            className="inter_medium text_dark text-sm"
-            allowClear
-            defaultValue={selectedOption}
-            onChange={(e) => {
-              setSelectedOption(e);
-            }}
-          >
-            <Option value="address">Address</Option>
-            <Option value="name">Name</Option>
-          </Select>
-        </div> */}
+
+      <div className="business-toolbar">
+        <Input
+          prefix={<Search className="text_secondary" size={16} />}
+          className="business-search py-2"
+          onChange={handleChange}
+          placeholder="Search by name or address"
+          type="text"
+          size="large"
+          allowClear
+        />
+        {/* <Select
+          className="business-select"
+          mode="multiple"
+          allowClear
+          size="large"
+          maxTagCount="responsive"
+          placeholder="Certifications"
+          value={certifications}
+          onChange={(vals) => setCertifications(vals || [])}
+          options={CERTIFICATION_OPTIONS.map((c) => ({ label: c, value: c }))}
+        />
+        <Select
+          className="business-select"
+          allowClear
+          size="large"
+          placeholder="Clinic Type"
+          value={clinicType}
+          onChange={(v) => setClinicType(v)}
+          options={CLINIC_TYPE_OPTIONS.map((c) => ({ label: c, value: c }))}
+        />
+        <Select
+          className="business-select"
+          allowClear
+          size="large"
+          placeholder="Ownership"
+          value={ownership}
+          onChange={(v) => setOwnership(v)}
+          options={OWNERSHIP_OPTIONS.map((c) => ({ label: c, value: c }))}
+        /> */}
       </div>
+
+      {activeFilterCount > 0 ? (
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <span className="text_secondary inter_medium text-xs">
+            Showing {filteredBusinesses.length} of {categories.length} on this
+            page
+            <span className="business-filter-active-count">{activeFilterCount}</span>
+          </span>
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="text_primary inter_semibold text-xs underline-offset-2 hover:underline"
+          >
+            Clear filters
+          </button>
+        </div>
+      ) : null}
+
       {isProcessing ? (
         <div className="flex w-full justify-center items-center my-5">
           <CircularProgress className="text_primary" size={30} thickness={3} />
         </div>
       ) : (
-        <div className="d-flex flex-wrap gap-3 mb-4 justify-content-center justify-content-lg-start">
-          {!totalDataCount || totalDataCount < 0 ? <div className="my-5 w-100 d-flex justify-content-center align-items-center">
-            <span className="plusJakara_medium text-lg text_black">No Store found</span>
-          </div> :
-            categories?.map((item, i) => (
-              <div
-                key={i}
-                className="border box_styling no-underline cursor-pointer bg_white shadow-sm relative rounded-3 gap-2 flex items-start w-full py-3 h-auto px-3"
-              >
-                <button
-                  onClick={() =>
-                    navigate("/business/create-business", {
-                      state: { businessData: item },
-                    })
-                  }
-                  className="deal_label2 text_white p-1 bg_primary"
-                >
-                  <HiDuplicate size={18} />
-                </button>
+        <div className="business-grid">
+          {filteredBusinesses.length === 0 ? (
+            <div className="business-empty">
+              <span className="business-empty-title">No businesses match</span>
+              <span className="business-empty-sub">
+                {activeFilterCount > 0
+                  ? "Try removing one of the filters above or clear all to see every business on this page."
+                  : "There are no businesses to show. Add your first one to get started."}
+              </span>
+            </div>
+          ) : (
+            filteredBusinesses.map((item, i) => {
+              const rating = parseFloat(item?.rating?.rating ?? item?.rating ?? 0);
+              const filledStars =
+                Number.isFinite(rating) && rating > 0
+                  ? Math.min(5, Math.round(rating))
+                  : 0;
 
-                <div className="deal_label p-1">
-                  <button onClick={() => handleClick(item)}>
-                    <IoClose className="text_white" />
-                  </button>
-                </div>
-
-                <img
-                  onClick={() => handleBusinessClick(item)}
-                  src={
-                    item?.logo ? `${global.IMAGEURL}/${item?.logo}` : avatar2
-                  }
-                  style={{
-                    width: "3.5rem",
-                    aspectRatio: "4/4",
-                    objectFit: "cover",
-                    borderRadius: "50%",
-                    height: "auto",
-                    cursor: "pointer",
+              return (
+                <article
+                  key={item?.id ?? i}
+                  className="business-card"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${item?.name || "Business"}${Number.isFinite(rating) && rating > 0 ? `, rating ${rating.toFixed(1)} of 5` : ""}`}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleBusinessClick(item);
+                    }
                   }}
-                  alt=""
-                />
-
-                <div
                   onClick={() => handleBusinessClick(item)}
-                  style={{ cursor: "pointer" }}
-                  className="flex flex-col gap-1"
                 >
-                  <span className="text-xl text_dark line-clamp-1 plusJakara_bold">
-                    {item?.name}
-                  </span>
-                  <span className="text-xs text_secondary plusJakara_medium line-clamp-2">
-                    {item?.address}
-                  </span>
-                  <div className="flex items-center">
-                    <StarRatings
-                      starEmptyColor="gray"
-                      starRatedColor="#EFD01D"
-                      rating={parseInt(item?.rating?.rating) || 0}
-                      starDimension="20px"
-                      starSpacing="1px"
-                    />
+                  <div
+                    className="business-card-actions"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      title="Edit"
+                      className="business-card-icon-btn"
+                      onClick={() =>
+                        navigate(`/business/update-business/${item?.id}`, {
+                          state: { serviceDetail: item },
+                        })
+                      }
+                    >
+                      <HiPencil size={16} className="business-card-icon-svg" />
+                    </button>
+                    {/* <button
+                      type="button"
+                      title="Duplicate"
+                      className="business-card-icon-btn"
+                      onClick={() =>
+                        navigate("/business/create-business", {
+                          state: { businessData: item },
+                        })
+                      }
+                    >
+                      <HiDuplicate size={16} className="business-card-icon-svg" />
+                    </button> */}
+                    <button
+                      type="button"
+                      title="Delete"
+                      className="business-card-icon-btn is-danger"
+                      onClick={() => handleClick(item)}
+                    >
+                      <IoClose size={16} className="business-card-icon-svg" />
+                    </button>
                   </div>
-                </div>
-              </div>
-            ))}
 
+                  <div className="business-card-body">
+                    <img
+                      src={
+                        item?.logo ? `${global.IMAGEURL}/${item?.logo}` : avatar2
+                      }
+                      className="business-card-logo"
+                      alt=""
+                    />
+                    <div className="business-card-text">
+                      <span className="business-card-title">{item?.name}</span>
+                      <span className="business-card-address">
+                        {item?.address || "—"}
+                      </span>
+                      <div className="business-card-stars" aria-hidden>
+                        {[0, 1, 2, 3, 4].map((idx) => (
+                          <Star
+                            key={idx}
+                            size={16}
+                            strokeWidth={0}
+                            fill={idx < filledStars ? "#EFD01D" : "#cbd5e1"}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })
+          )}
         </div>
       )}
-      <div className="mt-auto">
-        <div className="flex justify-between items-center border shadow-sm bg_white rounded-3 w-full py-2 px-3 w-100 overflow-x-auto">
-          <span style={{ minWidth: '200px' }} className="text_secondary inter_medium text">{`Total showing ${totalDataCount}`}</span>
+
+      <div className="business-pagination">
+        <div className="flex justify-between items-center border shadow-sm bg_white rounded-3 w-full py-2 px-3 overflow-x-auto">
+          <span
+            style={{ minWidth: "200px" }}
+            className="text_secondary inter_medium text"
+          >{`Total showing ${totalDataCount}`}</span>
           <div className="flex">
             <button
-              className={`px-3 py-1 text-sm border rounded-l-md ${currentPage === 1 ? "bg_white text_dark cursor-not-allowed" : ""
-                }`}
+              className={`px-3 py-1 text-sm border rounded-l-md ${
+                currentPage === 1
+                  ? "bg_white text_dark cursor-not-allowed"
+                  : ""
+              }`}
               onClick={handlePrevPage}
               disabled={currentPage === 1}
             >
               <ArrowLeft size={16} className="text_secondary" />
             </button>
             <div className="flex">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+              {Array.from({ length: totalPages || 0 }, (_, i) => i + 1).map(
                 (page, i) => (
                   <button
                     key={i}
-                    className={`px-3 py-1 text-sm border ${currentPage === page
-                      ? "bg_primary text_white cursor-not-allowed"
-                      : "bg_white text_dark"
-                      }`}
+                    className={`px-3 py-1 text-sm border ${
+                      currentPage === page
+                        ? "bg_primary text_white cursor-not-allowed"
+                        : "bg_white text_dark"
+                    }`}
                     disabled={currentPage === page}
                     onClick={() => handlePageClick(page)}
                   >
                     {page}
                   </button>
-                )
+                ),
               )}
             </div>
             <button
-              className={`px-3 py-1 text-sm border rounded-r-md ${currentPage >= totalPages ? "cursor-not-allowed" : ""
-                }`}
+              className={`px-3 py-1 text-sm border rounded-r-md ${
+                currentPage >= totalPages ? "cursor-not-allowed" : ""
+              }`}
               onClick={handleNextPage}
               disabled={currentPage >= totalPages}
             >
@@ -278,19 +453,14 @@ const Business = () => {
         <div className="flex justify-center gap-2 w-full my-3">
           <button
             type="button"
-            className={`border cursor-pointer rounded-lg gap-1 px-3 py-2 inter_medium text-sm flex justify-center items-center ${deleteDeal === "yes"
-              ? "bg_primary text_white"
-              : "bg_white text_secondary"}`}
+            className="border cursor-pointer rounded-lg gap-1 px-3 py-2 inter_medium text-sm flex justify-center items-center bg_primary text_white"
             onClick={() => handleDeleteService(selectItem)}
           >
-            Yes{" "}
+            Yes
           </button>
           <button
             type="button"
-            className={`border cursor-pointer rounded-lg gap-1 px-3 py-2 inter_medium text-sm flex justify-center items-center ${deleteDeal === "no"
-              ? "bg_primary text_white"
-              : "bg_white text_secondary"
-              }`}
+            className="border cursor-pointer rounded-lg gap-1 px-3 py-2 inter_medium text-sm flex justify-center items-center bg_white text_secondary"
             onClick={() => setShowDeleteDeal(false)}
           >
             No

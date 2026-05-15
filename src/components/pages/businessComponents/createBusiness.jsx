@@ -63,6 +63,14 @@ import {
   spotlight8,
   spotlight9,
 } from "../../icons/icon";
+import {
+  CERTIFICATION_OPTIONS,
+  CLINIC_TYPE_OPTIONS,
+  OWNERSHIP_OPTIONS,
+  TRUST_TAG_OPTIONS,
+  parseStringList,
+  pickTrustTagValue,
+} from "./businessOptions";
 const Option = Select;
 const { RangePicker } = DatePicker;
 
@@ -193,6 +201,10 @@ const CreateBusiness = () => {
   const [selectPayment, setSelectPayment] = useState(["Credit / Debit"]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectSpotlight, setSelectSpotlight] = useState(["Consultation"]);
+  const [selectedCerts, setSelectedCerts] = useState([]);
+  const [clinicTypeValue, setClinicTypeValue] = useState(undefined);
+  const [ownershipValue, setOwnershipValue] = useState(undefined);
+  const [trustTagValue, setTrustTagValue] = useState(undefined);
   const [selectedDays, setSelectedDays] = useState([]);
   const [daysOfWeek, setDaysOfWeek] = useState(initialState);
   const [portfolioFile, setPortfolioFile] = useState([]);
@@ -306,6 +318,27 @@ const CreateBusiness = () => {
       if (!multipleBusiness || multipleBusiness.length === 0) {
         setMultipleBusinesses([{}]);
       }
+
+      const certsList = parseStringList(
+        serviceData?.certifications ??
+          serviceData?.certification ??
+          serviceData?.certificates,
+      );
+      setSelectedCerts(certsList);
+      const clinicTypeRaw =
+        serviceData?.clinic_type ?? serviceData?.type ?? undefined;
+      setClinicTypeValue(clinicTypeRaw || undefined);
+      const ownershipRaw =
+        serviceData?.ownership ?? serviceData?.owner_type ?? undefined;
+      setOwnershipValue(ownershipRaw || undefined);
+      const trustTag = pickTrustTagValue(serviceData?.trust_tags);
+      setTrustTagValue(trustTag);
+      form.setFieldsValue({
+        certifications: certsList,
+        clinic_type: clinicTypeRaw || undefined,
+        ownership: ownershipRaw || undefined,
+        trust_tags: trustTag,
+      });
     }
   }, [serviceData]);
 
@@ -676,6 +709,13 @@ const CreateBusiness = () => {
     );
     body.append("payment_types", JSON.stringify(selectPayment));
     body.append("availability", JSON.stringify(selectedDays));
+    body.append(
+      "certifications",
+      selectedCerts.length > 0 ? JSON.stringify(selectedCerts) : "",
+    );
+    body.append("clinic_type", clinicTypeValue || "");
+    body.append("ownership", ownershipValue || "");
+    body.append("trust_tags", trustTagValue || "");
     await apiRequest({ body })
       .then(async (res) => {
         setIsProcessing(false);
@@ -1067,6 +1107,7 @@ const CreateBusiness = () => {
                 inputStyle={{ width: "100%" }}
                 placeholder="Mobile Number"
                 country={"us"}
+                
                 value={phone}
                 onChange={handlePhoneChange}
               />
@@ -1129,6 +1170,94 @@ const CreateBusiness = () => {
                                 {servicesOfDeals.find((item) => item.id === serviceId)?.service_name}
                             </span>
                         ))} */}
+          </div>
+        </div>
+        <div className="flex gap-3 mb-4 w-full max-md:flex-col justify-start">
+          <span className="inter_medium text-sm text_dark w-full md:w-[30%]">
+            Certifications
+          </span>
+          <div className="w-full md:w-[70%]">
+            <Form.Item name="certifications" className="rounded-lg w-full mb-0">
+              <Select
+                mode="multiple"
+                allowClear
+                showSearch
+                size="large"
+                style={{ width: "100%" }}
+                placeholder="Select certifications"
+                value={selectedCerts}
+                onChange={(vals) => setSelectedCerts(vals || [])}
+                options={CERTIFICATION_OPTIONS.map((c) => ({
+                  label: c,
+                  value: c,
+                }))}
+                maxTagCount="responsive"
+                optionFilterProp="label"
+              />
+            </Form.Item>
+          </div>
+        </div>
+        <div className="flex gap-3 mb-4 w-full max-md:flex-col justify-start">
+          <span className="inter_medium text-sm text_dark w-full md:w-[30%]">
+            Clinic Type
+          </span>
+          <div className="w-full md:w-[70%]">
+            <Form.Item name="clinic_type" className="rounded-lg w-full mb-0">
+              <Select
+                allowClear
+                size="large"
+                style={{ width: "100%" }}
+                placeholder="Select clinic type"
+                value={clinicTypeValue}
+                onChange={(v) => setClinicTypeValue(v)}
+                options={CLINIC_TYPE_OPTIONS.map((c) => ({
+                  label: c,
+                  value: c,
+                }))}
+              />
+            </Form.Item>
+          </div>
+        </div>
+        <div className="flex gap-3 mb-4 w-full max-md:flex-col justify-start">
+          <span className="inter_medium text-sm text_dark w-full md:w-[30%]">
+            Ownership
+          </span>
+          <div className="w-full md:w-[70%]">
+            <Form.Item name="ownership" className="rounded-lg w-full mb-0">
+              <Select
+                allowClear
+                size="large"
+                style={{ width: "100%" }}
+                placeholder="Select ownership"
+                value={ownershipValue}
+                onChange={(v) => setOwnershipValue(v)}
+                options={OWNERSHIP_OPTIONS.map((c) => ({
+                  label: c,
+                  value: c,
+                }))}
+              />
+            </Form.Item>
+          </div>
+        </div>
+        <div className="flex gap-3 mb-4 w-full max-md:flex-col justify-start">
+          <span className="inter_medium text-sm text_dark w-full md:w-[30%]">
+            Trust tag
+          </span>
+          <div className="w-full md:w-[70%]">
+            <Form.Item name="trust_tags" className="rounded-lg w-full mb-0">
+              <Select
+                allowClear
+                size="large"
+                style={{ width: "100%" }}
+                placeholder="Select trust tag"
+                value={trustTagValue}
+                onChange={(v) => setTrustTagValue(v)}
+                options={TRUST_TAG_OPTIONS.map((t) => ({
+                  label: t,
+                  value: t,
+                }))}
+              />
+            </Form.Item>
           </div>
         </div>
         <div className="flex gap-3 mb-4 w-full max-md:flex-col justify-start">

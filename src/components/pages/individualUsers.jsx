@@ -64,39 +64,42 @@ const IndividualUsers = () => {
         {
             name: 'User Name',
             sortable: true,
-            minwidth: '200px',
-            selector: row => row?.name
+            minWidth: '180px',
+            selector: row => row?.name ? row?.name : 'N/A'
         },
         {
             name: 'Email',
             sortable: true,
             minWidth: '250px',
-            selector: row => row?.email
+            selector: row => row?.email ? row?.email : 'N/A'
         },
         {
             name: "Phone",
             sortable: true,
             minWidth: '120px',
-            selector: row => row?.phone
+            selector: row => row?.phone ? row?.phone : 'N/A'
         },
         {
             name: "Job Title",
             sortable: true,
             minWidth: '320px',
-            selector: row => row?.job_title
+            selector: row => row?.job_title ? row?.job_title : 'N/A'
         },
         {
             name: 'Portfolio',
             sortable: true,
+            minWidth: '88px',
             cell: (row) => {
+                const src = row?.portfolio
+                    ? `${global.IMAGEURL}/${row.portfolio}`
+                    : profileavatar
                 return (
                     <div className="flex w-full gap-2 items-center">
                         <img
-                            src={`${global.IMAGEURL}/${row?.portfolio}` || profileavatar}
-                            onClick={() =>
-                                handleImageClick(row?.portfolio ? `${global.IMAGEURL}/${row?.portfolio}` : profileavatar)
-                            }
-                            style={{ width: '35px', height: '35px', borderRadius: '50%', cursor: 'pointer' }} alt="" />
+                            src={src}
+                            onError={(e) => { e.currentTarget.src = profileavatar }}
+                            onClick={() => handleImageClick(src)}
+                            style={{ width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', objectFit: 'cover' }} alt="" />
                     </div>
                 )
             }
@@ -104,15 +107,18 @@ const IndividualUsers = () => {
         {
             name: 'License Doc',
             sortable: true,
+            minWidth: '88px',
             cell: (row) => {
+                const src = row?.license_doc
+                    ? `${global.IMAGEURL}/${row.license_doc}`
+                    : profileavatar
                 return (
                     <div className="flex w-full gap-2 items-center">
                         <img
-                            src={`${global.IMAGEURL}/${row?.license_doc}` || profileavatar}
-                            onClick={() =>
-                                handleImageClick(row?.license_doc ? `${global.IMAGEURL}/${row?.license_doc}` : profileavatar)
-                            }
-                            style={{ width: '35px', height: '35px', borderRadius: '50%', cursor: 'pointer' }} alt="" />
+                            src={src}
+                            onError={(e) => { e.currentTarget.src = profileavatar }}
+                            onClick={() => handleImageClick(src)}
+                            style={{ width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', objectFit: 'cover' }} alt="" />
                     </div>
                 )
             }
@@ -123,7 +129,7 @@ const IndividualUsers = () => {
             minWidth: '150px',
             cell: (row) => {
                 return (
-                    <p className="flex w-full mb-0 plusJakara_regular items-center">
+                    <p className="flex w-full mb-0 plusJakara_regular items-center text-[10.5px]">
                         {moment(row?.created_at).format('DD-MM-YYYY')}
                     </p>
                 )
@@ -199,7 +205,7 @@ const IndividualUsers = () => {
         <StyleSheetManager shouldForwardProp={(prop) => !['sortActive'].includes(prop)}>
             <main className='container m-auto height_calc flex-grow flex flex-col p-3'>
                 <div className="flex w-full mb-4">
-                    <span className="text_dark plusJakara_medium text-2xl md:text-3xl">Individual Users</span>
+                    <span className="text_dark plusJakara_medium text-xl md:text-2xl">Individual Users</span>
                 </div>
                 <ProductTable
                     loading={isProcessing}

@@ -21,6 +21,10 @@ const payArray = [
 ];
 
 const reportedByArray = [{ title: "Admin" }, { title: "User" }];
+const sourceOptions = [
+  { label: "Clinic verified", value: "clinic_verified" },
+  { label: "User submitted", value: "user_submitted" },
+];
 
 const costOfPet = [
   { title: "Exact Cost" },
@@ -68,6 +72,7 @@ const UpdatePetService = () => {
   // Other states
   const [valueFilter, setValueFilter] = useState("");
   const [reportedBy, setReportedBy] = useState("Admin");
+  const [source, setSource] = useState(undefined);
   const [weightPet, setWeightPet] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [cost, setCost] = useState("");
@@ -91,6 +96,7 @@ const UpdatePetService = () => {
     selectBusiness:
       serviceData?.business?.name + " (" + serviceData?.business?.address + ")",
     additionalServiceName: serviceData?.additional_service_name || "",
+    source: serviceData?.source || undefined,
   });
 
   const handleFetchData = async () => {
@@ -323,6 +329,9 @@ const UpdatePetService = () => {
         setPay(serviceData?.pay_type);
         setCurrency(serviceData?.currency);
         setWeightPet(serviceData?.weight);
+        if (serviceData?.source) {
+          setSource(serviceData.source);
+        }
 
         if (serviceData?.additional_subservice_name) {
           const parsedAdditionalName = JSON.parse(
@@ -390,6 +399,7 @@ const UpdatePetService = () => {
       selectedBusinessId ? selectedBusinessId : serviceData?.business_id
     );
     body.append("business_created", "admin");
+    body.append("source", source || "");
 
     if (additionalServiceName) {
       body.append("additional_service_name", additionalServiceName);
@@ -795,6 +805,25 @@ const UpdatePetService = () => {
                   setWeightPet(e);
                 }}
                 treeData={weightData}
+              />
+            </Form.Item>
+          </div>
+        </div>
+        <div className="flex gap-3 mb-4 w-full max-md:flex-col justify-start">
+          <span className="inter_medium text-sm text_dark w-full md:w-[30%]">
+            Source
+          </span>
+          <div className="w-full md:w-[70%]">
+            <Form.Item name="source" className="rounded-lg w-full mb-0">
+              <Select
+                allowClear
+                size="large"
+                style={{ width: "100%" }}
+                placeholder="Select source"
+                value={source}
+                onChange={(v) => setSource(v)}
+                options={sourceOptions}
+                optionLabelProp="label"
               />
             </Form.Item>
           </div>
