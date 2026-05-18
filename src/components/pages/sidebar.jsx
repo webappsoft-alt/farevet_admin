@@ -30,6 +30,7 @@ import {
   HiOutlineChatBubbleOvalLeftEllipsis,
   HiOutlineLockClosed,
   HiOutlineUserCircle,
+  HiOutlineBriefcase,
 } from "react-icons/hi2";
 import { useAuth } from "../authRoutes/useAuth";
 import { logofarevet } from "../icons/icon";
@@ -41,6 +42,7 @@ const SIDEBAR_WIDTH = "220px";
 /** Group order + labels must match `item.items` for sub_admin filtering. */
 const MENU_SECTION_CONFIG = [
   { heading: "Overview", itemLabels: ["Dashboard"] },
+  { heading: "Partners", itemLabels: ["Partner Management", "Intelligence Reports"] },
   {
     heading: "Users & roles",
     itemLabels: ["Individual Users", "Vets", "Vet Pro", "Sub Admin"],
@@ -349,6 +351,18 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
       Icon: HiOutlineSquares2X2,
       items: "Dashboard",
       path: "/dashboard",
+    },
+    {
+      badge: false,
+      Icon: HiOutlineBriefcase,
+      items: "Partner Management",
+      path: "/partners",
+    },
+    {
+      badge: false,
+      Icon: HiOutlineDocumentText,
+      items: "Intelligence Reports",
+      path: "/reports",
     },
     {
       badge: false,

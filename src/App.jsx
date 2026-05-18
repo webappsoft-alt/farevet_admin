@@ -16,6 +16,8 @@ const NavHeader = lazy(() => import("./components/header/navHeader"));
 const SidebarMenu = lazy(() => import("./components/pages/sidebar"));
 const LoginPage1 = lazy(() => import("./components/auth/dynomoLogin1"));
 const Dashboard = lazy(() => import("./components/pages/dashboard"));
+const Partners = lazy(() => import("./components/pages/partners"));
+const Reports = lazy(() => import("./components/pages/reports"));
 
 const Business = lazy(() => import("./components/pages/business"));
 const CreateBusiness = lazy(() =>
@@ -161,6 +163,8 @@ function App() {
   const privateRoutesInner = (
     <>
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/partners" element={<Partners />} />
+      <Route path="/reports" element={<Reports />} />
       <Route path="/business" element={<Business />} />
       <Route path="/claim-business" element={<ClaimBusiness />} />
       <Route path="/individual-users" element={<IndividualUsers />} />
@@ -236,6 +240,8 @@ function App() {
   const privateRoutesInnerCompact = (
     <>
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/partners" element={<Partners />} />
+      <Route path="/reports" element={<Reports />} />
       <Route path="/business" element={<Business />} />
       <Route path="/claim-business" element={<ClaimBusiness />} />
       <Route path="/individual-users" element={<IndividualUsers />} />

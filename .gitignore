@@ -8,6 +8,8 @@
 # testing
 /coverage
 
+farevet-admin-panel.*
+
 # production
 /build
 /build-old
