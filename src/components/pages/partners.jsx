@@ -3,6 +3,7 @@ import { Search, Plus } from "react-feather";
 import { Modal, Input, Select, message, Spin } from "antd";
 import { apiRequest } from "../../api/auth_api";
 import "./partners.scss";
+import { CircularProgress } from "@mui/material";
 
 const { Option } = Select;
 
@@ -363,8 +364,17 @@ const Partners = () => {
           <div id="partnerList">
             {loading ? (
               <div style={{ padding: "40px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "12px" }}>
-                <Spin size="default" />
-                <span style={{ color: "var(--ink3)", fontSize: "12px" }}>Loading B2B Partners...</span>
+                <div
+                  className=" justify-content-center align-items-center"
+                >
+                  <CircularProgress size={18} />
+                  {/* <span
+                    className="plusJakara_regular"
+                    style={{ marginLeft: "0.5rem", color: "#6c757d" }}
+                  >
+                    Loading B2B Partners...
+                  </span> */}
+                </div>
               </div>
             ) : filteredPartners.length === 0 ? (
               <div style={{ padding: "40px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px" }}>

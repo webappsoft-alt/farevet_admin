@@ -4,6 +4,7 @@ import Select from "react-select";
 import { apiRequest } from "../../api/auth_api";
 import { logofarevet } from "../icons/icon";
 import "./reports.scss";
+import { CircularProgress } from "@mui/material";
 
 // Helper to parse database representations (0/1, true/false) into strict boolean values
 const parseDbBoolean = (val) => {
@@ -797,9 +798,19 @@ const Reports = () => {
 
   if (loading) {
     return (
-      <main className="reports-page" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", gap: "16px" }}>
-        <Spin size="large" />
-        <span style={{ color: "var(--ink3)", fontSize: "14px", fontWeight: "500" }}>Loading B2B reports and partners...</span>
+      <main className="reports-page" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", gap: "16px" }}>
+        <div
+          className="d-flex justify-content-center align-items-center"
+          style={{ padding: "2rem" }}
+        >
+          <CircularProgress size={18} />
+          <span
+            className="plusJakara_regular"
+            style={{ marginLeft: "0.5rem", color: "#6c757d" }}
+          >
+            Loading B2B reports and partners...
+          </span>
+        </div>
       </main>
     );
   }

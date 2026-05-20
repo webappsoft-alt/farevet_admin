@@ -277,98 +277,104 @@ const Quotes = () => {
     console.log("quote :>> ", quote);
     const statusInfo = getStatusInfo(quote?.quote_status);
     const petInformation = safeParse(quote?.pet);
-    // console.log("petInformation :>> ", petInformation);
+    const subCategories = safeParse(quote?.sub_categories);
+    const subCategoriesList = Array.isArray(subCategories) ? subCategories : [];
 
     return (
       <div className="col-lg-4 col-md-6 col-sm-12 mb-4">
         <div
-          className="card h-100"
+          className="card h-100 quote-card-hover"
           style={{
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+            border: "1px solid #e9ecef",
+            borderRadius: "12px",
+            overflow: "hidden",
           }}
         >
-          <div className="card-body p-3">
-            <div className="d-flex justify-content-between align-items-center">
-              <p
+          <div className="card-body p-3 d-flex flex-column h-100">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <span
                 className="plusJakara_semibold"
-                style={{ fontSize: "1rem", color: "#343a40" }}
+                style={{ fontSize: "0.75rem", color: "#6c757d", letterSpacing: "0.5px" }}
               >
-                Submission ID: #{quote?.id}
-              </p>
-              <p
+                SUBMISSION ID: #{quote?.id}
+              </span>
+              <span
                 className="plusJakara_regular"
-                style={{ fontSize: "0.8rem", color: "#6c757d" }}
+                style={{ fontSize: "0.725rem", color: "#adb5bd" }}
               >
                 {moment(quote?.created_at).format("MMM DD, YYYY h:mm A")}
-              </p>
+              </span>
             </div>
 
-            {/* User Info Header - Compact */}
+            {/* User Info Header - Compact & Responsive */}
             <div
               style={{
-                borderBottom: "1px solid #e9ecef",
+                borderBottom: "1px solid #f1f3f5",
                 paddingBottom: "0.75rem",
                 marginBottom: "0.75rem",
               }}
             >
-              <div className="d-flex justify-content-between align-items-start">
-                <div className="d-flex flex-column">
+              <div className="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                <div className="d-flex flex-column gap-1" style={{ minWidth: "120px", flex: 1 }}>
                   <span
                     className="plusJakara_semibold"
-                    style={{ fontSize: "1rem", color: "#343a40" }}
+                    style={{ fontSize: "0.95rem", color: "#212529", lineHeight: "1.2" }}
                   >
                     {quote?.user?.name}
                   </span>
                   <span
-                    className="plusJakara_regular"
-                    style={{ fontSize: "0.75rem", color: "#6c757d" }}
+                    className="plusJakara_regular text-muted"
+                    style={{ fontSize: "0.725rem", wordBreak: "break-all" }}
                   >
                     {quote?.user?.email}
                   </span>
-                  <span
-                    className="plusJakara_semibold d-flex align-items-center"
-                    style={{
-                      fontSize: "0.75rem",
-                      color: "#495057",
-                      gap: "0.25rem",
-                    }}
-                  >
-                    <FaPhone size={10} />
-                    {quote?.user?.phone || "---"}
-                  </span>
+                  {quote?.user?.phone && (
+                    <span
+                      className="plusJakara_semibold d-flex align-items-center text-secondary"
+                      style={{
+                        fontSize: "0.725rem",
+                        gap: "0.3rem",
+                      }}
+                    >
+                      <FaPhone size={9} style={{ color: "#0d6efd" }} />
+                      {quote?.user?.phone}
+                    </span>
+                  )}
                 </div>
                 <div
                   className="d-flex align-items-center"
-                  style={{ gap: "1.2rem" }}
+                  style={{ gap: "0.75rem", flexShrink: 0 }}
                 >
                   <img
                     src={messageicon}
                     alt="chat icon"
                     style={{
-                      width: "20px",
-                      height: "20px",
+                      width: "18px",
+                      height: "18px",
                       cursor: "pointer",
                       filter:
-                        "invert(42%) sepia(0%) saturate(1352%) hue-rotate(149deg) brightness(93%) contrast(89%)", // Gray color
+                        "invert(42%) sepia(0%) saturate(1352%) hue-rotate(149deg) brightness(93%) contrast(89%)",
+                      transition: "transform 0.2s ease",
                     }}
                     onClick={() => handleMessageClick(quote)}
+                    onMouseEnter={(e) => e.target.style.transform = "scale(1.15)"}
+                    onMouseLeave={(e) => e.target.style.transform = "scale(1)"}
                   />
                   <div
                     className="d-flex flex-column align-items-end"
-                    style={{ gap: "0.5rem" }}
+                    style={{ gap: "0.3rem" }}
                   >
                     {/* Status Badge */}
                     <span
                       className="badge rounded-pill plusJakara_medium d-flex align-items-center"
                       style={{
                         backgroundColor: statusInfo.color,
-                        fontSize: "0.7rem",
-                        padding: "0.25rem 0.5rem",
+                        fontSize: "0.65rem",
+                        padding: "0.2rem 0.45rem",
                         gap: "0.25rem",
                       }}
                     >
-                      {/* <span>{statusInfo.icon}</span> */}
                       {statusInfo.label}
                     </span>
 
@@ -377,58 +383,69 @@ const Quotes = () => {
                         onClick={() => handleStatusChangeClick(quote)}
                         className="btn btn-warning btn-sm plusJakara_medium"
                         style={{
-                          fontSize: "0.75rem",
-                          padding: "0.25rem 0.5rem",
+                          fontSize: "0.65rem",
+                          padding: "0.15rem 0.4rem",
+                          borderRadius: "4px",
                         }}
                       >
                         Change Status
                       </button>
                     ) : // Main Admin sees Assign button
-                    quote?.sub_admin_id !== "0" ? (
-                      <span
-                        className="badge rounded-pill plusJakara_medium"
-                        style={{
-                          backgroundColor: "#28a745",
-                          fontSize: "0.75rem",
-                          padding: "0.25rem 0.5rem",
-                        }}
-                      >
-                        Assigned
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => handleAssignClick(quote)}
-                        className="btn btn-primary btn-sm plusJakara_medium"
-                        style={{
-                          fontSize: "0.75rem",
-                          padding: "0.25rem 0.5rem",
-                        }}
-                      >
-                        Assign
-                      </button>
-                    )}
+                      quote?.sub_admin_id !== "0" ? (
+                        <span
+                          className="badge rounded-pill plusJakara_medium"
+                          style={{
+                            backgroundColor: "#28a745",
+                            fontSize: "0.65rem",
+                            padding: "0.2rem 0.45rem",
+                          }}
+                        >
+                          Assigned
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleAssignClick(quote)}
+                          className="btn btn-primary btn-sm plusJakara_medium"
+                          style={{
+                            fontSize: "0.65rem",
+                            padding: "0.15rem 0.4rem",
+                            borderRadius: "4px",
+                          }}
+                        >
+                          Assign
+                        </button>
+                      )}
                   </div>
                 </div>
               </div>
             </div>
-            {/* pet details */}
 
-            <p className="plusJakara_semibold">Pet Information</p>
-            {/* left side image & right side content */}
-            {/* left side image & right side content */}
+            {/* Pet details - Compact & Responsive */}
+            <p
+              className="plusJakara_semibold mb-1"
+              style={{ fontSize: "0.75rem", color: "#8c96a3", letterSpacing: "0.5px" }}
+            >
+              PET INFORMATION
+            </p>
             {petInformation ? (
               <div
-                className="d-flex align-items-center mb-3"
-                style={{ gap: "1rem" }}
+                className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center mb-3 p-2"
+                style={{
+                  gap: "0.75rem",
+                  backgroundColor: "#f8f9fa",
+                  borderRadius: "8px",
+                  border: "1px solid #e9ecef",
+                }}
               >
                 <div
                   style={{
                     flexShrink: 0,
-                    width: "80px",
-                    height: "80px",
+                    width: "52px",
+                    height: "52px",
                     borderRadius: "50%",
                     overflow: "hidden",
-                    border: "1px solid #dee2e6",
+                    border: "2px solid #fff",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.08)",
                   }}
                 >
                   <Image
@@ -439,8 +456,8 @@ const Quotes = () => {
                         : "https://placehold.co/100x100?text=Pet")
                     }
                     alt={petInformation?.name}
-                    width={80}
-                    height={80}
+                    width={52}
+                    height={52}
                     style={{
                       objectFit: "cover",
                     }}
@@ -450,35 +467,41 @@ const Quotes = () => {
                     }}
                   />
                 </div>
-                <div className="d-flex flex-column">
+                <div className="d-flex flex-column gap-1 w-100">
                   <span
                     className="plusJakara_semibold"
-                    style={{ fontSize: "1.1rem", color: "#343a40" }}
+                    style={{ fontSize: "0.85rem", color: "#212529" }}
                   >
                     {petInformation?.name || "Unknown Pet"}
                   </span>
-                  <span
-                    className="plusJakara_regular"
-                    style={{ fontSize: "0.85rem", color: "#6c757d" }}
-                  >
-                    {[petInformation?.species, petInformation?.breed]
+                  <div className="d-flex flex-wrap gap-1">
+                    {[
+                      petInformation?.species,
+                      petInformation?.breed,
+                      petInformation?.gender,
+                      petInformation?.weight,
+                    ]
                       .filter(Boolean)
-                      .join(" • ")}
-                  </span>
-                  <span
-                    className="plusJakara_regular"
-                    style={{ fontSize: "0.85rem", color: "#6c757d" }}
-                  >
-                    {[petInformation?.gender, petInformation?.weight]
-                      .filter(Boolean)
-                      .join(" • ")}
-                  </span>
+                      .map((val, i) => (
+                        <span
+                          key={i}
+                          className="badge bg-white text-dark border plusJakara_regular"
+                          style={{
+                            fontSize: "0.65rem",
+                            fontWeight: "normal",
+                            padding: "0.15rem 0.3rem",
+                          }}
+                        >
+                          {val}
+                        </span>
+                      ))}
+                  </div>
                   {petInformation?.dob && (
                     <span
-                      className="plusJakara_regular"
-                      style={{ fontSize: "0.85rem", color: "#6c757d" }}
+                      className="plusJakara_regular text-muted"
+                      style={{ fontSize: "0.7rem" }}
                     >
-                      DOB: {moment(petInformation.dob).format("M/D/YYYY")}
+                      DOB: {moment(petInformation.dob).format("MMM DD, YYYY")}
                     </span>
                   )}
                 </div>
@@ -486,16 +509,71 @@ const Quotes = () => {
             ) : (
               <div
                 className="p-2 mb-3 text-muted"
-                style={{ fontSize: "0.85rem", fontStyle: "italic" }}
+                style={{ fontSize: "0.75rem", fontStyle: "italic" }}
               >
                 Pet information not available.
               </div>
             )}
 
+            {/* Service Specifications (Sub Categories) - Compact & 100% Responsive Grid */}
+            {subCategoriesList && subCategoriesList.length > 0 && (
+              <div className="mb-3">
+                <p
+                  className="plusJakara_semibold mb-1"
+                  style={{ fontSize: "0.75rem", color: "#8c96a3", letterSpacing: "0.5px" }}
+                >
+                  SERVICE SPECIFICATIONS
+                </p>
+                <div className="row g-2">
+                  {subCategoriesList.map((item, idx) => (
+                    <div key={idx} className="col-12 col-sm-6">
+                      <div
+                        style={{
+                          backgroundColor: "#f8f9fa",
+                          border: "1px solid #e9ecef",
+                          borderRadius: "6px",
+                          padding: "0.4rem 0.6rem",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          height: "100%",
+                        }}
+                      >
+                        <span
+                          className="plusJakara_regular text-uppercase text-truncate"
+                          style={{
+                            fontSize: "0.6rem",
+                            color: "#8c96a3",
+                            letterSpacing: "0.5px",
+                            marginBottom: "0.1rem",
+                          }}
+                          title={item.category_service_group}
+                        >
+                          {item.category_service_group}
+                        </span>
+                        <span
+                          className="plusJakara_semibold text-truncate"
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "#212529",
+                          }}
+                          title={item.selected}
+                        >
+                          {item.selected}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Scrollable Questions and Answers - Compact Scroll */}
             <div
+              className="custom-scrollbar mt-1"
               style={{
-                maxHeight: "300px",
-                borderTop: "1px solid #e9ecef",
+                maxHeight: "220px",
+                borderTop: "1px solid #f1f3f5",
                 paddingTop: "0.75rem",
                 overflowY: "auto",
                 paddingRight: "5px",
@@ -520,11 +598,11 @@ const Quotes = () => {
                     <div key={field.key} className="col-12 mb-2">
                       <div className="d-flex flex-column gap-1">
                         <span
-                          className="plusJakara_semibold"
+                          className="plusJakara_medium"
                           style={{
-                            fontSize: "0.85rem",
+                            fontSize: "0.75rem",
                             color: "#495057",
-                            marginBottom: "0.125rem",
+                            lineHeight: "1.2",
                           }}
                         >
                           {field.title}
@@ -565,7 +643,7 @@ const Quotes = () => {
                                           <Image
                                             src={imageUrl}
                                             alt={`vet bill ${index + 1}`}
-                                            height={150}
+                                            height={120}
                                             style={{
                                               objectFit: "cover",
                                             }}
@@ -583,7 +661,7 @@ const Quotes = () => {
                               return (
                                 <span
                                   className="text-muted"
-                                  style={{ fontSize: "0.80rem" }}
+                                  style={{ fontSize: "0.725rem" }}
                                 >
                                   No image available
                                 </span>
@@ -592,7 +670,7 @@ const Quotes = () => {
                               return (
                                 <span
                                   className="text-danger"
-                                  style={{ fontSize: "0.80rem" }}
+                                  style={{ fontSize: "0.725rem" }}
                                 >
                                   Invalid Image Data
                                 </span>
@@ -603,11 +681,12 @@ const Quotes = () => {
                           <span
                             className="plusJakara_regular"
                             style={{
-                              fontSize: "0.75rem",
-                              color: "#6c757d",
+                              fontSize: "0.725rem",
+                              color: value === "N/A" ? "#adb5bd" : "#495057",
                               backgroundColor: "#f8f9fa",
-                              padding: "0.25rem 0.5rem",
-                              borderRadius: "4px",
+                              padding: "0.35rem 0.55rem",
+                              borderRadius: "6px",
+                              border: "1px solid #e9ecef",
                               wordBreak: "break-word",
                             }}
                           >
@@ -628,6 +707,30 @@ const Quotes = () => {
 
   return (
     <>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #ccc;
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #b3b3b3;
+        }
+        .quote-card-hover {
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .quote-card-hover:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 24px rgba(0,0,0,0.08) !important;
+        }
+      `}} />
       <main
         className="m-auto height_calc"
         style={{
@@ -695,9 +798,8 @@ const Quotes = () => {
                 <button
                   onClick={handlePrevPage}
                   disabled={lastId === 1}
-                  className={`btn plusJakara_medium ${
-                    lastId === 1 ? "btn-secondary" : "btn-primary"
-                  }`}
+                  className={`btn plusJakara_medium ${lastId === 1 ? "btn-secondary" : "btn-primary"
+                    }`}
                   style={{ opacity: lastId === 1 ? 0.5 : 1 }}
                 >
                   Previous
@@ -711,9 +813,8 @@ const Quotes = () => {
                 <button
                   onClick={handleNextPage}
                   disabled={lastId === count}
-                  className={`btn plusJakara_medium ${
-                    lastId === count ? "btn-secondary" : "btn-primary"
-                  }`}
+                  className={`btn plusJakara_medium ${lastId === count ? "btn-secondary" : "btn-primary"
+                    }`}
                   style={{ opacity: lastId === count ? 0.5 : 1 }}
                 >
                   Next
