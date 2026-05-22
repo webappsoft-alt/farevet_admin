@@ -13,7 +13,7 @@ import { Search } from 'react-feather';
 import { Modal } from 'react-bootstrap';
 import { apiRequest } from '../../api/auth_api';
 import ReactPdfViewer from './reactPdfViewer';
-import { CircularProgress } from '@mui/material';
+import Spinner from "../Spinner";
 import moment from 'moment';
 const { Option } = Select;
 
@@ -297,7 +297,7 @@ const Application = () => {
                                         onClick={() => { handleUpdate('1') }}
                                         className="w-1/2 rounded-lg text_white flex items-center justify-center p-2"
                                     >
-                                        {loading2 && statusStore === '1' ? <CircularProgress size={18} color='inherit' /> : 'Approve'}
+                                        {loading2 && statusStore === '1' ? <Spinner size={18} color='inherit' /> : 'Approve'}
                                     </button>
                                     <button
                                         disabled={loading2}
@@ -305,7 +305,7 @@ const Application = () => {
                                         onClick={() => { handleUpdate('2') }}
                                         className="w-1/2 rounded-lg text_white flex items-center justify-center p-2"
                                     >
-                                        {loading2 && statusStore === '2' ? <CircularProgress size={18} color='inherit' /> : 'Reject'}
+                                        {loading2 && statusStore === '2' ? <Spinner size={18} color='inherit' /> : 'Reject'}
                                     </button>
                                 </div>
                             </Form>
@@ -395,29 +395,53 @@ const Application = () => {
                                     type='submit'
                                     className="bg_primary w-full text_white flex justify-center items-center inter_semibold px-[2rem] py-2 rounded-lg"
                                 >
-                                    {loading ? <CircularProgress size={18} color='inherit' /> : 'Confirm'}
+                                    {loading ? <Spinner size={18} color='inherit' /> : 'Confirm'}
                                 </button>
                             </div>
                         </Form>
                     </Modal.Body>
                 </Modal>
 
-                <Modal show={showDetail} onHide={() => setShowDetail(false)} centered>
-                    <Modal.Header closeButton />
-                    <Modal.Body>
-                        <div className="flex justify-between items-center">
-                            <div className="flex flex-col">
-                                <h5 className="text_dark plusJakara_medium">Licence</h5>
-                                <span className="text_secondary mb-2 plusJakara_medium">{selectedItem?.license}</span>
-                                <h5 className="text_dark plusJakara_medium">Licence No</h5>
-                                <span className="text_secondary mb-2 plusJakara_medium">{selectedItem?.license_no}</span>
-                                <h5 className="text_dark plusJakara_medium">Issued by</h5>
-                                <span className="text_secondary mb-2 plusJakara_medium">{selectedItem?.issued_by}</span>
-                                <h5 className="text_dark plusJakara_medium">Licence Type</h5>
-                                <span className="text_secondary mb-2 plusJakara_medium">{selectedItem?.license_type}</span>
-                                <h5 className="text_dark plusJakara_medium">Verified by farevet</h5>
-                                <span className="text_secondary mb-2 plusJakara_medium">{selectedItem?.verified_by_farevet}</span>
+                <Modal show={showDetail} onHide={() => setShowDetail(false)} centered contentClassName="rounded-xl border-0 shadow-lg">
+                    <Modal.Header closeButton className="border-b-0 pb-0">
+                        <Modal.Title className="text-2xl font-bold text-[#1A1A2E] plusJakara_bold">
+                            License Details
+                        </Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body className="px-6 pb-6 pt-4">
+                        <div className="bg-[#F8F9FA] rounded-xl p-5 border border-[#E8E8F0]">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
+                                <div className="flex flex-col">
+                                    <span className="text-xs uppercase tracking-wider text-[#9B9BB5] font-semibold mb-1">License Name</span>
+                                    <span className="text-[#1A1A2E] font-medium text-base">{selectedItem?.license || 'N/A'}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-xs uppercase tracking-wider text-[#9B9BB5] font-semibold mb-1">License No</span>
+                                    <span className="text-[#1A1A2E] font-medium text-base">{selectedItem?.license_no || 'N/A'}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-xs uppercase tracking-wider text-[#9B9BB5] font-semibold mb-1">Issued By</span>
+                                    <span className="text-[#1A1A2E] font-medium text-base">{selectedItem?.issued_by || 'N/A'}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-xs uppercase tracking-wider text-[#9B9BB5] font-semibold mb-1">License Type</span>
+                                    <span className="text-[#1A1A2E] font-medium text-base inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#E5D4FF] text-[#8930F9] w-fit">
+                                        {selectedItem?.license_type || 'N/A'}
+                                    </span>
+                                </div>
+                                <div className="flex flex-col md:col-span-2">
+                                    <span className="text-xs uppercase tracking-wider text-[#9B9BB5] font-semibold mb-1">Verified By Farevet</span>
+                                    <span className="text-[#1A1A2E] font-medium text-base">{selectedItem?.verified_by_farevet || 'N/A'}</span>
+                                </div>
                             </div>
+                        </div>
+                        <div className="mt-6 flex justify-end">
+                            <button
+                                onClick={() => setShowDetail(false)}
+                                className="bg_primary text_white px-6 py-2 rounded-lg font-medium transition-colors hover:opacity-90"
+                            >
+                                Close
+                            </button>
                         </div>
                     </Modal.Body>
                 </Modal>

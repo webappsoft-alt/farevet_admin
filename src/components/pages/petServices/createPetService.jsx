@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Trash2 } from "react-feather";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiRequest } from "../../../api/auth_api";
-import { CircularProgress } from "@mui/material";
+import Spinner from "../../Spinner";
 
 const reportedByArray = [{ title: "Admin" }, { title: "User" }];
 const sourceOptions = [
@@ -492,7 +492,7 @@ const CreatePetService = () => {
                                 placeholder="Select Service"
                                 allowClear
                                 onChange={(value) => handleServiceChange(value)}
-                            // notFoundContent={loading ? <CircularProgress size={18} /> : null}
+                            // notFoundContent={loading ? <Spinner size={18} /> : null}
                             >
                                 {serviceNames?.map((item) => (
                                     <Select.Option key={item?.id} value={item?.name}>
@@ -806,7 +806,7 @@ const CreatePetService = () => {
                             className="flex justify-center bg_primary cursor-not-allowed py-[12px] px-[4rem] rounded-3 items-center button_shadow"
                             disabled
                         >
-                            <CircularProgress size={18} className="text_white" />
+                            <Spinner size={18} className="text_white" />
                         </button>
                     )}
                 </div>

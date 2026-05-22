@@ -7,7 +7,7 @@ import React, {
   useState,
 } from "react";
 import { message, Modal } from "antd";
-import { CircularProgress } from "@mui/material";
+import Spinner from "../Spinner";
 import { apiRequest } from "../../api/auth_api";
 import "./educationArticles.scss";
 import CKEditorIframe from "../ckeditor/CKEditorIframe";
@@ -1055,7 +1055,7 @@ const EducationArticles = () => {
                       colSpan={9}
                       style={{ textAlign: "center", padding: 40 }}
                     >
-                      <CircularProgress size={32} />
+                      <Spinner size={32} />
                     </td>
                   </tr>
                 ) : null}
@@ -1186,7 +1186,7 @@ const EducationArticles = () => {
                               }}
                             >
                               {deletingRowId === String(row.id) ? (
-                                <CircularProgress size={14} color="inherit" />
+                                <Spinner size={14} color="inherit" />
                               ) : null}
                               {deletingRowId === String(row.id)
                                 ? "Deleting…"
@@ -1438,7 +1438,7 @@ const EducationArticles = () => {
                           />
                           {coverUploading ? (
                             <div className="edu-cover-dropzone-body">
-                              <CircularProgress size={32} />
+                              <Spinner size={32} />
                               <span className="edu-cover-dropzone-title">
                                 Uploading…
                               </span>
@@ -1594,7 +1594,7 @@ const EducationArticles = () => {
                       onClick={() => saveArticle("draft")}
                     >
                       {formSaveLoading === "draft" ? (
-                        <CircularProgress size={18} color="inherit" />
+                        <Spinner size={18} color="inherit" />
                       ) : null}
                       {formSaveLoading === "draft"
                         ? "Saving…"
@@ -1614,7 +1614,7 @@ const EducationArticles = () => {
                       onClick={() => saveArticle("published")}
                     >
                       {formSaveLoading === "published" ? (
-                        <CircularProgress size={18} style={{ color: "#fff" }} />
+                        <Spinner size={18} style={{ color: "#fff" }} />
                       ) : null}
                       {formSaveLoading === "published"
                         ? "Publishing…"

@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { CircularProgress } from "@mui/material";
+import Spinner from "../Spinner";
 import { Input, Select, message } from "antd";
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Plus, Search, Trash2 } from "react-feather";
@@ -128,7 +128,7 @@ const PetService = () => {
       </div>
       {isProcessing ? (
         <div className="flex w-full justify-center items-center my-5">
-          <CircularProgress className="text_primary" size={30} thickness={3} />
+          <Spinner className="text_primary" size={30} thickness={3} />
         </div>
       ) : (
         <div className="d-flex flex-wrap gap-3 mb-4 justify-content-center justify-content-lg-start">

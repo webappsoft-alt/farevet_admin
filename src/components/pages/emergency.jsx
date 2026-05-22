@@ -1,7 +1,7 @@
 /* eslint-disable react/jsx-no-target-blank */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { CircularProgress } from '@mui/material';
+import Spinner from "../Spinner";
 import { Form, Input, Select, message } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { Modal } from 'react-bootstrap';
@@ -188,14 +188,14 @@ const Emergency = () => {
                                     disabled={loading2}
                                     style={{ backgroundColor: '#00A3FF', fontSize: '12px', whiteSpace: 'nowrap' }}
                                     className="flex items-center w-fit inter_regular rounded-2 text_white p-2">
-                                    {loading2 && supportId === row?.id && supportStatus === 'treated' ? <CircularProgress size={10} className='text_white' /> : 'Make Treated'}
+                                    {loading2 && supportId === row?.id && supportStatus === 'treated' ? <Spinner size={10} className='text_white' /> : 'Make Treated'}
                                 </button>
                                 <button
                                     onClick={() => handleUpdateSupport('completed', row)}
                                     disabled={loading2}
                                     style={{ backgroundColor: '#06D6A0', fontSize: '12px', whiteSpace: 'nowrap' }}
                                     className="flex items-center w-fit inter_regular rounded-2 text_white p-2">
-                                    {loading2 && supportId === row?.id && supportStatus === 'completed' ? <CircularProgress size={10} className='text_white' /> : 'Make Complete'}
+                                    {loading2 && supportId === row?.id && supportStatus === 'completed' ? <Spinner size={10} className='text_white' /> : 'Make Complete'}
                                 </button>
                             </> : row?.status === 'treated' ? <>
                                 <button
@@ -203,14 +203,14 @@ const Emergency = () => {
                                     disabled={loading2}
                                     style={{ backgroundColor: '#8930F9', fontSize: '12px', whiteSpace: 'nowrap' }}
                                     className="flex items-center w-fit inter_regular rounded-2 text_white p-2">
-                                    {loading2 && supportId === row?.id && supportStatus === 'processing' ? <CircularProgress size={10} className='text_white' /> : 'Make Processing'}
+                                    {loading2 && supportId === row?.id && supportStatus === 'processing' ? <Spinner size={10} className='text_white' /> : 'Make Processing'}
                                 </button >
                                 <button
                                     onClick={() => handleUpdateSupport('completed', row)}
                                     disabled={loading2}
                                     style={{ backgroundColor: '#06D6A0', fontSize: '12px', whiteSpace: 'nowrap' }}
                                     className="flex items-center w-fit inter_regular rounded-2 text_white p-2">
-                                    {loading2 && supportId === row?.id && supportStatus === 'completed' ? <CircularProgress size={10} className='text_white' /> : 'Make Complete'}
+                                    {loading2 && supportId === row?.id && supportStatus === 'completed' ? <Spinner size={10} className='text_white' /> : 'Make Complete'}
                                 </button>
                             </> : row?.status === 'completed' ? <>
                                 <button
@@ -218,14 +218,14 @@ const Emergency = () => {
                                     disabled={loading2}
                                     style={{ backgroundColor: '#8930F9', fontSize: '12px', whiteSpace: 'nowrap' }}
                                     className="flex items-center w-fit inter_regular rounded-2 text_white p-2">
-                                    {loading2 && supportId === row?.id && supportStatus === 'processing' ? <CircularProgress size={10} className='text_white' /> : 'Make Processing'}
+                                    {loading2 && supportId === row?.id && supportStatus === 'processing' ? <Spinner size={10} className='text_white' /> : 'Make Processing'}
                                 </button>
                                 <button
                                     onClick={() => handleUpdateSupport('treated', row)}
                                     disabled={loading2}
                                     style={{ backgroundColor: '#00A3FF', fontSize: '12px', whiteSpace: 'nowrap' }}
                                     className="flex items-center w-fit inter_regular rounded-2 text_white p-2">
-                                    {loading2 && supportId === row?.id && supportStatus === 'treated' ? <CircularProgress size={10} className='text_white' /> : 'Make Treated'}
+                                    {loading2 && supportId === row?.id && supportStatus === 'treated' ? <Spinner size={10} className='text_white' /> : 'Make Treated'}
                                 </button>
                             </> : ""}
                     </div >
@@ -358,7 +358,7 @@ const Emergency = () => {
                                     type='submit'
                                     className="bg_primary w-full text_white flex justify-center items-center inter_semibold px-[2rem] py-2 rounded-lg"
                                 >
-                                    {loading ? <CircularProgress size={18} color='inherit' /> : 'Confirm'}
+                                    {loading ? <Spinner size={18} color='inherit' /> : 'Confirm'}
                                 </button>
                             </div>
                         </Form>

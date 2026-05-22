@@ -1,7 +1,7 @@
 /* eslint-disable jsx-a11y/img-redundant-alt */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { CircularProgress } from '@mui/material';
+import Spinner from "../Spinner";
 import { Modal, Select, message } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { StyleSheetManager } from 'styled-components';
@@ -134,7 +134,7 @@ const Community = () => {
                             className={`text_white flex justify-center rounded-2 py-1 px-2 items-center relative`}
                         >
                             {statusId === row?.id && loading ? (
-                                <CircularProgress size={15} color='inherit' />
+                                <Spinner size={15} color='inherit' />
                             ) : (
                                 'Delete Post'
                             )}

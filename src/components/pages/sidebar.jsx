@@ -2,6 +2,8 @@
 import React, { Fragment, useState, useEffect, useRef, useMemo } from "react";
 import { Menu, MenuItem, Sidebar, SubMenu } from "react-pro-sidebar";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Menu as DropdownMenu, Transition } from '@headlessui/react';
+import { message } from 'antd';
 import {
   HiOutlineSquares2X2,
   HiOutlineUsers,
@@ -31,6 +33,8 @@ import {
   HiOutlineLockClosed,
   HiOutlineUserCircle,
   HiOutlineBriefcase,
+  HiOutlineChevronUpDown,
+  HiOutlineArrowRightOnRectangle,
 } from "react-icons/hi2";
 import { useAuth } from "../authRoutes/useAuth";
 import { logofarevet } from "../icons/icon";
@@ -165,22 +169,21 @@ function renderMenuRow(
             );
             const linkTo = subItem.search
               ? {
-                  pathname: subItem.path,
-                  search: subItem.search.startsWith("?")
-                    ? subItem.search
-                    : `?${subItem.search}`,
-                }
+                pathname: subItem.path,
+                search: subItem.search.startsWith("?")
+                  ? subItem.search
+                  : `?${subItem.search}`,
+              }
               : subItem.path;
             return (
               <MenuItem
                 key={`${key}-${j}`}
                 component={<Link to={linkTo} />}
                 onClick={() => handleLinkClick(`${key}-${j}`, subItem.path)}
-                className={`inter_semibold mb-0.5 rounded-lg ${
-                  subActive
-                    ? "sidebar-farevet-item-active bg_primary text_white"
-                    : "text_secondary"
-                }`}
+                className={`inter_semibold mb-0.5 rounded-lg ${subActive
+                  ? "sidebar-farevet-item-active bg_primary text_white"
+                  : "text_secondary"
+                  }`}
               >
                 <span className="inter_semibold sidebar-farevet-item-label">
                   {subItem.label}
@@ -200,11 +203,10 @@ function renderMenuRow(
       onClick={() =>
         handleLinkClick(item.path || item.items, item.path, item.tableName)
       }
-      className={`inter_semibold mb-0.5 rounded-lg ${
-        isChildPath(item.path, location.pathname)
-          ? "sidebar-farevet-item-active bg_primary text_white"
-          : "text_secondary"
-      }`}
+      className={`inter_semibold mb-0.5 rounded-lg ${isChildPath(item.path, location.pathname)
+        ? "sidebar-farevet-item-active bg_primary text_white"
+        : "text_secondary"
+        }`}
     >
       <div className="flex w-full items-center justify-between gap-1.5">
         <div className="flex min-w-0 items-center gap-2">
@@ -264,7 +266,26 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
   const user_type = window.localStorage.getItem("user_type");
   const adminData = JSON.parse(
     window.localStorage.getItem("login_farevet_formData"),
-  );
+  ) || {};
+
+  const profileName = adminData.name || adminData.first_name || "Admin";
+  const profileEmail = adminData.email || "admin@farevet.com";
+
+  let displayRole = "Admin";
+  if (user_type === "vet") {
+    displayRole = adminData?.profession || "Vet";
+  } else if (adminData?.admin_type === "main") {
+    displayRole = "CEO · FareVet";
+  } else if (adminData?.admin_type === "sub_admin") {
+    displayRole = "Sub Admin · FareVet";
+  }
+
+  const handleLogout = () => {
+    window.localStorage.removeItem("isLogin_farevet_admin");
+    message.error("Logout Successful!");
+    navigate("/login");
+  };
+
   const [unseenCounts, setUnseenCounts] = useState({});
   const intervalRef = useRef(null);
   const prevPathRef = useRef(location.pathname);
@@ -617,53 +638,110 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
               onBreakPoint={setBroken}
               breakPoint="xl"
             >
-              <div
-                className="sidebar-farevet-inner scrolbar flex flex-col overflow-y-auto"
-                style={{ height: "100%" }}
-              >
-                <div className="sidebar-farevet-brand">
+              <div className="flex flex-col h-full bg-white relative">
+                {/* STICKY HEADER */}
+                <div className="sidebar-farevet-brand sticky top-0 z-10 bg-white border-b border-gray-100 p-4 shrink-0">
                   <button
                     type="button"
                     onClick={() => {
                       navigate(user_type === "vet" ? "/profile" : "/dashboard");
                     }}
-                    className="flex min-w-0 items-center gap-2 rounded-lg px-0.5 py-0.5 text-left transition-opacity hover:opacity-90"
+                    className="flex min-w-0 w-full items-center gap-3 rounded-lg text-left transition-opacity hover:opacity-90"
                   >
                     <img
                       src={logofarevet}
                       alt=""
-                      className="sidebar-farevet-brand-logo shrink-0"
+                      className="sidebar-farevet-brand-logo shrink-0 w-8 h-8 rounded-full"
                     />
-                    <span className="inter_semibold sidebar-farevet-brand-title text_darkprimary truncate">
+                    <span className="inter_bold text-xl text_darkprimary truncate">
                       FareVet
                     </span>
                   </button>
                 </div>
-                <Menu
-                  style={{ width: "100%" }}
-                  className="mx-auto flex w-full flex-col"
-                >
-                  {navSections.map((section) => (
-                    <Fragment key={section.heading}>
-                      <p className="sidebar-farevet-section-label">
-                        {section.heading}
-                      </p>
-                      <div className="sidebar-farevet-section-items">
-                        {section.items.map((item, idx) =>
-                          renderMenuRow(
-                            item,
-                            idx,
-                            location,
-                            handleLinkClick,
-                            isChildPath,
-                            unseenCounts,
-                            tableToApiKeyMap,
-                          ),
-                        )}
+
+                {/* SCROLLABLE MENU */}
+                <div className="sidebar-farevet-inner scrolbar flex-1 overflow-y-auto pt-2 pb-4">
+                  <Menu
+                    style={{ width: "100%" }}
+                    className="mx-auto flex w-full flex-col px-2"
+                  >
+                    {navSections.map((section) => (
+                      <Fragment key={section.heading}>
+                        <p className="sidebar-farevet-section-label">
+                          {section.heading}
+                        </p>
+                        <div className="sidebar-farevet-section-items">
+                          {section.items.map((item, idx) =>
+                            renderMenuRow(
+                              item,
+                              idx,
+                              location,
+                              handleLinkClick,
+                              isChildPath,
+                              unseenCounts,
+                              tableToApiKeyMap,
+                            ),
+                          )}
+                        </div>
+                      </Fragment>
+                    ))}
+                  </Menu>
+                </div>
+
+                {/* STICKY FOOTER */}
+                <div className="sticky bottom-0 z-10 bg-white border-t border-gray-100 p-1.5 shrink-0">
+                  <DropdownMenu as="div" className="relative w-full">
+                    <DropdownMenu.Button className="flex w-full items-center justify-between gap-3 rounded-lg p-2 transition-colors hover:bg-gray-50 border-none outline-none">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* {adminData?.image ? (
+                          <img
+                            src={`${global.IMAGEURL}/${adminData.image}`}
+                            alt="Profile"
+                            className="h-10 w-10 shrink-0 rounded-full object-cover border border-gray-200"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 shrink-0 rounded-full bg_primary flex items-center justify-center text-white inter_bold text-lg">
+                            {profileName ? profileName.charAt(0).toUpperCase() : "A"}
+                          </div>
+                        )} */}
+                        <div className="flex flex-col items-start min-w-0">
+                          <span className="inter_semibold text-sm text-gray-900 truncate w-full text-left">
+                            {profileName}
+                          </span>
+                          <span className="inter_regular text-xs text-gray-500 truncate w-full text-left">
+                            {displayRole}
+                          </span>
+                        </div>
                       </div>
-                    </Fragment>
-                  ))}
-                </Menu>
+                      <HiOutlineChevronUpDown className="h-5 w-5 shrink-0 text-gray-400" />
+                    </DropdownMenu.Button>
+
+                    <Transition
+                      as={Fragment}
+                      enter="transition ease-out duration-100"
+                      enterFrom="transform opacity-0 scale-95 translate-y-2"
+                      enterTo="transform opacity-100 scale-100 translate-y-0"
+                      leave="transition ease-in duration-75"
+                      leaveFrom="transform opacity-100 scale-100 translate-y-0"
+                      leaveTo="transform opacity-0 scale-95 translate-y-2"
+                    >
+                      <DropdownMenu.Items className="absolute bottom-full left-0 z-20 mb-2 w-full origin-bottom rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                        <DropdownMenu.Item>
+                          {({ active }) => (
+                            <button
+                              onClick={handleLogout}
+                              className={`flex w-full items-center gap-2 px-4 py-2 text-sm ${active ? "bg-red-50 text-red-600" : "text-gray-700"
+                                }`}
+                            >
+                              <HiOutlineArrowRightOnRectangle className="h-5 w-5" />
+                              <span className="inter_semibold">Sign out</span>
+                            </button>
+                          )}
+                        </DropdownMenu.Item>
+                      </DropdownMenu.Items>
+                    </Transition>
+                  </DropdownMenu>
+                </div>
               </div>
             </Sidebar>
           </div>

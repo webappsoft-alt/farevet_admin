@@ -5,7 +5,7 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import "./App.scss";
 import "./components/styles/main.css";
 import logofarevet from "./components/assets/svg/farevetlogo.svg";
-import { CircularProgress } from "@mui/material";
+import Spinner from "./components/Spinner";
 import { Route, Routes, useLocation } from "react-router-dom";
 import PublicRoutes from "./components/authRoutes/publicRoutes";
 import PrivateRoutes from "./components/authRoutes/privateRoutes";
@@ -123,7 +123,7 @@ const ConciergeRequestDetail = lazy(() =>
 
 const suspenseFallback = (
   <main className="h-screen flex flex-col justify-center items-center">
-    <CircularProgress className="text_primary" size={60} thickness={2} />
+    <Spinner className="text_primary" size={60} thickness={2} />
     <img src={logofarevet} className="w-[2rem] absolute" alt="" />
   </main>
 );

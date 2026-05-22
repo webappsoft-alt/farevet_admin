@@ -95,42 +95,40 @@
     padding-left: 0.15rem;
   }
 
-  .ps-submenu-root > .ps-menu-button {
+  .ps-submenu-root>.ps-menu-button {
     border-radius: 0.5rem !important;
   }
 
   /* SubMenu parent row (e.g. Vet Bills): match normal MenuItem rows.
      Library wraps icon in 35×35px + 10px margin; our items use ~1.125rem icon + gap-2 only. */
-  .ps-submenu-root > .ps-menu-button .ps-menu-icon {
+  .ps-submenu-root>.ps-menu-button .ps-menu-icon {
     width: auto !important;
     min-width: 0 !important;
     max-width: none !important;
     height: auto !important;
     line-height: 1 !important;
-    margin-right: 0.5rem !important; /* Tailwind gap-2 */
+    margin-right: 0.5rem !important;
+    /* Tailwind gap-2 */
     margin-left: 0 !important;
   }
 
   /* SubMenu parent row: same label color as other nav links (text_secondary); icon/chevron stay primary. */
-  .sidebar-farevet-submenu-root.ps-submenu-root > .ps-menu-button {
+  .sidebar-farevet-submenu-root.ps-submenu-root>.ps-menu-button {
     color: var(--secondary, #737791) !important;
   }
 
-  .sidebar-farevet-submenu-root.ps-submenu-root > .ps-menu-button .ps-menu-label,
-  .sidebar-farevet-submenu-root.ps-submenu-root
-    > .ps-menu-button
-    .ps-menu-label
-    .sidebar-farevet-item-label {
+  .sidebar-farevet-submenu-root.ps-submenu-root>.ps-menu-button .ps-menu-label,
+  .sidebar-farevet-submenu-root.ps-submenu-root>.ps-menu-button .ps-menu-label .sidebar-farevet-item-label {
     color: var(--secondary, #737791) !important;
   }
 
-  .sidebar-farevet-submenu-root.ps-submenu-root > .ps-menu-button .ps-menu-icon,
-  .sidebar-farevet-submenu-root.ps-submenu-root > .ps-menu-button .ps-menu-icon svg {
+  .sidebar-farevet-submenu-root.ps-submenu-root>.ps-menu-button .ps-menu-icon,
+  .sidebar-farevet-submenu-root.ps-submenu-root>.ps-menu-button .ps-menu-icon svg {
     color: var(--primary, #8930f9) !important;
   }
 
-  .sidebar-farevet-submenu-root.ps-submenu-root > .ps-menu-button .ps-submenu-expand-icon,
-  .sidebar-farevet-submenu-root.ps-submenu-root > .ps-menu-button .ps-submenu-expand-icon svg {
+  .sidebar-farevet-submenu-root.ps-submenu-root>.ps-menu-button .ps-submenu-expand-icon,
+  .sidebar-farevet-submenu-root.ps-submenu-root>.ps-menu-button .ps-submenu-expand-icon svg {
     color: var(--primary, #8930f9) !important;
     opacity: 0.9;
   }

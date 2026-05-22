@@ -1,12 +1,11 @@
 import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CircularProgress } from "@mui/material";
+import Spinner from "../Spinner";
 import { message, Modal } from "antd";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "react-feather";
 import ReactPaginate from "react-paginate";
 import "./educationArticles.scss";
 import { apiRequest } from "../../api/auth_api";
-import { Spinner } from "react-bootstrap";
 import ProductTableNoData from "../DataTable/NoDataComponent";
 import { arrowleft2, arrowright2 } from "../icons/icon";
 
@@ -307,7 +306,7 @@ const MedicationCategories = () => {
           <div className="edu-page-title">Medication categories</div>
           <div className="edu-page-sub">
             Categories for the medication.
-           
+
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -324,7 +323,7 @@ const MedicationCategories = () => {
             className="edu-btn edu-btn-primary"
             onClick={openAdd}
           >
-             Add category
+            Add category
           </button>
         </div>
       </div>
@@ -346,7 +345,7 @@ const MedicationCategories = () => {
               {loading ? (
                 <tr>
                   <td colSpan={3} style={{ textAlign: "center", padding: 28 }}>
-                    <CircularProgress size={28} />
+                    <Spinner size={28} />
                   </td>
                 </tr>
               ) : sortedRows.length > 0 ? (

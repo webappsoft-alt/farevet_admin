@@ -9,7 +9,8 @@ import { StyleSheetManager } from 'styled-components';
 import { apiRequest } from '../../api/auth_api';
 import ProductTable from '../DataTable/productTable';
 import { avatar2 } from '../icons/icon';
-import { CircularProgress } from '@mui/material';
+import Spinner from "../Spinner";
+import { FaStore } from 'react-icons/fa';
 
 export const ReportedCost = () => {
     const [selectItem, setSelectItem] = useState(null);
@@ -71,9 +72,21 @@ export const ReportedCost = () => {
             cell: (row) => {
                 return (
                     <div className="flex w-full gap-2 items-center">
-                        <img
-                            onClick={() => handleImageClick(`${global.IMAGEURL}/${row?.business?.logo}` || avatar2)}
-                            alt='' style={{ width: '35px', cursor: 'pointer', borderRadius: '50%', height: '35px', objectFit: 'cover' }} src={`${global.IMAGEURL + '/' + row?.business?.logo}`} />
+                        {row?.business?.logo ? (
+                            <img
+                                onClick={() => handleImageClick(`${global.IMAGEURL}/${row?.business?.logo}`)}
+                                alt=''
+                                style={{ width: '35px', cursor: 'pointer', borderRadius: '50%', height: '35px', objectFit: 'cover' }}
+                                src={`${global.IMAGEURL}/${row?.business?.logo}`}
+                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                            />
+                        ) : null}
+                        <div
+                            className="items-center justify-center bg-gray-100 text-gray-400"
+                            style={{ width: '35px', height: '35px', borderRadius: '50%', display: row?.business?.logo ? 'none' : 'flex' }}
+                        >
+                            <FaStore size={18} />
+                        </div>
                     </div>
                 );
             },
@@ -166,14 +179,14 @@ export const ReportedCost = () => {
                                     disabled={loading}
                                     onClick={() => { handleUpdate('accept', row); }}
                                     className="w-1/2 rounded-lg text_white flex items-center justify-center p-2">
-                                    {loading && reportStatus === 'accept' ? <CircularProgress size={18} color='inherit' /> : 'Approve'}
+                                    {loading && reportStatus === 'accept' ? <Spinner size={18} color='inherit' /> : 'Approve'}
                                 </button>
                                 <button
                                     style={{ backgroundColor: '#FF6F61' }}
                                     disabled={loading}
                                     onClick={() => { handleUpdate('reject', row); }}
                                     className="w-1/2 rounded-lg text_white flex items-center justify-center p-2">
-                                    {loading && reportStatus === 'reject' ? <CircularProgress size={18} color='inherit' /> : 'Decline'}
+                                    {loading && reportStatus === 'reject' ? <Spinner size={18} color='inherit' /> : 'Decline'}
                                 </button>
                             </>}
                     </div>
@@ -320,7 +333,7 @@ export const ReportedCost = () => {
                                         className="flex justify-center bg_primary cursor-not-allowed py-[12px] px-[4rem] rounded-3 items-center button_shadow"
                                         disabled
                                     >
-                                        <CircularProgress size={18} className="text_white" />
+                                        <Spinner size={18} className="text_white" />
                                     </button>
                                 )}
                             </div>

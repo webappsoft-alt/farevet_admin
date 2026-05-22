@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
-import { CircularProgress } from "@mui/material";
+import Spinner from "../../Spinner";
 import { Form, Input, Select, message } from "antd";
 import React, { useEffect, useState } from "react";
 import { ArrowLeft } from "react-feather";
@@ -668,7 +668,7 @@ const CreateDeal = () => {
               className="flex justify-center bg_primary cursor-not-allowed py-[12px] px-[4rem] rounded-lg items-center button_shadow"
               disabled
             >
-              <CircularProgress size={18} className="text_white" />
+              <Spinner size={18} className="text_white" />
             </button>
           )}
         </div>

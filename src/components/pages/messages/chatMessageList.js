@@ -3,24 +3,41 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { ChevronLeft, File, FilePlus, Image, Paperclip, Send, Trash, Trash2 } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
+import { Dropdown, Form } from 'react-bootstrap'
 import ChatMessage from './chatMessage'
 // import { createChat, getChat, updateChat } from '../api/instructor.js/chat'
 // import profileAvatar from '../assests/png/avatar2.png'
-import { CircularProgress } from '@mui/material'
+import Spinner from "../../Spinner";
 import { Fragment } from 'react'
-import { Dropdown, Form, Spinner } from 'react-bootstrap'
 import { useTranslation } from 'react-i18next'
 import { apiRequest } from '../../../api/auth_api'
 import { profileavatar } from '../../icons/icon'
 import { setChatCount } from '../../../redux/videoCall'
 import { useDispatch } from 'react-redux'
 
+const CustomToggle = React.forwardRef(({ children, onClick, disabled }, ref) => (
+    <button
+        ref={ref}
+        type="button"
+        disabled={disabled}
+        onClick={(e) => {
+            e.preventDefault();
+            onClick(e);
+        }}
+        className="p-2 hover:bg-gray-100 rounded-full transition-colors border-none bg-transparent flex items-center justify-center disabled:opacity-50"
+    >
+        {children}
+    </button>
+));
+
 const ChatMessageList = ({ chatDetail, setShowChat, setCheckMsg, checkMsg, setReload, activeId, }) => {
     const navigate = useNavigate()
+
     const [formInfo, setFormInfo] = useState(null)
     const userData = JSON.parse(window.localStorage.getItem('login_farevet_formData'))
     const user_type = window.localStorage.getItem('user_type');
     const [chatMsg, setChatMsg] = useState([]);
+    const [isLoadingMsgs, setIsLoadingMsgs] = useState(true);
     const [timeStamp, setTimeStamp] = useState('');
     const [isFileLoader, setIsFileLoader] = useState(false)
     const [isDelete, setIsDelete] = useState(false)
@@ -50,6 +67,7 @@ const ChatMessageList = ({ chatDetail, setShowChat, setCheckMsg, checkMsg, setRe
     };
 
     useEffect(() => {
+        setIsLoadingMsgs(true);
         getChatData()
     }, [chatDetail]);
 
@@ -70,8 +88,10 @@ const ChatMessageList = ({ chatDetail, setShowChat, setCheckMsg, checkMsg, setRe
             .then((result) => {
                 const reversedChatArray = [...result.chat];
                 setChatMsg(reversedChatArray);
+                setIsLoadingMsgs(false);
             }).catch((err) => {
                 console.log(err)
+                setIsLoadingMsgs(false);
             });
     };
 
@@ -274,19 +294,25 @@ const ChatMessageList = ({ chatDetail, setShowChat, setCheckMsg, checkMsg, setRe
     }
 
     return (
-        <div className='chat_height position-relative' >
-            <div className="px-3 py-2 boxshadow">
-                <div className='d-flex justify-content-between align-items-center gap-3 flex-wrap'>
-                    <div className="display_flex _link_">
-                        <div className='d_left_button' onClick={() => { setShowChat(false) }}>
-                            <ChevronLeft />
+        <div className='flex flex-col h-full w-full relative bg-white'>
+            <div className="px-3 py-1.5 border-b border-gray-100 shrink-0 bg-white z-10">
+                <div className='flex justify-between items-center gap-2 flex-wrap w-full'>
+                    <div className="flex items-center gap-2">
+                        <button className='md:hidden p-1 rounded-full hover:bg-gray-100 text-gray-600 border-none bg-transparent' onClick={() => { setShowChat(false) }}>
+                            <ChevronLeft size={20} />
+                        </button>
+                        <div className="shrink-0">
+                            <img src={chatDetail.sender_img !== `${global.IMAGEURL}/` ? chatDetail.sender_img : profileavatar} alt="" className="w-8 h-8 rounded-full object-cover border border-gray-100 bg-white" />
                         </div>
-                        <div>
-                            <img src={chatDetail.sender_img !== `${global.IMAGEURL}/` ? chatDetail.sender_img : profileavatar} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} className="chat_profile_im" /></div>
-                        <div className="ps-sm-3 ps-2">
-                            <h5 className="chat_detail chat_profile">
-                                {chatDetail?.sender_name}
-                            </h5>
+                        <div className="flex flex-col justify-center">
+                            <h6 className="text-sm font-semibold text-gray-900 m-0 leading-none">
+                                {(!chatDetail?.sender_name || chatDetail?.sender_name === "undefined undefined" || chatDetail?.sender_name === "null null" || chatDetail?.sender_name.trim() === "" || chatDetail?.sender_name === "undefined")
+                                    ? "No Name"
+                                    : chatDetail?.sender_name}
+                            </h6>
+                            <span className="text-[11px] text-gray-500 m-0 mt-0.5 leading-none">
+                                {chatDetail?.sender_email || chatDetail?.email || chatDetail?.user_email || "No email available"}
+                            </span>
                         </div>
                     </div>
                     {
@@ -298,9 +324,24 @@ const ChatMessageList = ({ chatDetail, setShowChat, setCheckMsg, checkMsg, setRe
                                 </div>))}
                 </div>
             </div>
-            <div className="position-relative">
-                <div ref={chatMessagesRef} className="chat-messages scrolbar px-2 py-3"  >
-                    {chatMsg?.map((msg, index) => (
+
+            <div className="flex-1 overflow-y-auto scrolbar px-4 py-3 bg-[#FAFBFC]" ref={chatMessagesRef}>
+                {isLoadingMsgs ? (
+                    <div className="flex flex-col gap-4 p-2">
+                        <div className="flex items-end gap-2 w-3/4">
+                            <div className="w-8 h-8 rounded-full bg-gray-200 shrink-0"></div>
+                            <div className="bg-gray-200 rounded-2xl rounded-bl-none h-16 w-full"></div>
+                        </div>
+                        <div className="flex items-end gap-2 w-3/4 self-end flex-row-reverse">
+                            <div className="bg-purple-100 rounded-2xl rounded-br-none h-12 w-full"></div>
+                        </div>
+                        <div className="flex items-end gap-2 w-2/3">
+                            <div className="w-8 h-8 rounded-full bg-gray-200 shrink-0"></div>
+                            <div className="bg-gray-200 rounded-2xl rounded-bl-none h-10 w-full"></div>
+                        </div>
+                    </div>
+                ) : (
+                    chatMsg?.map((msg, index) => (
                         <Fragment key={index}>
                             <ChatMessage
                                 img={msg?.dumyImg}
@@ -317,31 +358,31 @@ const ChatMessageList = ({ chatDetail, setShowChat, setCheckMsg, checkMsg, setRe
                                 time={`${msg?.time}`}
                                 chatMsg={chatMsg}
                                 setChatMsg={setChatMsg} />
-                        </Fragment>))}
-                </div>
+                        </Fragment>))
+                )}
             </div>
-            <form onSubmit={sendMessage}>
+
+            <form onSubmit={sendMessage} className="px-4 py-2.5 border-t border-gray-100 shrink-0 bg-white relative">
                 {imageFiles.length > 0 &&
-                    <div style={{ bottom: 50, backgroundColor: "#d3d3d3", margin: 10, borderRadius: '20px' }} className=' position-absolute selected_img'>
+                    <div style={{ bottom: '100%', left: 0, margin: 10, borderRadius: '12px' }} className='position-absolute bg-gray-100 p-2 shadow-sm'>
                         <div className='position-relative d-flex flex-column justify-content-between h-100'>
-                            <button className='text-danger trash btn1' style={{ zIndex: "10" }} onClick={handleTrashBtn}>
-                                <Trash2 />
+                            <button className='text-danger trash btn1 absolute top-1 right-1' style={{ zIndex: "10" }} onClick={handleTrashBtn}>
+                                <Trash2 size={16} />
                             </button>
-                            <div className='position-relative' style={{ width: 200, height: 'auto' }}>
+                            <div className='position-relative rounded-lg overflow-hidden' style={{ width: 120, height: 'auto' }}>
                                 {!isFileLoader ?
                                     <img
                                         src={URL.createObjectURL(imageFiles[0])}
                                         alt='SelectedImage'
-                                        className='w-100 h-100'
+                                        className='w-100 h-100 object-cover'
                                     /> :
-                                    <div className=' position-absolute d-flex justify-content-center align-items-center h-100' style={{ inset: "0", backgroundColor: "rgba(0,0,0,0.25)", borderRadius: "inherit", zIndex: "2" }} >
+                                    <div className=' position-absolute d-flex justify-content-center align-items-center h-100' style={{ inset: "0", backgroundColor: "rgba(0,0,0,0.25)", zIndex: "2" }} >
                                         <Spinner />
                                     </div>}
                             </div>
                             <div className='d-flex mt-2 justify-content-between align-items-center gap-3'>
-                                {/* <p className='m-0'> {imageFiles[0].name}</p> */}
-                                <button className="send_btn rounded-3 ms-auto bg_darkSec" type='button' disabled={isFileLoader} onClick={() => sendFile(imageFiles[0])}>
-                                    <Send className='text-white p-0 m-0' style={{ width: "1.2rem" }} />
+                                <button className="h-8 w-8 rounded-full bg_darkSec flex items-center justify-center ms-auto" type='button' disabled={isFileLoader} onClick={() => sendFile(imageFiles[0])}>
+                                    <Send className='text-white' style={{ width: "1rem" }} />
                                 </button>
                             </div>
 
@@ -349,85 +390,76 @@ const ChatMessageList = ({ chatDetail, setShowChat, setCheckMsg, checkMsg, setRe
 
                     </div>}
                 {documentFiles.length > 0 &&
-                    <div className=' position-absolute selected_img'>
+                    <div style={{ bottom: '100%', left: 0, margin: 10, borderRadius: '12px' }} className='position-absolute bg-gray-100 p-2 shadow-sm'>
                         <div className='position-relative d-flex flex-column justify-content-between h-100'>
 
                             <div className='h-100 d-grid justify-content-center align-items-center '>
 
                                 <div className='file_doc m-auto position-relative'>
-                                    <button className='text-danger trash2 btn1' disabled={isFileLoader} style={{ zIndex: "10" }} onClick={handleTrashBtn}>
-                                        <Trash />
+                                    <button className='text-danger trash2 btn1 absolute top-1 right-1' disabled={isFileLoader} style={{ zIndex: "10" }} onClick={handleTrashBtn}>
+                                        <Trash size={16} />
                                     </button>
                                     {!isFileLoader ?
-                                        <File className='w-100 h-100'></File>
-                                        : <div className=' position-absolute d-flex justify-content-center align-items-center h-100' style={{ inset: "0", backgroundColor: "rgba(0,0,0,0.25)", borderRadius: "inherit", zIndex: "2" }} >
+                                        <File className='w-100 h-100 text-gray-500'></File>
+                                        : <div className=' position-absolute d-flex justify-content-center align-items-center h-100' style={{ inset: "0", backgroundColor: "rgba(0,0,0,0.25)", zIndex: "2" }} >
                                             <Spinner />
                                         </div>
                                     }
                                 </div>
                             </div>
                             <div className='d-flex mt-2 justify-content-between align-items-center gap-3'>
-                                <p className='m-0'> {documentFiles[0].name}</p>
-                                <button className="send_btn rounded-3 ms-auto bg_darkSec " disabled={isFileLoader} type='button' onClick={() => sendFile(documentFiles[0])}>
-                                    <Send className='text-white p-0 m-0' style={{ width: "1.2rem" }} />
+                                <p className='m-0 text-xs truncate max-w-[100px]'> {documentFiles[0].name}</p>
+                                <button className="h-8 w-8 rounded-full bg_darkSec flex items-center justify-center ms-auto" disabled={isFileLoader} type='button' onClick={() => sendFile(documentFiles[0])}>
+                                    <Send className='text-white' style={{ width: "1rem" }} />
                                 </button>
                             </div>
 
                         </div>
 
                     </div>}
-                <div className=" position-absolute bottom-0  w-100">
-                    <div className="d-flex my-3 mx-3 gap-2">
-                        <div className="send_btn2 bg-light  rounded-circle" type='button'>
-                            <Dropdown show={showDropdown} onToggle={handleDropdownToggle} onHide={handleDropdownHide}>
-                                <Dropdown.Toggle
-                                    disabled={isFileLoader}
-                                    variant='transparent'
-                                    id="dropdown-basic"
-                                >
-                                    {isFileLoader ? <CircularProgress color='inherit' size={16} /> :
-                                        <Paperclip className='text-black p-0 m-0' style={{ width: "1.2rem" }} />}
-                                </Dropdown.Toggle>
-                                <Dropdown.Menu>
-                                    <div className='position-relative dropdown-item'>
-                                        <Form.Control
-                                            type='file'
-                                            className='file_adjust'
-                                            onClick={handleDropdownHide}
-                                            accept='.doc, .docx, .pdf, .txt'
-                                            ref={fileInputRef}
-                                            onChange={(e) => handleFileChange(e, 'file')}
-                                        />
-                                        <FilePlus />
-                                    </div>
-                                    <div className='position-relative dropdown-item'>
-                                        <Form.Control
-                                            type='file'
-                                            className='file_adjust'
-                                            onClick={handleDropdownHide}
-                                            ref={fileInputRef}
-                                            accept='.jpg, .png, .jpeg'
-                                            onChange={(e) => handleFileChange(e, 'image')}
-                                        />
-                                        <Image />
-                                    </div>
-                                </Dropdown.Menu>
-                            </Dropdown>
-                        </div>
-                        <div className="position-relative w-100" >
-                            <input type="text" id="chatInput"
-                                //  disabled={imageFiles.length > 0 || documentFiles.length > 0} 
-                                required className="form-control rounded-3 ps-2 py-2 fs_10 " placeholder="Try to..." />
-                        </div>
-                        <button className={`send_btn rounded-3 bg-secondary`}
-                            //  disabled={imageFiles.length > 0 || documentFiles.length > 0} 
-                            type='submit'>
-                            <Send className='text-white p-0 m-0' style={{ width: "1.2rem" }} />
-                        </button>
+                <div className="flex items-center gap-2">
+                    <div className="shrink-0 flex items-center justify-center">
+                        <Dropdown show={showDropdown} onToggle={handleDropdownToggle} onHide={handleDropdownHide}>
+                            <Dropdown.Toggle as={CustomToggle} disabled={isFileLoader}>
+                                {isFileLoader ? <Spinner color='inherit' size={16} /> :
+                                    <Paperclip className='text-gray-500' style={{ width: "1.2rem" }} />}
+                            </Dropdown.Toggle>
+                            <Dropdown.Menu className="shadow-sm border-gray-100">
+                                <div className='position-relative dropdown-item d-flex align-items-center gap-2'>
+                                    <Form.Control
+                                        type='file'
+                                        className='file_adjust absolute inset-0 opacity-0 cursor-pointer'
+                                        onClick={handleDropdownHide}
+                                        accept='.doc, .docx, .pdf, .txt'
+                                        ref={fileInputRef}
+                                        onChange={(e) => handleFileChange(e, 'file')}
+                                    />
+                                    <FilePlus size={16} /> <span className="text-sm">Document</span>
+                                </div>
+                                <div className='position-relative dropdown-item d-flex items-center gap-2'>
+                                    <Form.Control
+                                        type='file'
+                                        className='file_adjust absolute inset-0 opacity-0 cursor-pointer'
+                                        onClick={handleDropdownHide}
+                                        ref={fileInputRef}
+                                        accept='.jpg, .png, .jpeg'
+                                        onChange={(e) => handleFileChange(e, 'image')}
+                                    />
+                                    <Image size={16} /> <span className="text-sm">Image</span>
+                                </div>
+                            </Dropdown.Menu>
+                        </Dropdown>
                     </div>
+                    <div className="flex-1 min-w-0" >
+                        <input type="text" id="chatInput"
+                            required className="w-full bg-gray-50 border border-gray-200 focus:border-[#8930f9] focus:ring-1 focus:ring-[#8930f9] rounded-full px-4 py-2 text-sm outline-none transition-colors" placeholder="Type a message..." />
+                    </div>
+                    <button className="shrink-0 h-9 w-9 flex items-center justify-center rounded-full bg_primary text-white hover:opacity-90 transition-opacity border-none"
+                        type='submit'>
+                        <Send style={{ width: "1rem" }} className="mr-0.5 mt-0.5" />
+                    </button>
                 </div>
             </form>
-
         </div>
     )
 }

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { arrowright2 } from '../../icons/icon';
 import { Link, useNavigate } from 'react-router-dom';
 import { Col, Input, Select, Form } from 'antd';
-import { CircularProgress } from '@mui/material';
+import Spinner from "../../Spinner";
 const { Option } = Select;
 
 const AddSubscription = () => {
@@ -110,7 +110,7 @@ const AddSubscription = () => {
                             <button type='submit' className='w-fit rounded-md bg_dark text_white text-sm py-[10px] px-[2rem] md:px-[44px] inter_semibold flex justify-center items-center'>Add</button>
                         ) : (
                             <button type='submit' className='w-fit rounded-md bg_dark text_white text-sm py-[10px] px-[4.5rem] md:px-[44px] inter_semibold flex justify-center items-center' disabled>
-                                <CircularProgress size={20} />
+                                <Spinner size={20} />
                             </button>
                         )
                         }

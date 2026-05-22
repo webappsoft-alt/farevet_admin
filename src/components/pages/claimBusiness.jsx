@@ -1,7 +1,7 @@
 /* eslint-disable react/jsx-no-target-blank */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { CircularProgress } from '@mui/material';
+import Spinner from "../Spinner";
 import { Form, Input, Select, message } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { Modal } from 'react-bootstrap';
@@ -10,6 +10,7 @@ import { StyleSheetManager } from 'styled-components';
 import { apiRequest } from '../../api/auth_api';
 import ProductTable from '../DataTable/productTable';
 import { avatar2, logofarevet } from '../icons/icon';
+import { FaStore } from 'react-icons/fa';
 import moment from 'moment';
 const { Option } = Select;
 
@@ -128,9 +129,21 @@ const ClaimBusiness = () => {
             cell: (row) => {
                 return (
                     <div className="flex w-full gap-2 items-center">
-                        <img
-                            onClick={() => handleImageClick(`${global.IMAGEURL}/${row?.logo}` || avatar2)}
-                            alt='' style={{ width: '35px', cursor: 'pointer', borderRadius: '50%', height: '35px', objectFit: 'cover' }} src={`${global.IMAGEURL + '/' + row?.logo}`} />
+                        {row?.logo ? (
+                            <img
+                                onClick={() => handleImageClick(`${global.IMAGEURL}/${row?.logo}`)}
+                                alt='' 
+                                style={{ width: '35px', cursor: 'pointer', borderRadius: '50%', height: '35px', objectFit: 'cover' }} 
+                                src={`${global.IMAGEURL}/${row?.logo}`} 
+                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                            />
+                        ) : null}
+                        <div 
+                            className="items-center justify-center bg-gray-100 text-gray-400" 
+                            style={{ width: '35px', height: '35px', borderRadius: '50%', display: row?.logo ? 'none' : 'flex' }}
+                        >
+                            <FaStore size={18} />
+                        </div>
                     </div>
                 )
             },
@@ -214,14 +227,14 @@ const ClaimBusiness = () => {
                                     style={{ backgroundColor: '#06D6A0' }}
                                     onClick={() => { handleClaimBusiness('accept', row) }}
                                     className="w-1/2 rounded-lg text_white flex items-center justify-center p-2">
-                                    {loading2 && claimStatus === 'accept' ? <CircularProgress color='inherit' size={18} /> : 'Approve'}
+                                    {loading2 && claimStatus === 'accept' ? <Spinner color='inherit' size={18} /> : 'Approve'}
                                 </button>
                                 <button
                                     disabled={loading2}
                                     style={{ backgroundColor: '#FF6F61' }}
                                     onClick={() => { handleClaimBusiness('reject', row) }}
                                     className="w-1/2 rounded-lg text_white flex items-center justify-center p-2">
-                                    {loading2 && claimStatus === 'reject' ? <CircularProgress color='inherit' size={18} /> : 'Decline'}
+                                    {loading2 && claimStatus === 'reject' ? <Spinner color='inherit' size={18} /> : 'Decline'}
                                 </button>
                             </> :
                             <button
@@ -277,7 +290,7 @@ const ClaimBusiness = () => {
                 </div>
                 {isProcessing ? (
                     <div className="flex w-full justify-center items-center my-5">
-                        <CircularProgress className="text_primary" size={30} thickness={3} />
+                        <Spinner className="text_primary" size={30} thickness={3} />
                     </div>
                 ) : (
                     !count ?
@@ -377,7 +390,7 @@ const ClaimBusiness = () => {
                                     type='submit'
                                     className="bg_primary w-full text_white flex justify-center items-center inter_semibold px-[2rem] py-2 rounded-lg"
                                 >
-                                    {loading ? <CircularProgress size={18} color='inherit' /> : 'Confirm'}
+                                    {loading ? <Spinner size={18} color='inherit' /> : 'Confirm'}
                                 </button>
                             </div>
                         </Form>

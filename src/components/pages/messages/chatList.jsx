@@ -59,44 +59,42 @@ const ChatList = ({ name, discrip, img, activeId, setActiveChatId, setShowChat, 
             });
     }
 
+    const displayName = (!name || name === "undefined undefined" || name === "null null" || name.trim() === "" || name === "undefined") 
+        ? "No Name" 
+        : name;
+
     return (
         <div>
-            <div className={`_link_  border-0 `} onClick={() => toggleData(data)} style={{ cursor: "pointer" }}>
-                <div className={`chat-list-link px-2 py-2 w-100 ${isActive ? 'active' : ''}`}>
-                    <div className='d-flex gap-2 align-items-center'>
-                        <div className="position-relative">
-                            <img src={img !== `${global.IMAGEURL}/` ? img : profileavatar} alt=""
-                                style={{ width: '50px', height: '50px', marginRight: '16px', borderRadius: '50%', objectFit: 'cover' }}
-                                className="chat_profile_img border" />
-                            <span>
-                                <span className="noti_badges fs_06" style={{ height: "1.2rem", width: "1.2rem" }} id="chatbadge">
-                                    {
-                                        badge === null ? notify : badge
-                                    }
-                                </span>
+            <button 
+                type="button" 
+                className={`w-full text-left border-b border-gray-100 transition-colors hover:bg-gray-50 p-3 ${isActive ? 'bg-purple-50' : 'bg-white'}`}
+                onClick={() => toggleData(data)} 
+            >
+                <div className='flex items-center gap-3 w-full'>
+                    <div className="relative shrink-0">
+                        <img src={img !== `${global.IMAGEURL}/` ? img : profileavatar} alt=""
+                            className="w-10 h-10 rounded-full object-cover border border-gray-200 bg-white" />
+                        {(badge === null ? notify : badge) && (
+                            <span className="absolute -top-1 -right-1 h-4 w-4 bg-[#8930f9] text-white text-[10px] font-bold flex items-center justify-center rounded-full border border-white shadow-sm">
+                                {badge === null ? notify : badge}
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-0.5">
+                            <h6 className={`inter_semibold text-sm truncate pr-2 m-0 ${isActive ? 'text-[#8930f9]' : 'text-gray-900'}`}>
+                                {displayName}
+                            </h6>
+                            <span className={`inter_regular text-[11px] shrink-0 mt-0.5 ${isActive ? 'text-purple-400' : 'text-gray-400'}`}>
+                                <Moment unix fromNow>{timestamp}</Moment>
                             </span>
                         </div>
-                        <div className="d-flex justify-content-between align-items-center w-100">
-                            <div className="mt-1">
-                                <h6 className="plusJakara_medium line-clamp-1 my-0">
-                                    {name}
-                                </h6>
-                                <span className="chat_detail1 plusJakara_regular" style={{ fontSize: '14px' }}>
-                                    {discrip}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="d-flex justify-content-end w-100">
-                        <span className="chat_detail plusJakara_regular text-sm" style={{ whiteSpace: "nowrap", fontSize: '14px' }}>
-                            <Moment unix fromNow>
-                                {timestamp}
-                            </Moment>
-                            {/* {formattedTime} */}
-                        </span>
+                        <p className="inter_regular text-xs text-gray-500 truncate m-0">
+                            {discrip}
+                        </p>
                     </div>
                 </div>
-            </div>
+            </button>
         </div >
     )
 }

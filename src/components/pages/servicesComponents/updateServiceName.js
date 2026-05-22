@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { ArrowLeft } from 'react-feather';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { apiRequest } from '../../../api/auth_api';
-import { CircularProgress } from '@mui/material';
+import Spinner from "../../Spinner";
 
 
 const serviceArray = [
@@ -110,7 +110,7 @@ const UpdateServiceName = () => {
                                 <button type='submit' className='bg_primary rounded-lg text_white inter_semibold px-[1rem] py-2'>Update</button>
                             ) : (
                                 <button type='button' disabled className='bg_primary rounded-lg px-[2rem] py-2 cursor-not-allowed'>
-                                    <CircularProgress size={18} className='text_white' />
+                                    <Spinner size={18} className='text_white' />
                                 </button>
                             )}
                         </div>

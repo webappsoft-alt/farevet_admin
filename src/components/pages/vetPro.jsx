@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/img-redundant-alt */
 /* eslint-disable react-hooks/exhaustive-deps */
-import { CircularProgress } from "@mui/material";
+import Spinner from "../Spinner";
 import { Form, Input, Modal, message, DatePicker, Row, Col } from "antd";
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
@@ -460,7 +460,7 @@ const VetPro = () => {
           <div className="mt-3">
             {loading ? (
               <main className="my-5 d-flex w-100 justify-content-center align-items-center">
-                <CircularProgress size={24} className="text_dark" />
+                <Spinner size={24} className="text_dark" />
               </main>
             ) : !vetPros || vetPros.length === 0 ? (
               <main className="my-5 d-flex w-100 justify-content-center align-items-center">
@@ -540,7 +540,7 @@ const VetPro = () => {
                                 alt="Camera Icon"
                                 className="w-5 h-5 opacity-20"
                               />
-                              <CircularProgress size={18} color="inherit" />
+                              <Spinner size={18} color="inherit" />
                             </div>
                           ) : selectedFile || loadselectedFile ? (
                             <>
@@ -737,7 +737,7 @@ const VetPro = () => {
               className="px-4 py-2 text_white rounded-3 bg_dark plusJakara_medium disabled:opacity-50"
             >
               {isProcessing ? (
-                <CircularProgress color="inherit" size={16} />
+                <Spinner color="inherit" size={16} />
               ) : isEditMode ? (
                 "Update"
               ) : (

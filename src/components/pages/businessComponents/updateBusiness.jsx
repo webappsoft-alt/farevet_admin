@@ -75,7 +75,7 @@ import {
   spotlight9,
 } from "../../icons/icon";
 import { apiRequest } from "../../../api/auth_api";
-import { CircularProgress } from "@mui/material";
+import Spinner from "../../Spinner";
 import moment from "moment";
 import {
   CERTIFICATION_OPTIONS,
@@ -1800,7 +1800,7 @@ const UpdateBusiness = () => {
               className="flex justify-center bg_primary py-[12px] px-[4rem] rounded-lg items-center button_shadow"
               disabled
             >
-              <CircularProgress size={18} className="text_white" />
+              <Spinner size={18} className="text_white" />
             </button>
           )}
         </div>

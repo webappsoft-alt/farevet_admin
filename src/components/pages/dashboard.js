@@ -69,7 +69,7 @@ const Dashboard = () => {
           }
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   };
 
   useEffect(() => {
@@ -101,7 +101,7 @@ const Dashboard = () => {
 
   return (
     <main className="container m-auto height_calc w-full px-3 py-6 md:px-4">
-      <div className="mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+      <div className="mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
         <DashboardCard
           icon={userdashboard}
           iconBg="bg-[#F9F1FF]"

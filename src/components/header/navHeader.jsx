@@ -4,17 +4,28 @@ import { message } from 'antd';
 import React, { Fragment } from 'react';
 import { Container, Nav, Navbar } from 'react-bootstrap';
 import { MdMenu } from 'react-icons/md';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { arrowdown, logofarevet } from '../icons/icon';
 
 const NavHeader = ({ broken, setToggled, toggled }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const admindata = JSON.parse(window.localStorage.getItem('login_farevet_formData'))
+
+    const getPageName = (pathname) => {
+        const path = pathname.split('/')[1];
+        if (!path || path === 'dashboard') return 'Dashboard';
+        if (path === 'chat') return 'Messages';
+        if (path === 'change-password') return 'Settings';
+        if (path === 'user') return 'Users';
+        if (path === 'vet') return 'Vets';
+
+        return path.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    };
 
     const handleLogout = () => {
         window.localStorage.removeItem("isLogin_farevet_admin");
         message.error("Logout Successful!");
-        // console.log("Logging out ");
         navigate('/login');
     };
 
@@ -23,16 +34,12 @@ const NavHeader = ({ broken, setToggled, toggled }) => {
             <Navbar bg="white" expand="lg" sticky="top" className='p-3 shadow-sm w-[100%]' id="navbar">
                 <Container fluid className="w-full max-w-none px-3">
                     <div className='flex items-center gap-3 md:w-1/2'>
-                        {/* {broken && (
-                            <button className="sb-button" onClick={() => navigate('/dashboard')}>
-                                <img src={logofarevet} className='max-md:w-[70%]' alt="" />
-                            </button>
-                        )} */}
                         {broken && (
-                            <button className="sb-button" onClick={() => setToggled(!toggled)}>
-                                <MdMenu size={28} />
+                            <button className="sb-button text-gray-600 hover:bg-gray-100 p-1.5 -ml-1.5 rounded-lg transition-colors border-none bg-transparent" onClick={() => setToggled(!toggled)}>
+                                <MdMenu size={26} />
                             </button>
                         )}
+                        <h4 className="text-xl inter_semibold text-gray-800 m-0 ">{getPageName(location.pathname)}</h4>
                     </div>
                     <Nav className="ms-auto flex">
                         <div className='flex justify-center w-full items-center'>

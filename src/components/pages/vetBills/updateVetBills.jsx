@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { CircularProgress } from '@mui/material';
+import Spinner from "../../Spinner";
 import { Form, Input, message, Upload, Button, Tag } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Upload as UploadIcon, Plus, X } from 'react-feather';
@@ -306,7 +306,7 @@ const UpdateVetBills = () => {
                         type="submit"
                         className="bg_primary rounded-lg text_white inter_semibold px-5 py-2"
                     >
-                        {(isProcessing) ? <CircularProgress size={18} className="text_white" /> : 'Update'}
+                        {(isProcessing) ? <Spinner size={18} className="text_white" /> : 'Update'}
                     </button>
                 </Form.Item>
             </Form>

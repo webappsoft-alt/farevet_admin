@@ -5,7 +5,7 @@ import { Modal, Select, message, Image } from "antd";
 import { useEffect, useState } from "react";
 import { FaPhone } from "react-icons/fa6";
 import { apiRequest } from "../../api/auth_api";
-import { CircularProgress } from "@mui/material";
+import Spinner from "../Spinner";
 import moment from "moment";
 
 import { Send } from "react-feather";
@@ -759,7 +759,7 @@ const Quotes = () => {
             className="d-flex justify-content-center align-items-center"
             style={{ padding: "2rem" }}
           >
-            <CircularProgress size={18} />
+            <Spinner size={18} />
             <span
               className="plusJakara_regular"
               style={{ marginLeft: "0.5rem", color: "#6c757d" }}
@@ -985,7 +985,7 @@ const Quotes = () => {
             disabled={sendingMessage}
           >
             {sendingMessage ? (
-              <CircularProgress size={14} color="inherit" />
+              <Spinner size={14} color="inherit" />
             ) : (
               <Send size={14} />
             )}

@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { CircularProgress } from "@mui/material";
+import Spinner from "../Spinner";
 import { Col, Form, Input, Modal, message, Avatar, Radio, Space, Checkbox, Tooltip } from "antd";
 import React, { useEffect, useState } from "react";
 import { apiRequest } from "../../api/auth_api";
@@ -371,7 +371,7 @@ const CommunityMessages = () => {
           <div className="mt-3">
             {loading ? (
               <main className="my-5 d-flex w-100 justify-content-center align-items-center">
-                <CircularProgress size={24} className="text_dark" />
+                <Spinner size={24} className="text_dark" />
               </main>
             ) : !categories || categories.length === 0 ? (
               <main className="my-5 d-flex w-100 justify-content-center align-items-center">
@@ -617,7 +617,7 @@ const CommunityMessages = () => {
               disabled={isProcessing}
               className="px-4 py-2 text_white rounded-3 bg_dark plusJakara_medium"
             >
-              {isProcessing ? <CircularProgress color="inherit" size={16} /> : "Continue"}
+              {isProcessing ? <Spinner color="inherit" size={16} /> : "Continue"}
             </button>
           </div>
         </Form>
@@ -659,7 +659,7 @@ const CommunityMessages = () => {
               disabled={isProcessing}
               className="px-4 py-2 text_white rounded-3 bg_primary plusJakara_medium"
             >
-              {isProcessing ? <CircularProgress color="inherit" size={16} /> : "Yes"}
+              {isProcessing ? <Spinner color="inherit" size={16} /> : "Yes"}
             </button>
           </div>
         </div>

@@ -1,8 +1,9 @@
-import { CircularProgress } from '@mui/material';
+import Spinner from './components/Spinner';
+
 import React, { Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
-import { logofarevet } from './components/icons/icon';
+import logofarevet from './components/assets/svg/farevetlogo.svg';
 import './index.css';
 import reportWebVitals from './reportWebVitals';
 import { SocketProvider } from './socket/socketProvider';
@@ -14,7 +15,7 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <Suspense fallback={
     <main className='h-screen flex flex-col justify-center items-center'>
-      <CircularProgress className='text_primary' size={60} thickness={2} />
+      <Spinner size={60} color="#8930f9" />
       <img src={logofarevet} className='w-[2rem] absolute' alt="" />
     </main>
   }>

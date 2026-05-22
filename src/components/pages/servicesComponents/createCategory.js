@@ -6,7 +6,7 @@ import { ArrowLeft } from 'react-feather';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cameradark, } from '../../icons/icon';
 import { apiRequest } from '../../../api/auth_api';
-import { CircularProgress } from '@mui/material';
+import Spinner from "../../Spinner";
 
 
 const CreateSubServices = () => {
@@ -187,7 +187,7 @@ const CreateSubServices = () => {
                         </button>
                     ) : (
                         <button type='button' disabled className="flex justify-center bg_primary py-[12px] px-[4rem] rounded-lg items-center button_shadow cursor-not-allowed">
-                            <CircularProgress size={18} className='text_white' />
+                            <Spinner size={18} className='text_white' />
                         </button>
                     )}
                 </div>

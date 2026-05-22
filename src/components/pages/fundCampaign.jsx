@@ -5,7 +5,7 @@ import { Modal, Image } from "antd";
 import React, { useEffect, useState } from "react";
 import { apiRequest } from "../../api/auth_api";
 import { FaPhone } from "react-icons/fa6";
-import { CircularProgress } from "@mui/material";
+import Spinner from "../Spinner";
 import moment from "moment";
 
 const FundCampaign = () => {
@@ -387,7 +387,7 @@ const FundCampaign = () => {
             className="d-flex justify-content-center align-items-center"
             style={{ padding: "2rem" }}
           >
-            <CircularProgress size={18} />
+            <Spinner size={18} />
             <span
               className="plusJakara_regular"
               style={{ marginLeft: "0.5rem", color: "#6c757d" }}

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Modal, message, Spin } from "antd";
+import { Modal, message } from "antd";
 import Select from "react-select";
 import { apiRequest } from "../../api/auth_api";
 import { logofarevet } from "../icons/icon";
 import "./reports.scss";
-import { CircularProgress } from "@mui/material";
+import Spinner from "../Spinner";
 
 // Helper to parse database representations (0/1, true/false) into strict boolean values
 const parseDbBoolean = (val) => {
@@ -803,7 +803,7 @@ const Reports = () => {
           className="d-flex justify-content-center align-items-center"
           style={{ padding: "2rem" }}
         >
-          <CircularProgress size={18} />
+          <Spinner size={18} />
           <span
             className="plusJakara_regular"
             style={{ marginLeft: "0.5rem", color: "#6c757d" }}

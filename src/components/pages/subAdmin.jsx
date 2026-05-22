@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { CircularProgress } from "@mui/material";
+import Spinner from "../Spinner";
 import { Col, Form, Input, Modal, message } from "antd";
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
@@ -285,7 +285,7 @@ const SubAdmin = () => {
     //             className={`text_white flex justify-center rounded-2 py-1 px-2 items-center relative`}
     //           >
     //             {statusId === row?._id && loadingstatus ? (
-    //               <CircularProgress size={15} color="inherit" />
+    //               <Spinner size={15} color="inherit" />
     //             ) : row.status === "active" ? (
     //               "Deactivate now"
     //             ) : (
@@ -310,7 +310,7 @@ const SubAdmin = () => {
           <div className="mt-3 ">
             {loading ? (
               <main className="my-5 d-flex w-100 justify-content-center align-items-center">
-                <CircularProgress size={24} className="text_dark" />
+                <Spinner size={24} className="text_dark" />
               </main>
             ) : !categories || categories.length === 0 ? (
               <main className="my-5 d-flex w-100 justify-content-center align-items-center">
@@ -417,12 +417,12 @@ const SubAdmin = () => {
             >
               {isEditMode ? (
                 isProcessing2 ? (
-                  <CircularProgress color="inherit" size={16} />
+                  <Spinner color="inherit" size={16} />
                 ) : (
                   "Update"
                 )
               ) : isProcessing ? (
-                <CircularProgress color="inherit" size={16} />
+                <Spinner color="inherit" size={16} />
               ) : (
                 "Continue"
               )}

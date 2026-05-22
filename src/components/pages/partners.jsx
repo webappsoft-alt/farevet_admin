@@ -3,7 +3,7 @@ import { Search, Plus } from "react-feather";
 import { Modal, Input, Select, message, Spin } from "antd";
 import { apiRequest } from "../../api/auth_api";
 import "./partners.scss";
-import { CircularProgress } from "@mui/material";
+import Spinner from "../Spinner";
 
 const { Option } = Select;
 
@@ -367,7 +367,7 @@ const Partners = () => {
                 <div
                   className=" justify-content-center align-items-center"
                 >
-                  <CircularProgress size={18} />
+                  <Spinner size={18} />
                   {/* <span
                     className="plusJakara_regular"
                     style={{ marginLeft: "0.5rem", color: "#6c757d" }}

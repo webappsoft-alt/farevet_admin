@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { CircularProgress } from "@mui/material";
+import Spinner from "../../Spinner";
 import { Form, Input, message, Rate } from "antd";
 import React, { useEffect, useState } from "react";
 import { ArrowLeft } from "react-feather";
@@ -309,7 +309,7 @@ const CreatePetInsurance = () => {
               className="flex justify-center bg_primary cursor-not-allowed py-[12px] px-[4rem] rounded-lg items-center button_shadow"
               disabled
             >
-              <CircularProgress size={18} className="text_white" />
+              <Spinner size={18} className="text_white" />
             </button>
           )}
         </div>

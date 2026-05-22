@@ -90,83 +90,18 @@ const ChatMessage = ({ message, msg_type, img, left, index, chtData, setIsDelete
 
 
     return (
-        <div className=''>
-            <div className={`pb-3 ${left ? "chat-message-left " : "chat-message-right"}`}>
-                <div>
-                    <div className={`flex-shrink-1 delmsg fs_08  ${left ? "chat_card_left" : "chat_card_right"}`} style={{ padding: chtData?.msg_type === '0' ? "0.7rem 0.9rem" : '.2rem', marginBottom: "0.2rem" }} >
-                        {left === false ?
-                            <Dropdown drop={left ? "end" : "start"} className='delmsg'>
-                                <Dropdown.Toggle className='fs_08 text-start text-wrap' variant='transparent' id="dropdown-basic" style={{ color: "inherit" }}>
-                                    {/* {msg_type === '0' ? (
-                                        <span>{message}</span>
-                                    ) : (
-                                        (() => {
-                                            const fileExtension = message.split('.').pop().toLowerCase();
-                                            if (['pdf', 'docx', 'doc'].includes(fileExtension)) {
-                                                return <a href={message} target="_blank" rel="noopener noreferrer">{message}</a>;
-                                            } else {
-                                                return <img
-                                                    src={message}
-                                                    alt="Chat image"
-                                                    style={{ width: '180px', height: '180px', borderRadius: '20px', objectFit: 'cover', cursor: 'pointer' }}
-                                                />;
-                                            }
-                                        })()
-                                    )} */}
-                                    {renderMessageContent(chtData.msg, chtData.msg_type)}
-                                </Dropdown.Toggle>
-                            </Dropdown> : renderMessageContent(chtData.msg, chtData.msg_type)
-                        }
-                        {/* {left === false ?
-                            (msg_type === "file" &&
-                                <div className='d-flex align-items-center gap-2'>
-                                    <Dropdown show={showDropdown} drop={left ? "end" : "start"} className='delmsg' onToggle={handleDropdownToggle} onHide={handleDropdownHide} >
-                                        <Dropdown.Toggle className='fs_08' variant='transparent' id="dropdown-basic" style={{ color: "inherit" }}>
-                                            <div><File className='doc'></File></div>
-                                        </Dropdown.Toggle>
-                                        <Dropdown.Menu >
-                                            <div className='position-relative dropdown-item text-danger btn btn-light' onClick={() => handleShowDelete(id, index)}>
-                                                <Trash2 />
-                                            </div>
-                                        </Dropdown.Menu>
-                                    </Dropdown>
-                                    <Link target='_blank' download={message} rel="noreferrer" className='text-white' to={userData?.url + message} style={{ wordBreak: "break-word" }}>
-                                        {message}
-                                    </Link>
-                                </div>) : msg_type === "file" &&
-                            <div className='d-flex align-items-center gap-2'>
-                                <Link target='_blank' className='text-black' to={userData?.url + message} ><File className='doc'></File></Link>
-                                <Link target='_blank' download={message} rel="noreferrer" className='text-black' to={userData?.url + message} style={{ wordBreak: "break-word" }}>
-                                    {message}
-                                </Link>
-                            </div>
-                        } */}
-
-                        {/* {msg_type === "image" && <>
-                            <div style={{ borderRadius: "inherit" }} onClick={() => handleShow(img ? img : userData?.url + message)}>
-                                <ImageLoader imageUrl={img ? img : userData?.url + message} classes={'h-100 w-100'} />
-                            </div>
-                        </>} */}
-
-                        {/* {msg_type === "file" &&
-                            <div className='d-flex align-items-center gap-2'>
-                                <Link target='_blank' className='text-white' to={userData?.url + message} ><File className='doc'></File></Link>
-                                <Link target='_blank' download={message} rel="noreferrer" className='text-white' to={userData?.url + message} style={{ wordBreak: "break-word" }}>
-                                    {message}
-                                </Link>
-                                <div>
-                                    <div className='border border-3 p-1 btn1 border-white rounded-circle' onClick={() => downloadFile(message)} style={{ width: "2rem", height: "2rem", cursor: "pointer" }} >
-                                        <Download className='' style={{ width: "1.2rem" }} />
-                                    </div>
-                                </div>
-                            </div>} */}
-                    </div>
-                    <div className={`text-nowrap fs_07 ${left ? "chat-message-left" : "chat-message-right"}`} style={{ color: "#848FAC" }} >
-                        {/* <Moment unix fromNow>
-                            {timestamp}
-                        </Moment> */}
-                        {formattedTime}
-                    </div>
+        <div className={`flex w-full mb-3 ${left ? "justify-start" : "justify-end"}`}>
+            <div className={`flex flex-col ${left ? "items-start" : "items-end"} max-w-[85%] md:max-w-[75%]`}>
+                <span className="text-[10px] text-gray-400 mb-0.5 px-1">{formattedTime}</span>
+                <div 
+                    className={`relative ${chtData?.msg_type === '0' ? 'px-3.5 py-2' : 'p-1'} text-[13px] leading-relaxed ${
+                        left 
+                        ? "bg-gray-100 text-gray-800 rounded-2xl rounded-tl-sm" 
+                        : "bg-[#8930f9] text-white rounded-2xl rounded-tr-sm"
+                    }`}
+                    style={{ wordBreak: 'break-word' }}
+                >
+                    {renderMessageContent(chtData.msg, chtData.msg_type)}
                 </div>
             </div>
             <Modal

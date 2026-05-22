@@ -25,7 +25,7 @@ const CircularProgessBar = () => {
 
     return (
         <>
-            <CircularProgressbar
+            <Spinnerbar
                 className='max-w-[12rem] h-auto'
                 value={percentage}
                 strokeWidth={2}

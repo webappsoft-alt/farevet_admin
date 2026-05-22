@@ -1,17 +1,18 @@
+import Spinner from '../Spinner';
 /* eslint-disable no-unused-vars */
 import React, { useState } from 'react'
 import 'react-phone-input-2/lib/style.css'
 import { applelogo, eye, eyeoff, google, logoDynomo, logofarevet, techLogin } from '../icons/icon'
 import { } from 'react-bootstrap'
 import { Link, useNavigate } from 'react-router-dom'
-import { Form, Input, message } from 'antd'
-import { CircularProgress } from '@mui/material'
+import { Form, Input, message, Segmented } from 'antd'
+
 import { apiRequest } from '../../api/auth_api'
 
 const DynomoLogin1 = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [userType, setuserType] = useState('')
+    const [userType, setuserType] = useState('admin')
     const navigate = useNavigate();
     const [form] = Form.useForm();
     const [state, setState] = useState({
@@ -28,7 +29,6 @@ const DynomoLogin1 = () => {
     }
 
     const handleSubmit = (data, type) => {
-        setuserType(type)
         setIsProcessing(true)
         const body = new FormData();
         body.append("type", type === 'admin' ? "admin_login" : "vet_login");
@@ -88,18 +88,32 @@ const DynomoLogin1 = () => {
         <>
             <div className='w-full h-screen overflow-hidden flex flex-row'>
                 <div className='d-none bg_primary d-md-flex justify-content-center align-items-center p-5 w-full lg:w-1/2'>
-                    <img src={techLogin} alt="ImageNotfound" />
+                    <img src={techLogin} draggable={false} alt="ImageNotfound" />
                 </div>
-                <div className='w-full lg:w-1/2 h-full overflow-y-scroll p-4'>
-                    <div className='flex flex-col justify-between h-[90vh] md:h-[100%]'>
-                        <div className='d-flex justify-content-end w-full mb-5'>
-                            <Link to='/dashboard'>
-                                <img src={logofarevet} className='' alt="" />
-                            </Link>
-                        </div>
-                        <div className='border border-white mt-5 lg:p-[24px] xl:p-[32px]'>
+                <div className='w-full lg:w-1/2 h-full overflow-y-scroll p-4 relative'>
+                    <div className='absolute top-4 right-4 z-10'>
+                        <Link to='/dashboard'>
+                            <img src={logofarevet} className='' draggable={false} alt="" />
+                        </Link>
+                    </div>
+                    <div className='flex flex-col justify-center items-center h-full min-h-[90vh] md:min-h-full'>
+                        <div className='w-full max-w-3xl rounded-xl lg:p-[24px] xl:p-[32px]'>
                             <h2 className='inter_bold text-xl mb-0 md:mb-auto md:text-2xl lg:text-3xl text_black'>Login</h2>
-                            <p className='text_secondary max-md:text-sm inter_regular my-[8px]'>Login to your account</p>
+                            <p className='text_secondary max-md:text-sm inter_regular my-[8px]'>Select your account type to log in</p>
+
+                            <div className="mb-6 flex justify-start w-full mt-4">
+                                <Segmented
+                                    // title='Login as'
+                                    options={[
+                                        { label: 'Admin Login', value: 'admin' },
+                                        { label: 'Vet Provider Login', value: 'vet' },
+                                    ]}
+                                    value={userType}
+                                    onChange={(value) => setuserType(value)}
+                                    size="large"
+                                // block
+                                />
+                            </div>
 
                             <Form
                                 form={form}
@@ -143,30 +157,15 @@ const DynomoLogin1 = () => {
                                     </div>
                                 </Form.Item>
 
-                                <div className='w-full my-3 flex flex-col gap-3'>
-                                    <>
-                                        <button
-                                            type='button'
-                                            disabled={isProcessing}
-                                            onClick={() => onFinish('admin')}
-                                            className='w-full rounded-md bg_primary text_white p-2 text-lg manrope_regular flex justify-center items-center'
-                                        >
-                                            {(isProcessing && userType === 'admin') ? <CircularProgress style={{ color: 'white' }} size={24} className='text_white' /> : 'Login as Admin'}
-                                        </button>
-                                        <div className="flex justify-center w-full">
-                                            <h5 className="manrope_medium mb-0">or</h5>
-                                        </div>
-                                        <button
-                                            type='button'
-                                            disabled={isProcessing}
-                                            onClick={() => onFinish('vet')}
-                                            style={{ backgroundColor: "#2563EB" }}
-                                            className='w-full rounded-md bg-[#2563EB] text_white p-2 text-lg manrope_regular flex justify-center items-center'
-                                        >
-                                            {(isProcessing && userType === 'vet') ? <CircularProgress style={{ color: 'white' }} size={24} className='text_white' /> : 'Login as Vet'}
-                                        </button>
-                                    </>
-
+                                <div className='w-full mt-4 my-3 flex flex-col gap-3'>
+                                    <button
+                                        type='button'
+                                        disabled={isProcessing}
+                                        onClick={() => onFinish(userType)}
+                                        className='w-full rounded-md bg_primary text_white p-2 text-lg manrope_regular flex justify-center items-center'
+                                    >
+                                        {isProcessing ? <Spinner size={24} color="#ffffff" /> : 'Login'}
+                                    </button>
                                 </div>
                             </Form>
                         </div>

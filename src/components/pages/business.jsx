@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { CircularProgress } from "@mui/material";
+import Spinner from "../Spinner";
 import { Input, Modal, Select, message } from "antd";
 import React, { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Plus, Search, Star } from "react-feather";
@@ -286,7 +286,7 @@ const Business = () => {
 
       {isProcessing ? (
         <div className="flex w-full justify-center items-center my-5">
-          <CircularProgress className="text_primary" size={30} thickness={3} />
+          <Spinner className="text_primary" size={30} thickness={3} />
         </div>
       ) : (
         <div className="business-grid">

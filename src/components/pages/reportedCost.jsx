@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { CircularProgress } from '@mui/material';
+import Spinner from "../Spinner";
 import { message } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { Form, Modal } from 'react-bootstrap';
@@ -9,6 +9,7 @@ import { StyleSheetManager } from 'styled-components';
 import { apiRequest } from '../../api/auth_api';
 import ProductTable from '../DataTable/productTable';
 import { avatar2 } from '../icons/icon';
+import { FaStore } from 'react-icons/fa';
 import moment from 'moment';
 
 const ReportedCost = () => {
@@ -107,9 +108,21 @@ const ReportedCost = () => {
             cell: (row) => {
                 return (
                     <div className="flex w-full gap-2 items-center">
-                        <img
-                            onClick={() => handleImageClick(`${global.IMAGEURL}/${row?.business?.logo}` || avatar2)}
-                            alt='' style={{ width: '35px', cursor: 'pointer', borderRadius: '50%', height: '35px', objectFit: 'cover' }} src={`${global.IMAGEURL + '/' + row?.business?.logo}`} />
+                        {row?.business?.logo ? (
+                            <img
+                                onClick={() => handleImageClick(`${global.IMAGEURL}/${row?.business?.logo}`)}
+                                alt=''
+                                style={{ width: '35px', cursor: 'pointer', borderRadius: '50%', height: '35px', objectFit: 'cover' }}
+                                src={`${global.IMAGEURL}/${row?.business?.logo}`}
+                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                            />
+                        ) : null}
+                        <div
+                            className="items-center justify-center bg-gray-100 text-gray-400"
+                            style={{ width: '35px', height: '35px', borderRadius: '50%', display: row?.business?.logo ? 'none' : 'flex' }}
+                        >
+                            <FaStore size={18} />
+                        </div>
                     </div>
                 )
             },
@@ -347,7 +360,7 @@ const ReportedCost = () => {
                                         className="flex justify-center bg_primary cursor-not-allowed py-[12px] px-[4rem] rounded-3 items-center button_shadow"
                                         disabled
                                     >
-                                        <CircularProgress size={18} className="text_white" />
+                                        <Spinner size={18} className="text_white" />
                                     </button>
                                 )}
                             </div>
@@ -389,7 +402,7 @@ const ReportedCost = () => {
                                         className="flex justify-center bg_primary cursor-not-allowed py-[12px] px-[4rem] rounded-3 items-center button_shadow"
                                         disabled
                                     >
-                                        <CircularProgress size={18} className="text_white" />
+                                        <Spinner size={18} className="text_white" />
                                     </button>
                                 )}
                             </div>
@@ -484,7 +497,7 @@ const ReportedCost = () => {
                                 onClick={() => { handleUpdate('accept') }}
                                 className="w-1/2 rounded-lg text_white flex items-center justify-center p-2"
                             >
-                                {/* {loading && reportStatus === 'accept' ? <CircularProgress size={20} color='inherit' /> : 'Approve'} */}
+                                {/* {loading && reportStatus === 'accept' ? <Spinner size={20} color='inherit' /> : 'Approve'} */}
                                 Approve
                             </button>
                             <button
@@ -493,7 +506,7 @@ const ReportedCost = () => {
                                 onClick={() => { handleUpdate('reject') }}
                                 className="w-1/2 rounded-lg text_white flex items-center justify-center p-2"
                             >
-                                {loading && reportStatus === 'reject' ? <CircularProgress size={20} color='inherit' /> : 'Reject'}
+                                {loading && reportStatus === 'reject' ? <Spinner size={20} color='inherit' /> : 'Reject'}
                             </button>
                         </div>
                     </Modal.Body>

@@ -1,7 +1,7 @@
 /* eslint-disable react/jsx-no-target-blank */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { CircularProgress } from "@mui/material";
+import Spinner from "../../Spinner";
 import { message } from "antd";
 import React, { useEffect, useState } from "react";
 import { Modal } from "react-bootstrap";
@@ -751,7 +751,7 @@ const PreviewBusiness = () => {
             </div>
             {isProcessing ? (
               <div className="flex w-full justify-center items-center my-3">
-                <CircularProgress
+                <Spinner
                   className="text_primary"
                   size={28}
                   thickness={3}

@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import { CircularProgress } from "@mui/material";
+import Spinner from "../../Spinner";
 import { Col, DatePicker, Form, Input, Row, Select, message } from "antd";
 import moment from "moment";
 import React, { useEffect, useRef, useState } from "react";
@@ -1678,7 +1678,7 @@ const CreateBusiness = () => {
               className="flex justify-center bg_primary py-[12px] px-[4rem] rounded-lg items-center button_shadow"
               disabled
             >
-              <CircularProgress size={18} className="text_white" />
+              <Spinner size={18} className="text_white" />
             </button>
           )}
         </div>

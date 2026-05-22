@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { arrowright2, eye, eyeoff } from '../../icons/icon'
 import { Link, useNavigate } from 'react-router-dom';
 import { Col, Input, Form } from 'antd';
-import { CircularProgress } from '@mui/material';
+import Spinner from "../../Spinner";
 
 const ChangePassword = () => {
     const navigate = useNavigate();
@@ -118,7 +118,7 @@ const ChangePassword = () => {
                             <button type='submit' className='w-fit rounded-md bg_dark text_white text-sm py-[12px] px-[10px] md:py-[12px] md:px-[28px] inter_semibold flex justify-center items-center'>Save Changes</button>
                         ) : (
                             <button type='submit' className='w-fit rounded-md bg_dark text_white text-sm py-[10px] px-[3rem] md:px-[4rem] inter_semibold flex justify-center items-center' disabled>
-                                <CircularProgress size={24} />
+                                <Spinner size={24} />
                             </button>
                         )
                         }

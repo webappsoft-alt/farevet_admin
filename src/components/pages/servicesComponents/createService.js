@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { CircularProgress } from '@mui/material';
+import Spinner from "../../Spinner";
 import { Form, Input, message, } from 'antd';
 import React, { useState } from 'react';
 import { ArrowLeft } from 'react-feather';
@@ -108,7 +108,7 @@ const CreateService = () => {
                                 <button type='submit' className='bg_primary rounded-lg text_white inter_semibold px-[1rem] py-2'>Add</button>
                             ) : (
                                 <button type='button' disabled className='bg_primary rounded-lg text_white inter_semibold px-[1rem] py-2 cursor-not-allowed'>
-                                    <CircularProgress size={18} className='text_white' />
+                                    <Spinner size={18} className='text_white' />
                                 </button>
                             )}
                         </div>

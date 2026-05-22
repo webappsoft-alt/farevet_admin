@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Plus } from "react-feather";
 import { clock } from "../icons/icon";
 // import 'antd/dist/antd.css';
-import { CircularProgress } from "@mui/material";
+import Spinner from "../Spinner";
 import { IoClose } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "../../api/auth_api";
@@ -137,7 +137,7 @@ const Deals = () => {
       </div>
       {isProcessing ? (
         <div className="flex w-full justify-center items-center my-5">
-          <CircularProgress className="text_primary" size={30} thickness={3} />
+          <Spinner className="text_primary" size={30} thickness={3} />
         </div>
       ) : (
         <div className="d-flex flex-wrap gap-3 my-5 justify-content-center justify-content-lg-start">
@@ -307,7 +307,7 @@ const Deals = () => {
             disabled={loading}
             onClick={() => handleDeleteDeals(selectItem)}
           >
-            {loading ? <CircularProgress size={15} color="inherit" /> : 'Yes'}
+            {loading ? <Spinner size={15} color="inherit" /> : 'Yes'}
           </button>
           <button
             type="button"

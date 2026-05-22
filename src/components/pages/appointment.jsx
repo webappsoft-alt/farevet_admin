@@ -1,8 +1,8 @@
 /* eslint-disable no-mixed-operators */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { CircularProgress } from "@mui/material";
-import { Form, message } from "antd";
+import Spinner from "../Spinner";
+import { Form, message, Segmented } from "antd";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
 import { Modal } from "react-bootstrap";
@@ -36,7 +36,7 @@ import {
   specie,
   weight,
 } from "../icons/icon";
-import { DatePickerToolbar } from "@mui/x-date-pickers";
+
 
 const daysOfWeek = [
   "Sunday",
@@ -144,7 +144,7 @@ const Appointments = () => {
             selectedOption === "all"
               ? res?.data || []
               : res?.data.filter((item) => item?.status === selectedOption) ||
-                [];
+              [];
           setCategories(filteredCategories);
           setTotalDataCount(filteredCategories?.length || 0);
           setTotalPages(Math.ceil(res?.count / 10));
@@ -308,7 +308,7 @@ const Appointments = () => {
             className="w-1/2 rounded-lg text_white flex items-center justify-center bg-[#06D6A0]"
           >
             {isProcessing2 && orderStatus === "processing" ? (
-              <CircularProgress color="inherit" size={18} />
+              <Spinner color="inherit" size={18} />
             ) : (
               "Approve"
             )}
@@ -320,7 +320,7 @@ const Appointments = () => {
             className="w-1/2 rounded-lg text_white flex items-center justify-center bg-[#FF6F61]"
           >
             {isProcessing2 && orderStatus === "cancelled" ? (
-              <CircularProgress color="inherit" size={18} />
+              <Spinner color="inherit" size={18} />
             ) : (
               "Decline"
             )}
@@ -336,7 +336,7 @@ const Appointments = () => {
           className="w-full rounded-lg text_white flex items-center justify-center bg-[#5A67D8]"
         >
           {isProcessing2 && orderStatus === "completed" ? (
-            <CircularProgress color="inherit" size={18} />
+            <Spinner color="inherit" size={18} />
           ) : (
             "Complete"
           )}
@@ -350,7 +350,7 @@ const Appointments = () => {
           disabled
         >
           Appointment {selectedItem?.status}
-          {/* {isProcessing2 && orderStatus === 'completed' ? <CircularProgress color="inherit" size={18} /> : 'Complete'} */}
+          {/* {isProcessing2 && orderStatus === 'completed' ? <Spinner color="inherit" size={18} /> : 'Complete'} */}
         </button>
       );
     }
@@ -363,71 +363,25 @@ const Appointments = () => {
           Appointments
         </span>
       </div>
-      <div className="flex items-center flex-wrap w-fit border rounded-xl my-4 gap-y-2">
-        <button
-          onClick={() => {
-            setSelectedOption("all");
-          }}
-          className={`flex justify-center inter_medium max-lg:text-xs text-sm items-center py-2 px-2 px-sm-3 ${
-            selectedOption === "all"
-              ? "bg_primary text_white rounded-lg"
-              : "rounded-s-xl  text_dark"
-          } `}
-        >
-          All
-        </button>
-        <button
-          onClick={() => {
-            setSelectedOption("pending");
-          }}
-          className={`flex justify-center inter_medium max-lg:text-xs text-sm items-center py-2 px-2 px-sm-3 ${
-            selectedOption === "pending"
-              ? "bg_primary text_white rounded-lg"
-              : "text_dark"
-          } `}
-        >
-          Pending
-        </button>
-        <button
-          onClick={() => {
-            setSelectedOption("processing");
-          }}
-          className={`flex justify-center inter_medium max-lg:text-xs text-sm items-center py-2 px-2 px-sm-3 ${
-            selectedOption === "processing"
-              ? "bg_primary text_white rounded-lg"
-              : "text_dark"
-          } `}
-        >
-          Processing
-        </button>
-        <button
-          onClick={() => {
-            setSelectedOption("completed");
-          }}
-          className={`flex justify-center inter_medium max-lg:text-xs text-sm items-center py-2 px-2 px-sm-3 ${
-            selectedOption === "completed"
-              ? "bg_primary text_white rounded-lg"
-              : "text_dark"
-          } `}
-        >
-          Completed
-        </button>
-        <button
-          onClick={() => {
-            setSelectedOption("cancelled");
-          }}
-          className={`flex justify-center inter_medium max-lg:text-xs text-sm items-center py-2 px-2 px-sm-3 ${
-            selectedOption === "cancelled"
-              ? "bg_primary text_white rounded-lg"
-              : "rounded-r-xl text_dark"
-          } `}
-        >
-          Cancelled
-        </button>
+      <div className="w-full my-4 overflow-x-auto pb-2">
+        <div className="min-w-max">
+          <Segmented
+            options={[
+              { label: "All", value: "all" },
+              { label: "Pending", value: "pending" },
+              { label: "Processing", value: "processing" },
+              { label: "Completed", value: "completed" },
+              { label: "Cancelled", value: "cancelled" },
+            ]}
+            value={selectedOption}
+            onChange={(value) => setSelectedOption(value)}
+            size="large"
+          />
+        </div>
       </div>
       {isProcessing ? (
         <div className="flex w-full justify-center items-center my-5">
-          <CircularProgress className="text_primary" size={30} thickness={3} />
+          <Spinner className="text_primary" size={30} thickness={3} />
         </div>
       ) : (
         <div className="d-flex flex-wrap gap-3 mb-4 justify-content-center justify-content-lg-start">
@@ -544,9 +498,8 @@ const Appointments = () => {
           <span className="text_secondary inter_medium text">{`Total showing ${totalDataCount}`}</span>
           <div className="flex">
             <button
-              className={`px-3 py-1 text-sm border rounded-l-md ${
-                currentPage === 1 ? "bg_white text_dark cursor-not-allowed" : ""
-              }`}
+              className={`px-3 py-1 text-sm border rounded-l-md ${currentPage === 1 ? "bg_white text_dark cursor-not-allowed" : ""
+                }`}
               onClick={handlePrevPage}
               disabled={currentPage === 1}
             >
@@ -557,11 +510,10 @@ const Appointments = () => {
                 (page, i) => (
                   <button
                     key={i}
-                    className={`px-3 py-1 text-sm border ${
-                      currentPage === page
+                    className={`px-3 py-1 text-sm border ${currentPage === page
                         ? "bg_primary text_white cursor-not-allowed"
                         : "bg_white text_dark"
-                    }`}
+                      }`}
                     disabled={currentPage === page}
                     onClick={() => handlePageClick(page)}
                   >
@@ -571,9 +523,8 @@ const Appointments = () => {
               )}
             </div>
             <button
-              className={`px-3 py-1 text-sm border rounded-r-md ${
-                currentPage >= totalPages ? "cursor-not-allowed" : ""
-              }`}
+              className={`px-3 py-1 text-sm border rounded-r-md ${currentPage >= totalPages ? "cursor-not-allowed" : ""
+                }`}
               onClick={handleNextPage}
               disabled={currentPage >= totalPages}
             >
@@ -787,7 +738,7 @@ const Appointments = () => {
               className="flex justify-center items-center bg_primary inter_medium text_white w-full rounded-lg"
             >
               {isProcessing3 ? (
-                <CircularProgress size={18} color="inherit" />
+                <Spinner size={18} color="inherit" />
               ) : (
                 "Reschedule"
               )}
@@ -922,7 +873,7 @@ const Appointments = () => {
                 <div className="d-flex flex-wrap gap-1 align-items-center">
                   {(selectedItem?.order_type === "deal" &&
                     !selectedItem?.deal?.deal_services) ||
-                  selectedItem?.deal?.deal_services === null ? (
+                    selectedItem?.deal?.deal_services === null ? (
                     <span>Not Found</span>
                   ) : (
                     selectedItem?.deal?.deal_services?.map((dealService, i) => (
@@ -958,7 +909,7 @@ const Appointments = () => {
                                   {subService}
                                   {j <
                                     JSON.parse(service.sub_service).length -
-                                      1 && ", "}
+                                    1 && ", "}
                                 </span>
                               ),
                             )}

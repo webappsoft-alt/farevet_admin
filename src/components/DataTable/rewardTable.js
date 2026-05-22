@@ -2,7 +2,8 @@ import React, { Fragment, useState } from "react";
 import ReactPaginate from "react-paginate";
 import DataTable from "react-data-table-component";
 import { ChevronDown } from "react-feather";
-import { Input, Card, CircularProgress } from "@mui/material";
+import { Input, Card } from "reactstrap";
+import Spinner from "../Spinner";
 import { arrowleft2, arrowright2, filter, searchnormal } from "../icons/icon";
 
 const RewardTable = ({
@@ -132,7 +133,7 @@ const RewardTable = ({
                 )}
                 {loading ?
                     <div className='py-5' style={{ display: "flex", justifyContent: "center" }}>
-                        <CircularProgress size={18} color='inherit' />
+                        <Spinner size={18} color='inherit' />
                     </div> :
                     <div className='react-dataTable'>
                         <DataTable

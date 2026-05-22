@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { CircularProgress } from '@mui/material';
+import Spinner from "../Spinner";
 import { Modal, Select, message } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { StyleSheetManager } from 'styled-components';
@@ -159,7 +159,7 @@ const IndividualUsers = () => {
                                 className={`text_white flex justify-center rounded-2 py-1 px-2 items-center relative`}
                             >
                                 {statusId === row?.id && loading ? (
-                                    <CircularProgress size={15} color='inherit' />
+                                    <Spinner size={15} color='inherit' />
                                 ) : (
                                     row?.status === '1' ? 'Approved' : 'Declined'
                                 )}
@@ -247,7 +247,7 @@ const IndividualUsers = () => {
                         onClick={() => handleUpdateIndividual('1', selectedItem, 'approve')}
                     >
                         {(statusId === selectedItem?.id && actionType === 'approve' && loading) ? (
-                            <CircularProgress size={15} color='inherit' />
+                            <Spinner size={15} color='inherit' />
                         ) : (
                             'Activate Account'
                         )}
@@ -260,7 +260,7 @@ const IndividualUsers = () => {
                         onClick={() => handleUpdateIndividual('2', selectedItem, 'reject')}
                     >
                         {(statusId === selectedItem?.id && actionType === 'reject' && loading) ? (
-                            <CircularProgress size={15} color='inherit' />
+                            <Spinner size={15} color='inherit' />
                         ) : (
                             'Deactivate account'
                         )}

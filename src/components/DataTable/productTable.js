@@ -11,7 +11,7 @@ import {
   searchnormal,
   noDataIcon,
 } from "../icons/icon";
-import { CircularProgress } from "@mui/material";
+import Spinner from "../Spinner";
 import "./productTable.scss";
 import ProductTableNoData from "./NoDataComponent";
 
@@ -33,20 +33,20 @@ const PRODUCT_TABLE_CUSTOM_STYLES = {
       minHeight: "32px",
     },
   },
-//   headCells: {
-//     style: {
-//       fontSize: "8.75px",
-//       fontWeight: "700",
-//       letterSpacing: "0.05em",
-//       textTransform: "uppercase",
-//       color: "#737791",
-//       paddingLeft: "0.65rem",
-//       paddingRight: "0.65rem",
-//       paddingTop: "0.45rem",
-//       paddingBottom: "0.45rem",
-//       lineHeight: "1.2",
-//     },
-//   },
+  //   headCells: {
+  //     style: {
+  //       fontSize: "8.75px",
+  //       fontWeight: "700",
+  //       letterSpacing: "0.05em",
+  //       textTransform: "uppercase",
+  //       color: "#737791",
+  //       paddingLeft: "0.65rem",
+  //       paddingRight: "0.65rem",
+  //       paddingTop: "0.45rem",
+  //       paddingBottom: "0.45rem",
+  //       lineHeight: "1.2",
+  //     },
+  //   },
   rows: {
     style: {
       fontSize: "10.5px",
@@ -281,7 +281,7 @@ const ProductTable = ({
               progressPending={loading}
               progressComponent={
                 <div className="d-flex justify-content-center align-items-center py-5">
-                  <CircularProgress size={22} sx={{ color: "#8930f9" }} />
+                  <Spinner size={22} sx={{ color: "#8930f9" }} />
                 </div>
               }
               noDataComponent={
