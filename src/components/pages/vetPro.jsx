@@ -2,13 +2,12 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import Spinner from "../Spinner";
 import { Form, Input, Modal, message, DatePicker, Row, Col } from "antd";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
 import { apiRequest } from "../../api/auth_api";
 import ProductTable from "../DataTable/productTable";
 import {
-  avatar2,
   cameradark,
   edit2,
   profileavatar,
@@ -363,11 +362,10 @@ const VetPro = () => {
       sortable: true,
       cell: (row) => (
         <span
-          className={`px-3 py-1 rounded-full text-xs plusJakara_bold ${
-            String(row?.vetPro_status) === "1"
-              ? "bg-green-100 text-green-600"
-              : "bg-red-100 text-red-600"
-          }`}
+          className={`px-3 py-1 rounded-full text-xs plusJakara_bold ${String(row?.vetPro_status) === "1"
+            ? "bg-green-100 text-green-600"
+            : "bg-red-100 text-red-600"
+            }`}
         >
           {String(row?.vetPro_status) === "1" ? "Active" : "Inactive"}
         </span>

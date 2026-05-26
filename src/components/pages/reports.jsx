@@ -3,6 +3,7 @@ import { Modal, message } from "antd";
 import Select from "react-select";
 import { apiRequest } from "../../api/auth_api";
 import { logofarevet } from "../icons/icon";
+import { FaEye } from "react-icons/fa";
 import "./reports.scss";
 import Spinner from "../Spinner";
 
@@ -19,7 +20,7 @@ const mapApiPartnerToReact = (p) => {
   return {
     id: parseInt(p.id),
     name: p.partner_name || "",
-    type: p.partner_type || "Pet Insurance",
+    type: p.partner_type || "Insurance",
     status: p.status || "Pending",
     members: parseInt(p.total_members) || 0,
     activeMembers: p.status === "Active" ? Math.round((parseInt(p.total_members) || 0) * 0.84) : 0,
@@ -28,6 +29,11 @@ const mapApiPartnerToReact = (p) => {
     partnerSince: p.partner_since || "May 2026",
     threshold: parseInt(p.threshold) || 500,
     email: p.contact_email || "",
+    partnerCode: p.partner_code || "",
+    logo: p.partner_logo || "",
+    defaultDeductible: parseFloat(p.default_deductible) || 0,
+    defaultReimbursement: p.default_reimbursement || "80%",
+    claimsPortalUrl: p.claims_portal_url || "",
     features: {
       costSearch: parseDbBoolean(p.feature_cost_search),
       billExplainer: parseDbBoolean(p.feature_bill_explainer),
@@ -95,11 +101,76 @@ const Reports = () => {
   const [selectedPartnerId, setSelectedPartnerId] = useState("");
   const [selectedQuarter, setSelectedQuarter] = useState("Q1 2026");
 
+  // Manual input fields
+  const [totalMembers, setTotalMembers] = useState("");
+  const [activeMembers, setActiveMembers] = useState("");
+  const [costSearches, setCostSearches] = useState("");
+  const [billAnalyses, setBillAnalyses] = useState("");
+  const [farevetAiUses, setFarevetAiUses] = useState("");
+  const [estimatorUses, setEstimatorUses] = useState("");
+  const [potentialSavings, setPotentialSavings] = useState("");
+  const [notes, setNotes] = useState("");
+
   // Dynamic report state (keeps track of whether selected partner/quarter has a report generated, and its status)
   const [currentReportStatus, setCurrentReportStatus] = useState("Draft"); // Draft or Sent or None
 
   // PDF Preview Dialog State
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  const handlePartnerOrQuarterChange = (partnerId, quarter) => {
+    setSelectedPartnerId(partnerId);
+    setSelectedQuarter(quarter);
+
+    const partner = partners.find(p => String(p.id) === String(partnerId));
+    const partnerName = partner?.name;
+    const found = history.find(h => h.partnerName === partnerName && h.quarter === quarter);
+
+    if (found) {
+      setCurrentReportStatus(found.status);
+      try {
+        const reportData = JSON.parse(found.pdfData);
+        if (reportData) {
+          const legacyMembers = reportData.totalMembers !== undefined ? reportData.totalMembers : (reportData.members !== undefined ? reportData.members : (partner ? partner.members : 0));
+          const totalMembersVal = legacyMembers || 0;
+          const activeMembersVal = reportData.activeMembers !== undefined ? reportData.activeMembers : (reportData.status === "Active" ? Math.round(totalMembersVal * 0.84) : (partner ? partner.activeMembers : 0));
+
+          setTotalMembers(totalMembersVal || "");
+          setActiveMembers(activeMembersVal || "");
+          setCostSearches(reportData.costSearches !== undefined ? reportData.costSearches : Math.round(totalMembersVal * 3));
+          setBillAnalyses(reportData.billAnalyses !== undefined ? reportData.billAnalyses : Math.round(totalMembersVal * 0.7));
+          setFarevetAiUses(reportData.farevetAiUses !== undefined ? reportData.farevetAiUses : Math.round(totalMembersVal * 1.2));
+          setEstimatorUses(reportData.estimatorUses !== undefined ? reportData.estimatorUses : Math.round(totalMembersVal * 0.9));
+          setPotentialSavings(reportData.potentialSavings !== undefined ? reportData.potentialSavings : Math.round(totalMembersVal * 14.50));
+          setNotes(reportData.notes || "");
+          return;
+        }
+      } catch (e) {
+        console.error("Error parsing pdfData on change:", e);
+      }
+    } else {
+      setCurrentReportStatus("Draft");
+    }
+
+    if (partner) {
+      const totalMembersVal = partner.members || 0;
+      setTotalMembers(totalMembersVal || "");
+      setActiveMembers(partner.activeMembers || "");
+      setCostSearches(totalMembersVal ? Math.round(totalMembersVal * 3) : "");
+      setBillAnalyses(totalMembersVal ? Math.round(totalMembersVal * 0.7) : "");
+      setFarevetAiUses(totalMembersVal ? Math.round(totalMembersVal * 1.2) : "");
+      setEstimatorUses(totalMembersVal ? Math.round(totalMembersVal * 0.9) : "");
+      setPotentialSavings(totalMembersVal ? Math.round(totalMembersVal * 14.50) : "");
+    } else {
+      setTotalMembers("");
+      setActiveMembers("");
+      setCostSearches("");
+      setBillAnalyses("");
+      setFarevetAiUses("");
+      setEstimatorUses("");
+      setPotentialSavings("");
+    }
+    setNotes("");
+  };
 
   const fetchHistory = async () => {
     const body = new FormData();
@@ -133,7 +204,6 @@ const Reports = () => {
         if (res && res.data && res.data.length > 0) {
           fetchedPartners = res.data.map(mapApiPartnerToReact);
           setPartners(fetchedPartners);
-          setSelectedPartnerId(String(fetchedPartners[0].id));
         }
       } catch (e) {
         console.error("API error loading B2B partners:", e);
@@ -153,12 +223,40 @@ const Reports = () => {
           // Sync active status for first selected partner
           if (fetchedPartners.length > 0) {
             const firstPartner = fetchedPartners[0];
+            setSelectedPartnerId(String(firstPartner.id));
             const found = mapped.find(h => h.partnerName === firstPartner.name && h.quarter === selectedQuarter);
-            setCurrentReportStatus(found ? found.status : "Draft");
+            if (found) {
+              setCurrentReportStatus(found.status);
+              try {
+                const reportData = JSON.parse(found.pdfData);
+                if (reportData && reportData.totalMembers !== undefined) {
+                  setTotalMembers(reportData.totalMembers);
+                  setActiveMembers(reportData.activeMembers);
+                  setCostSearches(reportData.costSearches);
+                  setBillAnalyses(reportData.billAnalyses);
+                  setFarevetAiUses(reportData.farevetAiUses);
+                  setEstimatorUses(reportData.estimatorUses);
+                  setPotentialSavings(reportData.potentialSavings);
+                  setNotes(reportData.notes);
+                }
+              } catch (e) {
+                console.error("Error parsing pdfData on load:", e);
+              }
+            } else {
+              setCurrentReportStatus("Draft");
+              setTotalMembers(firstPartner.members || "");
+              setActiveMembers(firstPartner.activeMembers || "");
+            }
           }
         } else {
           setHistory([]);
           setCurrentReportStatus("Draft");
+          if (fetchedPartners.length > 0) {
+            const firstPartner = fetchedPartners[0];
+            setSelectedPartnerId(String(firstPartner.id));
+            setTotalMembers(firstPartner.members || "");
+            setActiveMembers(firstPartner.activeMembers || "");
+          }
         }
       } catch (e) {
         console.error("API error loading reports history:", e);
@@ -200,6 +298,19 @@ const Reports = () => {
 
   const metadata = getPartnerMetadata(currentPartner);
 
+  const totalMembersVal = totalMembers ? Number(totalMembers) : (currentPartner?.members || 0);
+  const activeMembersVal = activeMembers ? Number(activeMembers) : (currentPartner?.activeMembers || 0);
+  const costSearchesVal = costSearches ? Number(costSearches) : 0;
+  const billAnalysesVal = billAnalyses ? Number(billAnalyses) : 0;
+  const farevetAiUsesVal = farevetAiUses ? Number(farevetAiUses) : 0;
+  const estimatorUsesVal = estimatorUses ? Number(estimatorUses) : 0;
+  const potentialSavingsVal = potentialSavings ? Number(potentialSavings) : 0;
+  const notesVal = notes || "";
+
+  const calculatedMrr = activeMembersVal * 1.20;
+  const engagementRate = totalMembersVal > 0 ? Math.round((activeMembersVal / totalMembersVal) * 100) : 0;
+  const readinessPct = Math.min(100, Math.round((activeMembersVal / 500) * 100));
+
   // react-select options
   const partnerOptions = partners.map((p) => ({
     value: String(p.id),
@@ -208,16 +319,26 @@ const Reports = () => {
   const currentPartnerOption = partnerOptions.find((opt) => opt.value === String(selectedPartnerId)) || null;
 
   const quarterOptions = [
+    { value: "Q4 2026", label: "Q4 2026 (Oct–Dec)" },
+    { value: "Q3 2026", label: "Q3 2026 (Jul–Sep)" },
+    { value: "Q2 2026", label: "Q2 2026 (Apr–Jun)" },
     { value: "Q1 2026", label: "Q1 2026 (Jan–Mar)" },
     { value: "Q4 2025", label: "Q4 2025 (Oct–Dec)" },
     { value: "Q3 2025", label: "Q3 2025 (Jul–Sep)" },
+    { value: "Q2 2025", label: "Q2 2025 (Apr–Jun)" },
+    { value: "Q1 2025", label: "Q1 2025 (Jan–Mar)" },
   ];
-  const currentQuarterOption = quarterOptions.find((opt) => opt.value === selectedQuarter) || quarterOptions[0];
+  const currentQuarterOption = quarterOptions.find((opt) => opt.value === selectedQuarter) || { value: selectedQuarter, label: selectedQuarter };
 
   // Handle Generate Report click - immediately save as pending to database
   const handleGenerateReport = async () => {
     if (!currentPartner) {
       message.error("Please select a valid partner first!");
+      return;
+    }
+
+    if (!totalMembers || !activeMembers) {
+      message.error("Please enter both Total and Active members count!");
       return;
     }
 
@@ -240,13 +361,30 @@ const Reports = () => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const sentDateStr = `${months[date.getMonth()]} ${date.getDate()}`;
 
+    const reportData = {
+      partnerName: currentPartner.name,
+      partnerEmail: currentPartner.email || "partnerships@farevet.com",
+      quarter: selectedQuarter,
+      totalMembers: Number(totalMembers) || 0,
+      activeMembers: Number(activeMembers) || 0,
+      costSearches: Number(costSearches) || 0,
+      billAnalyses: Number(billAnalyses) || 0,
+      farevetAiUses: Number(farevetAiUses) || 0,
+      estimatorUses: Number(estimatorUses) || 0,
+      potentialSavings: Number(potentialSavings) || 0,
+      notes: notes || "",
+      threshold: currentPartner.threshold || 500,
+      status: currentPartner.status || "Active",
+      logo: currentPartner.logo || ""
+    };
+
     const body = new FormData();
     body.append("type", "add_data");
     body.append("table_name", "intelligence_reports");
     body.append("partner_name", currentPartner.name);
     body.append("quarter", selectedQuarter);
     body.append("pages", metadata.pageCount);
-    body.append("pdf_data", JSON.stringify(currentPartner)); // pdf_Data > data store in stringify of partner
+    body.append("pdf_data", JSON.stringify(reportData));
     body.append("sent_date", sentDateStr);
     body.append("status", "pending"); // pending by default
 
@@ -324,48 +462,174 @@ const Reports = () => {
 
       const doc = iframe.contentWindow.document;
 
-      // Calculate B2B partner data dynamically from stored stringified pdfData or active fallback
-      let partner = null;
+      // Parse report data from stored stringified pdfData or fallback
+      let reportData = null;
       try {
         if (rep.pdfData && rep.pdfData !== "{}") {
-          partner = JSON.parse(rep.pdfData);
+          reportData = JSON.parse(rep.pdfData);
         }
       } catch (e) {
         console.error("Error parsing pdfData in download:", e);
       }
 
-      if (partner) {
-        partner = {
-          name: partner.name || partner.partnerName || rep.partnerName,
-          members: partner.members !== undefined ? partner.members : (partner.total_members !== undefined ? parseInt(partner.total_members) : 0),
-          email: partner.email || partner.contact_email || "partnerships@farevet.com",
-          threshold: partner.threshold !== undefined ? partner.threshold : 500,
-          status: partner.status || "Active"
-        };
-      } else {
-        partner = partners.find(p => p.name === rep.partnerName) || currentPartner || {
-          name: rep.partnerName,
-          members: 0,
-          email: "partnerships@farevet.com",
-          threshold: 500,
-          status: "Active"
+      // Legacy fallback mapping
+      if (!reportData || !reportData.totalMembers || reportData.totalMembers === 0 || reportData.costSearches === undefined) {
+        const legacyPartner = reportData || {};
+        const matchedPartner = partners.find(p => p.name === rep.partnerName);
+        const legacyMembers = legacyPartner.members !== undefined ? legacyPartner.members : (legacyPartner.total_members !== undefined ? parseInt(legacyPartner.total_members) : (matchedPartner ? matchedPartner.members : 0));
+        const activeMembersVal = legacyPartner.activeMembers !== undefined ? legacyPartner.activeMembers : (legacyPartner.status === "Active" ? Math.round(legacyMembers * 0.84) : (matchedPartner ? matchedPartner.activeMembers : 0));
+
+        reportData = {
+          partnerName: rep.partnerName,
+          partnerEmail: legacyPartner.email || "partnerships@farevet.com",
+          quarter: rep.quarter,
+          totalMembers: legacyMembers,
+          activeMembers: activeMembersVal,
+          costSearches: Math.round(legacyMembers * 3),
+          billAnalyses: Math.round(legacyMembers * 0.7),
+          farevetAiUses: Math.round(legacyMembers * 1.2),
+          estimatorUses: Math.round(legacyMembers * 0.9),
+          potentialSavings: Math.round(legacyMembers * 14.50),
+          notes: "",
+          threshold: legacyPartner.threshold || 500,
+          status: legacyPartner.status || "Active",
+          logo: legacyPartner.logo || (matchedPartner ? matchedPartner.logo : "")
         };
       }
 
-      const threshold = partner.threshold || 500;
-      let membersCount = partner.members || 0;
-      let activeCount = partner.status === "Active" ? Math.round(membersCount * 0.84) : 0;
+      const totalMembersVal = reportData.totalMembers || 0;
+      const activeMembersVal = reportData.activeMembers || 0;
+      const costSearchesVal = reportData.costSearches || 0;
+      const billAnalysesVal = reportData.billAnalyses || 0;
+      const farevetAiUsesVal = reportData.farevetAiUses || 0;
+      const estimatorUsesVal = reportData.estimatorUses || 0;
+      const potentialSavingsVal = reportData.potentialSavings || 0;
+      const notesVal = reportData.notes || "";
+      const partnerEmail = reportData.partnerEmail || "partnerships@farevet.com";
+      const partnerLogo = reportData.logo || (partners.find(p => p.name === rep.partnerName)?.logo) || "";
 
-      let anomalyAlerts = "All partner network veterinary facilities operate within normal pricing tolerances. Rate compliance stands at 100%.";
-      if (partner.name === "Trupanion") {
-        anomalyAlerts = "⚠️ Outliers Flagged: 2 veterinary facilities in Seattle/Tacoma area reported rate spikes exceeding +30% for dental and surgical outpatient services.";
-      } else if (partner.name === "Pawp") {
-        anomalyAlerts = "⚠️ Outliers Flagged: 1 clinical facility in Southern Florida was flagged for charging diagnostic fees 50% above regional average.";
+      const mrr = activeMembersVal * 1.20;
+      const engagementRate = totalMembersVal > 0 ? Math.round((activeMembersVal / totalMembersVal) * 100) : 0;
+      const readinessPct = Math.min(100, Math.round((activeMembersVal / 500) * 100));
+
+      const cards = [];
+      if (totalMembersVal > 0 || activeMembersVal > 0) {
+        cards.push(`
+          <div class="stat-card">
+            <div class="stat-lbl">Associated Members</div>
+            <div class="stat-val">
+              ${totalMembersVal > 0 ? totalMembersVal.toLocaleString() : "—"}
+              ${activeMembersVal > 0 ? `
+                <div style="font-size: 9px; color: #38A169; font-weight: 600; margin-top: 4px;">
+                  ● ${activeMembersVal.toLocaleString()} Active Now
+                </div>
+              ` : ""}
+            </div>
+          </div>
+        `);
+      }
+      if (readinessPct > 0) {
+        cards.push(`
+          <div class="stat-card">
+            <div class="stat-lbl">Phase 2 Readiness</div>
+            <div class="stat-val">
+              ${readinessPct}%
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" style="width: ${readinessPct}%;"></div>
+              </div>
+            </div>
+          </div>
+        `);
+      }
+      if (potentialSavingsVal > 0) {
+        cards.push(`
+          <div class="stat-card">
+            <div class="stat-lbl">Estimated B2B Savings</div>
+            <div class="stat-val">$${potentialSavingsVal.toLocaleString()}</div>
+          </div>
+        `);
       }
 
-      let totalSavings = Math.round(membersCount * 14.50);
-      let readinessPct = Math.min(100, Math.round((membersCount / threshold) * 100));
-      let partnerEmail = partner.email || "partnerships@farevet.com";
+      const cardsGridHtml = cards.length > 0 ? `
+        <div class="stats-grid" style="grid-template-columns: repeat(${cards.length}, 1fr);">
+          ${cards.join("")}
+        </div>
+      ` : "";
+
+      const rows = [];
+      if (costSearchesVal > 0) {
+        rows.push(`
+          <tr>
+            <td style="font-weight: 600; color: #1A2744;">Cost Searches</td>
+            <td>${costSearchesVal.toLocaleString()} searches</td>
+            <td>Manual record check</td>
+          </tr>
+        `);
+      }
+      if (billAnalysesVal > 0) {
+        rows.push(`
+          <tr>
+            <td style="font-weight: 600; color: #1A2744;">Bill Analyses</td>
+            <td>${billAnalysesVal.toLocaleString()} analyses</td>
+            <td>Manual record check</td>
+          </tr>
+        `);
+      }
+      if (farevetAiUsesVal > 0) {
+        rows.push(`
+          <tr>
+            <td style="font-weight: 600; color: #1A2744;">FareVet AI Uses</td>
+            <td>${farevetAiUsesVal.toLocaleString()} conversations</td>
+            <td>Manual record check</td>
+          </tr>
+        `);
+      }
+      if (estimatorUsesVal > 0) {
+        rows.push(`
+          <tr>
+            <td style="font-weight: 600; color: #1A2744;">Estimator Uses</td>
+            <td>${estimatorUsesVal.toLocaleString()} estimates</td>
+            <td>Manual record check</td>
+          </tr>
+        `);
+      }
+      if (engagementRate > 0) {
+        rows.push(`
+          <tr>
+            <td style="font-weight: 600; color: #1A2744;">Program Engagement Rate</td>
+            <td style="font-weight: 600; color: #8930F9;">${engagementRate}%</td>
+            <td>Active / Total Members</td>
+          </tr>
+        `);
+      }
+      if (mrr > 0) {
+        rows.push(`
+          <tr>
+            <td style="font-weight: 600; color: #1A2744;">Calculated B2B MRR</td>
+            <td style="font-weight: 600; color: #38A169;">$${mrr.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td>Active Members × $1.20</td>
+          </tr>
+        `);
+      }
+
+      const tableHtml = rows.length > 0 ? `
+        <h2>2. Platform Engagement & Activity</h2>
+        <p>
+          Audits of member activity on the FareVet platform during ${rep.quarter} indicate the following utilisation rates for cost transparency tools, digital estimators, and AI-driven clinical navigation.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Platform Feature / Metric</th>
+              <th>Recorded Activity</th>
+              <th>Calculation Basis</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.join("")}
+          </tbody>
+        </table>
+      ` : "";
 
       doc.open();
       doc.write(`
@@ -466,6 +730,10 @@ const Reports = () => {
                 padding: 15px 12px;
                 text-align: center;
                 box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+                border-top: 3px solid #8930F9;
+              }
+              .stat-card:last-child {
+                border-top: 3px solid #38A169;
               }
               .stat-lbl {
                 font-size: 9px;
@@ -576,17 +844,19 @@ const Reports = () => {
             <table class="header-table">
               <tr>
                 <td class="logo-side" style="border: 0; padding: 0; vertical-align: middle;">
-                  <div style="display: flex; align-items: center; gap: 10px;">
-                    <img src="${logofarevet}" alt="FareVet Logo" style="height: 38px; width: auto; object-fit: contain;" />
-                    <div style="display: flex; flex-direction: column;">
-                      <span style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 21px; color: #1A2744; line-height: 1.1;">FareVet</span>
-                      <span style="font-family: 'Inter', sans-serif; font-weight: 600; font-size: 8px; color: #9B9BB5; letter-spacing: 1.8px; text-transform: uppercase; margin-top: 2px;">B2B Operations</span>
-                    </div>
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <img src="${window.location.origin}/FAREVET-LOGO.png" alt="FareVet Logo" style="height: 55px; max-height: 55px; width: auto; object-fit: contain;" />
+                    <span style="font-size: 32px; color: #E2E8F0; font-weight: 300; line-height: 1;">|</span>
+                    ${partnerLogo ? `
+                      <img src="${global.IMAGEURL}/${partnerLogo}" alt="${rep.partnerName} Logo" style="height: 55px; max-height: 55px; width: auto; max-width: 180px; object-fit: contain; border-radius: 6px;" />
+                    ` : `
+                      <span style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 24px; color: #8930F9;">${rep.partnerName}</span>
+                    `}
                   </div>
                 </td>
-                <td class="title-side" style="border: 0; padding: 0;">
-                  <h1>INTELLIGENCE REPORT</h1>
-                  <p>Quarterly B2B Analytics Desk</p>
+                <td class="title-side" style="border: 0; padding: 0; text-align: right; vertical-align: middle;">
+                  <h1 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 800; color: #1A2744; margin: 0; line-height: 1.1;">INTELLIGENCE REPORT</h1>
+                  <p style="font-size: 10px; color: #8930F9; text-transform: uppercase; letter-spacing: 1px; margin: 4px 0 0 0; font-weight: 700;">Quarterly B2B Analytics Desk</p>
                 </td>
               </tr>
             </table>
@@ -616,87 +886,19 @@ const Reports = () => {
                   <div class="meta-lbl">Generation Date</div>
                   <div class="meta-val">${new Date().toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' })}</div>
                 </div>
-                <div class="meta-item">
-                  <div class="meta-lbl">Readiness Tier</div>
-                  <div class="meta-val" style="color: #8930F9;">Tier 2 · Integration Ready</div>
-                </div>
               </div>
             </div>
             
             <h2>1. Executive Summary</h2>
             <p>
-              During ${rep.quarter}, associated B2B program members under the ${rep.partnerName} partnership demonstrated strong engagement with the FareVet cost comparison engine. Strategic analytics over the past 90 days show a significant increase in search traffic within regional hubs. Utilizing cost-transparency tools has empowered members to shift their clinic selections toward vetted, high-value practitioners.
+              During ${rep.quarter}, associated B2B program members under the ${rep.partnerName} partnership demonstrated active engagement with the FareVet platform. The metrics below highlight key utilization rates and savings realized through our partnership tools.
             </p>
             
-            <div class="stats-grid">
-              <div class="stat-card">
-                <div class="stat-lbl">Associated Members</div>
-                <div class="stat-val">
-                  ${membersCount > 0 ? membersCount : "—"}
-                  <div style="font-size: 9px; color: #38A169; font-weight: 600; margin-top: 4px;">
-                    ● ${activeCount} Active Now
-                  </div>
-                </div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-lbl">Phase 2 Readiness</div>
-                <div class="stat-val">
-                  ${readinessPct}%
-                  <div class="progress-bar-track">
-                    <div class="progress-bar-fill"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-lbl">Estimated B2B Savings</div>
-                <div class="stat-val">$${totalSavings > 0 ? totalSavings.toLocaleString() : "0"}</div>
-              </div>
-            </div>
+            ${cardsGridHtml}
 
-            <h2>2. Regional Price Variance & Optimization</h2>
-            <p>
-              Audits of typical veterinary procedure receipts reveal significant cost discrepancies within regional provider networks (averaging up to 45% price dispersion for identical medical items). Standardizing selections via FareVet ensures immediate cost optimization.
-            </p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Procedure / Treatment Code</th>
-                  <th>Average Network Cost</th>
-                  <th>FareVet Fair-Price Limit</th>
-                  <th>Net Savings Delta</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td style="font-weight: 600; color: #1A2744;">Dental Cleaning (Routine)</td>
-                  <td>$680.00</td>
-                  <td>$420.00</td>
-                  <td class="text-green">-$260.00 (-38.2%)</td>
-                </tr>
-                <tr>
-                  <td style="font-weight: 600; color: #1A2744;">X-Ray & Diagnostic Imaging</td>
-                  <td>$410.00</td>
-                  <td>$290.00</td>
-                  <td class="text-green">-$120.00 (-29.2%)</td>
-                </tr>
-                <tr>
-                  <td style="font-weight: 600; color: #1A2744;">Spay / Neuter Surgery</td>
-                  <td>$540.00</td>
-                  <td>$350.00</td>
-                  <td class="text-green">-$190.00 (-35.1%)</td>
-                </tr>
-              </tbody>
-            </table>
+            ${tableHtml}
 
-            <h2>3. Rate Compliance & Anomaly Flags</h2>
-            <div class="${rep.partnerName === "Trupanion" || rep.partnerName === "Pawp" ? "text-red" : "alert-green"}">
-              ${anomalyAlerts}
-            </div>
-
-            <h2>4. Partnership Authorizations</h2>
-            <p>
-              Current B2B integration settings allow all members full access to FareVet Cost Search, Savings Metrics, and the AI Vet Assistant. 
-            </p>
+            ${notesVal ? `<h2>3. Pietro's Operational Notes</h2><p>${notesVal}</p>` : ""}
 
             <!-- Official Sign-off Signature blocks -->
             <div class="signature-section">
@@ -734,6 +936,35 @@ const Reports = () => {
 
       message.success(`PDF print-to-file dialog launched for ${rep.partnerName} ${rep.quarter}!`);
     }, 1000);
+  };
+
+  const handlePreviewHistoryReport = (rep) => {
+    const partner = partners.find((p) => String(p.name) === String(rep.partnerName));
+    if (partner) {
+      setSelectedPartnerId(String(partner.id));
+    }
+    setSelectedQuarter(rep.quarter);
+    setCurrentReportStatus(rep.status);
+    try {
+      const reportData = JSON.parse(rep.pdfData);
+      if (reportData) {
+        const legacyMembers = reportData.totalMembers !== undefined ? reportData.totalMembers : (reportData.members !== undefined ? reportData.members : (partner ? partner.members : 0));
+        const totalMembersVal = legacyMembers || 0;
+        const activeMembersVal = reportData.activeMembers !== undefined ? reportData.activeMembers : (reportData.status === "Active" ? Math.round(totalMembersVal * 0.84) : (partner ? partner.activeMembers : 0));
+
+        setTotalMembers(totalMembersVal ? String(totalMembersVal) : "");
+        setActiveMembers(activeMembersVal ? String(activeMembersVal) : "");
+        setCostSearches(String(reportData.costSearches !== undefined ? reportData.costSearches : Math.round(totalMembersVal * 3)));
+        setBillAnalyses(String(reportData.billAnalyses !== undefined ? reportData.billAnalyses : Math.round(totalMembersVal * 0.7)));
+        setFarevetAiUses(String(reportData.farevetAiUses !== undefined ? reportData.farevetAiUses : Math.round(totalMembersVal * 1.2)));
+        setEstimatorUses(String(reportData.estimatorUses !== undefined ? reportData.estimatorUses : Math.round(totalMembersVal * 0.9)));
+        setPotentialSavings(String(reportData.potentialSavings !== undefined ? reportData.potentialSavings : Math.round(totalMembersVal * 14.50)));
+        setNotes(reportData.notes || "");
+      }
+    } catch (e) {
+      console.error("Error parsing pdfData for preview:", e);
+    }
+    setIsPreviewOpen(true);
   };
 
   // Handle Resend simulation and update database sent_date
@@ -869,45 +1100,155 @@ const Reports = () => {
               <div className="pt">Generate new report</div>
             </div>
             <div className="pb">
-              {/* Partner Dropdown */}
-              <div style={{ marginBottom: "12px" }}>
-                <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  Partner
+              {/* Partner & Quarter Dropdowns Grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    Partner
+                  </div>
+                  <Select
+                    options={partnerOptions}
+                    value={currentPartnerOption}
+                    styles={selectStyles}
+                    onChange={(opt) => {
+                      handlePartnerOrQuarterChange(opt.value, selectedQuarter);
+                    }}
+                  />
                 </div>
-                <Select
-                  options={partnerOptions}
-                  value={currentPartnerOption}
-                  styles={selectStyles}
-                  onChange={(opt) => {
-                    setSelectedPartnerId(opt.value);
-                    // Check if already in history
-                    const partnerName = partners.find(p => String(p.id) === String(opt.value))?.name;
-                    const found = history.find(h => h.partnerName === partnerName && h.quarter === selectedQuarter);
-                    setCurrentReportStatus(found ? found.status : "Draft");
-                  }}
+
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    Quarter
+                  </div>
+                  <Select
+                    options={quarterOptions}
+                    value={currentQuarterOption}
+                    styles={selectStyles}
+                    onChange={(opt) => {
+                      handlePartnerOrQuarterChange(selectedPartnerId, opt.value);
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Members Row */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    Total Members
+                  </div>
+                  <input
+                    type="number"
+                    className="form-control"
+                    placeholder="e.g. 500"
+                    value={totalMembers}
+                    onChange={(e) => setTotalMembers(e.target.value)}
+                    style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    Active Members
+                  </div>
+                  <input
+                    type="number"
+                    className="form-control"
+                    placeholder="e.g. 420"
+                    value={activeMembers}
+                    onChange={(e) => setActiveMembers(e.target.value)}
+                    style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
+                  />
+                </div>
+              </div>
+
+              {/* Searches and Analyses Row */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    Cost Searches
+                  </div>
+                  <input
+                    type="number"
+                    className="form-control"
+                    placeholder="e.g. 1500"
+                    value={costSearches}
+                    onChange={(e) => setCostSearches(e.target.value)}
+                    style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    Bill Analyses
+                  </div>
+                  <input
+                    type="number"
+                    className="form-control"
+                    placeholder="e.g. 350"
+                    value={billAnalyses}
+                    onChange={(e) => setBillAnalyses(e.target.value)}
+                    style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
+                  />
+                </div>
+              </div>
+
+              {/* AI and Estimator Row */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    FareVet AI Uses
+                  </div>
+                  <input
+                    type="number"
+                    className="form-control"
+                    placeholder="e.g. 600"
+                    value={farevetAiUses}
+                    onChange={(e) => setFarevetAiUses(e.target.value)}
+                    style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    Estimator Uses
+                  </div>
+                  <input
+                    type="number"
+                    className="form-control"
+                    placeholder="e.g. 450"
+                    value={estimatorUses}
+                    onChange={(e) => setEstimatorUses(e.target.value)}
+                    style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
+                  />
+                </div>
+              </div>
+
+              {/* Potential Savings Row */}
+              <div style={{ marginBottom: "12px" }}>
+                <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Potential Savings Identified ($)
+                </div>
+                <input
+                  type="number"
+                  className="form-control"
+                  placeholder="e.g. 7250"
+                  value={potentialSavings}
+                  onChange={(e) => setPotentialSavings(e.target.value)}
+                  style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
                 />
               </div>
 
-              {/* Quarter Dropdown */}
-              <div style={{ marginBottom: "12px" }}>
-                <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  Quarter
+              {/* Notes Row */}
+              <div style={{ marginBottom: "14px" }}>
+                <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Notes (Optional)
                 </div>
-                <Select
-                  options={quarterOptions}
-                  value={currentQuarterOption}
-                  styles={selectStyles}
-                  onChange={(opt) => {
-                    setSelectedQuarter(opt.value);
-                    // Check if already in history
-                    const found = history.find(h => h.partnerName === currentPartner.name && h.quarter === opt.value);
-                    setCurrentReportStatus(found ? found.status : "Draft");
-                  }}
+                <textarea
+                  className="form-control"
+                  placeholder="Operational notes or executive summary callouts..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={2}
+                  style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px", resize: "none" }}
                 />
-              </div>
-
-              <div style={{ fontSize: "11px", color: "var(--ink3)", marginBottom: "14px", lineHeight: "1.6" }}>
-                Report will include: regional price trends · member engagement · top procedures · anomaly alerts · Phase 2 readiness score
               </div>
 
               <button
@@ -942,7 +1283,15 @@ const Reports = () => {
                         Sent {rep.sentDate} · {rep.pages} pages · <span style={{ textTransform: "capitalize", fontWeight: "600", color: rep.status === "resent" ? "#8930F9" : (rep.status === "sent" ? "#2E7D32" : "#ED6C02") }}>{rep.status}</span>
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: "6px" }}>
+                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => handlePreviewHistoryReport(rep)}
+                        title="Preview Report"
+                        style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "6px" }}
+                      >
+                        <FaEye size={14} style={{ color: "var(--ink2)" }} />
+                      </button>
                       <button
                         className="btn btn-ghost btn-sm"
                         onClick={() => handleDownloadReport(rep)}
@@ -1062,6 +1411,21 @@ const Reports = () => {
                 partnerName: currentPartner.name,
                 quarter: selectedQuarter,
                 pages: metadata.pageCount,
+                pdfData: JSON.stringify({
+                  partnerName: currentPartner.name,
+                  partnerEmail: currentPartner.email || "partnerships@farevet.com",
+                  quarter: selectedQuarter,
+                  totalMembers: Number(totalMembersVal),
+                  activeMembers: Number(activeMembersVal),
+                  costSearches: Number(costSearchesVal),
+                  billAnalyses: Number(billAnalysesVal),
+                  farevetAiUses: Number(farevetAiUsesVal),
+                  estimatorUses: Number(estimatorUsesVal),
+                  potentialSavings: Number(potentialSavingsVal),
+                  notes: notesVal,
+                  threshold: currentPartner.threshold || 500,
+                  status: currentPartner.status || "Active"
+                })
               });
             }}
           >
@@ -1091,96 +1455,91 @@ const Reports = () => {
         }}>
           {/* Header section in PDF mockup */}
           <div style={{
-            textAlign: "center",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
             borderBottom: "2px solid #8930F9",
             paddingBottom: "12px",
             marginBottom: "20px"
           }}>
-            <h2 style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 800, color: "#1A2744", margin: 0 }}>
-              FareVet Intelligence Report
-            </h2>
-            <p style={{ fontSize: "11px", color: "#9B9BB5", textTransform: "uppercase", letterSpacing: "1px", margin: "4px 0 0 0" }}>
-              Quarterly B2B Analytics · {selectedQuarter} · {currentPartner.name} Partnership
-            </p>
-          </div>
-
-          {/* Section 1: Executive Summary */}
-          <div className="preview-section">
-            <h4>1. Executive Summary <span className="tag tg-g" style={{ fontStyle: "normal" }}>Ready</span></h4>
-            <p>
-              During {selectedQuarter}, members associated with the {currentPartner.name} program demonstrated strong engagement on the FareVet platform. Over the past 90 days, search volume in major metropolitan regions increased. Cost transparency analysis reveals key shifts in consumer choice toward vetted, high-value vet clinics.
-            </p>
-            <div className="preview-stats-row">
-              <div className="preview-stat-item">
-                <div className="preview-lbl">Associated Members</div>
-                <div className="preview-val">{currentPartner.members}</div>
-              </div>
-              <div className="preview-stat-item">
-                <div className="preview-lbl">Phase 2 Readiness</div>
-                <div className="preview-val">{metadata.readiness}</div>
-              </div>
-              <div className="preview-stat-item">
-                <div className="preview-lbl">Estimated Savings</div>
-                <div className="preview-val">${Math.round(currentPartner.members * 14.50)}</div>
-              </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <img src={logofarevet} alt="FareVet Logo" style={{ height: "45px", width: "auto", objectFit: "contain" }} />
+              <span style={{ fontSize: "26px", color: "var(--border)", fontWeight: 300 }}>|</span>
+              {currentPartner.logo ? (
+                <img src={`${global.IMAGEURL}/${currentPartner.logo}`} alt="Partner Logo" style={{ height: "45px", width: "auto", maxWidth: "140px", objectFit: "contain", borderRadius: "4px" }} />
+              ) : (
+                <span style={{ fontSize: "18px", fontWeight: "700", color: "#8930F9" }}>{currentPartner.name}</span>
+              )}
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <h3 style={{ fontFamily: "Plus Jakarta Sans, sans-serif", fontWeight: 800, color: "#1A2744", margin: 0, fontSize: "16px" }}>
+                Intelligence Report
+              </h3>
+              <p style={{ fontSize: "9px", color: "#9B9BB5", textTransform: "uppercase", letterSpacing: "1px", margin: "2px 0 0 0" }}>
+                Quarterly B2B Analytics · {selectedQuarter}
+              </p>
             </div>
           </div>
 
-          {/* Section 2: Regional Price Trends */}
-          <div className="preview-section">
-            <h4>2. Regional Price Trends <span className="tag tg-g">Ready</span></h4>
-            <p>
-              Analysis of service transactions and user queries in major regional clusters highlights a variance of up to 45% in standard procedures (e.g. Dental Cleaning, Cruciate Repair) between adjacent veterinary facilities.
-            </p>
-            <table style={{ width: "100%", fontSize: "11px", borderCollapse: "collapse", marginTop: "8px" }}>
-              <thead>
-                <tr style={{ background: "#F4F5F7", borderBottom: "1px solid #E8E8F0" }}>
-                  <th style={{ padding: "6px", textAlign: "left" }}>Procedure</th>
-                  <th style={{ padding: "6px", textAlign: "right" }}>Average Cost</th>
-                  <th style={{ padding: "6px", textAlign: "right" }}>Fair Price Max</th>
-                  <th style={{ padding: "6px", textAlign: "right" }}>Savings Delta</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr style={{ borderBottom: "1px solid #E8E8F0" }}>
-                  <td style={{ padding: "6px" }}>Dental Cleaning</td>
-                  <td style={{ padding: "6px", textAlign: "right" }}>$680</td>
-                  <td style={{ padding: "6px", textAlign: "right" }}>$420</td>
-                  <td style={{ padding: "6px", textTransform: "bold", color: "var(--green)", textAlign: "right" }}>-$260</td>
-                </tr>
-                <tr style={{ borderBottom: "1px solid #E8E8F0" }}>
-                  <td style={{ padding: "6px" }}>X-Ray & Imaging</td>
-                  <td style={{ padding: "6px", textAlign: "right" }}>$410</td>
-                  <td style={{ padding: "6px", textAlign: "right" }}>$290</td>
-                  <td style={{ padding: "6px", textTransform: "bold", color: "var(--green)", textAlign: "right" }}>-$120</td>
-                </tr>
-                <tr>
-                  <td style={{ padding: "6px" }}>Spay / Neuter Surgery</td>
-                  <td style={{ padding: "6px", textAlign: "right" }}>$540</td>
-                  <td style={{ padding: "6px", textAlign: "right" }}>$350</td>
-                  <td style={{ padding: "6px", textTransform: "bold", color: "var(--green)", textAlign: "right" }}>-$190</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Section 3: Anomaly Alerts */}
-          <div className="preview-section">
-            <h4>3. Anomaly Alerts & Compliance <span className={`tag ${metadata.anomalies === "Ready" ? "tg-g" : "tg-a"}`}>{metadata.anomalies}</span></h4>
-            {currentPartner.name === "Trupanion" ? (
-              <p style={{ color: "#E74C3C", fontWeight: 500 }}>
-                ⚠️ 2 clinics in the Pacific Northwest have reported billing spikes exceeding 30% for routine outpatient surgeries. FareVet has automatically flagged these listings in our system.
-              </p>
-            ) : currentPartner.name === "Pawp" ? (
-              <p style={{ color: "#E74C3C", fontWeight: 500 }}>
-                ⚠️ 1 clinic in Southern Florida was flagged for charging diagnostic fees exceeding regional averages by 50%. Outlier investigation is currently in review.
-              </p>
-            ) : (
+          {/* Section 1: Executive Summary */}
+          {((totalMembersVal > 0) || (readinessPct > 0) || (potentialSavingsVal > 0)) && (
+            <div className="preview-section">
+              <h4>1. Executive Summary <span className="tag tg-g" style={{ fontStyle: "normal" }}>Ready</span></h4>
               <p>
-                No abnormal price surges or billing compliance outliers were recorded among partner member clinics in this quarter. Excellent rate stability.
+                During {selectedQuarter}, associated B2B program members under the {currentPartner.name} partnership demonstrated active engagement with the FareVet platform. The metrics below highlight key utilization rates and savings realized through our partnership tools.
               </p>
-            )}
-          </div>
+              <div className="preview-stats-row" style={{ display: "grid", gridTemplateColumns: `repeat(${(totalMembersVal > 0 ? 1 : 0) + (readinessPct > 0 ? 1 : 0) + (potentialSavingsVal > 0 ? 1 : 0)}, 1fr)`, gap: "12px" }}>
+                {totalMembersVal > 0 && (
+                  <div className="preview-stat-item">
+                    <div className="preview-lbl">Associated Members</div>
+                    <div className="preview-val">
+                      {totalMembersVal.toLocaleString()}
+                      {activeMembersVal > 0 && (
+                        <div style={{ fontSize: "9px", color: "#38A169", fontWeight: 600, marginTop: "2px" }}>
+                          ● {activeMembersVal.toLocaleString()} Active
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {readinessPct > 0 && (
+                  <div className="preview-stat-item">
+                    <div className="preview-lbl">Phase 2 Readiness</div>
+                    <div className="preview-val">{readinessPct}%</div>
+                  </div>
+                )}
+                {potentialSavingsVal > 0 && (
+                  <div className="preview-stat-item">
+                    <div className="preview-lbl">Estimated Savings</div>
+                    <div className="preview-val">${potentialSavingsVal.toLocaleString()}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Section 2: Platform Activity & Engagement */}
+          {((costSearchesVal > 0) || (billAnalysesVal > 0) || (farevetAiUsesVal > 0) || (estimatorUsesVal > 0) || (engagementRate > 0) || (calculatedMrr > 0)) && (
+            <div className="preview-section">
+              <h4>2. Platform Activity & Engagement <span className="tag tg-g">Ready</span></h4>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "11px", marginTop: "6px" }}>
+                {costSearchesVal > 0 && <div>Cost Searches: <strong>{costSearchesVal.toLocaleString()}</strong></div>}
+                {billAnalysesVal > 0 && <div>Bill Analyses: <strong>{billAnalysesVal.toLocaleString()}</strong></div>}
+                {farevetAiUsesVal > 0 && <div>FareVet AI Uses: <strong>{farevetAiUsesVal.toLocaleString()}</strong></div>}
+                {estimatorUsesVal > 0 && <div>Estimator Uses: <strong>{estimatorUsesVal.toLocaleString()}</strong></div>}
+                {engagementRate > 0 && <div>Engagement Rate: <strong style={{ color: "#8930F9" }}>{engagementRate}%</strong></div>}
+                {calculatedMrr > 0 && <div>B2B MRR: <strong style={{ color: "#2E7D32" }}>${calculatedMrr.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></div>}
+              </div>
+            </div>
+          )}
+
+          {/* Section 3: Operational Notes */}
+          {notesVal && (
+            <div className="preview-section">
+              <h4>3. Pietro's Operational Notes</h4>
+              <p style={{ fontStyle: "italic", background: "#f9f9f9", padding: "8px", borderRadius: "6px", fontSize: "11px", color: "var(--ink2)" }}>{notesVal}</p>
+            </div>
+          )}
         </div>
       </Modal>
     </main>

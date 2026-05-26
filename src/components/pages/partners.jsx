@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Search, Plus } from "react-feather";
-import { Modal, Input, Select, message, Spin } from "antd";
+import { Modal, Input, Select, message } from "antd";
 import { apiRequest } from "../../api/auth_api";
 import "./partners.scss";
 import Spinner from "../Spinner";
@@ -45,7 +45,7 @@ const mapApiPartnerToReact = (p) => {
   return {
     id: parseInt(p.id),
     name: p.partner_name || "",
-    type: p.partner_type || "Pet Insurance",
+    type: p.partner_type || "Insurance",
     status: p.status || "Pending",
     members: parseInt(p.total_members) || 0,
     activeMembers: p.status === "Active" ? Math.round((parseInt(p.total_members) || 0) * 0.84) : 0,
@@ -54,6 +54,11 @@ const mapApiPartnerToReact = (p) => {
     partnerSince: p.partner_since || "May 2026",
     threshold: parseInt(p.threshold) || 500,
     email: p.contact_email || "",
+    partnerCode: p.partner_code || "",
+    logo: p.partner_logo || "",
+    defaultDeductible: parseFloat(p.default_deductible) || 0,
+    defaultReimbursement: p.default_reimbursement || "80%",
+    claimsPortalUrl: p.claims_portal_url || "",
     features: {
       costSearch: parseDbBoolean(p.feature_cost_search),
       billExplainer: parseDbBoolean(p.feature_bill_explainer),
@@ -62,6 +67,23 @@ const mapApiPartnerToReact = (p) => {
       insuranceSavings: parseDbBoolean(p.feature_insurance_savings),
     }
   };
+};
+
+const generateSecure6DigitCode = (existingPartners = []) => {
+  const existingCodes = new Set(
+    existingPartners.map((p) => p.partnerCode).filter(Boolean)
+  );
+  let code = "";
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const array = new Uint32Array(1);
+    window.crypto.getRandomValues(array);
+    const num = (array[0] % 900000) + 100000;
+    code = String(num);
+    if (!existingCodes.has(code)) {
+      break;
+    }
+  }
+  return code;
 };
 
 const Partners = () => {
@@ -76,13 +98,20 @@ const Partners = () => {
 
   // Form State
   const [formName, setFormName] = useState("");
-  const [formType, setFormType] = useState("Pet Insurance");
+  const [formType, setFormType] = useState("Insurance");
   const [formStatus, setFormStatus] = useState("Active");
   const [formEmail, setFormEmail] = useState("");
   const [formMembers, setFormMembers] = useState(0);
   const [formBilling, setFormBilling] = useState(0);
   const [formRate, setFormRate] = useState(1.2);
   const [formPartnerSince, setFormPartnerSince] = useState("");
+  const [formPartnerCode, setFormPartnerCode] = useState("");
+  const [formDefaultDeductible, setFormDefaultDeductible] = useState(0);
+  const [formDefaultReimbursement, setFormDefaultReimbursement] = useState("80%");
+  const [formClaimsPortalUrl, setFormClaimsPortalUrl] = useState("");
+  const [formLogo, setFormLogo] = useState("");
+  const [logoPreview, setLogoPreview] = useState("");
+  const [logoUploading, setLogoUploading] = useState(false);
   const [formFeatures, setFormFeatures] = useState({
     costSearch: false,
     billExplainer: false,
@@ -126,6 +155,33 @@ const Partners = () => {
   // Find currently selected partner
   const selectedPartner = partners.find((p) => p.id === selectedPartnerId) || partners[0] || null;
 
+  const handleLogoChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setLogoUploading(true);
+    const updatedFileName = file.name;
+    const body = new FormData();
+    body.append("type", "upload_data");
+    body.append("file", new Blob([file], { type: file.type }), updatedFileName);
+
+    try {
+      const response = await apiRequest({ body });
+      if (response && response.file_name) {
+        setFormLogo(response.file_name);
+        setLogoPreview(URL.createObjectURL(file));
+        message.success("Logo uploaded successfully");
+      } else {
+        message.error("Failed to upload logo file");
+      }
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      message.error("Error uploading logo file");
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
   // Toggle single feature toggle and sync to database
   const handleToggleFeature = async (partnerId, featureKey) => {
     const target = partners.find((p) => p.id === partnerId);
@@ -148,6 +204,11 @@ const Partners = () => {
     body.append("mrr_rate", target.mrrRate);
     body.append("monthly_billing", target.billing);
     body.append("partner_since", parsePartnerSinceToMonth(target.partnerSince) || "2026-05");
+    body.append("partner_code", target.partnerCode || "");
+    body.append("partner_logo", target.logo || "");
+    body.append("default_deductible", target.defaultDeductible || 0);
+    body.append("default_reimbursement", target.defaultReimbursement || "80%");
+    body.append("claims_portal_url", target.claimsPortalUrl || "");
     body.append("feature_cost_search", updatedFeatures.costSearch ? 1 : 0);
     body.append("feature_bill_explainer", updatedFeatures.billExplainer ? 1 : 0);
     body.append("feature_farevet_ai", updatedFeatures.farevetAi ? 1 : 0);
@@ -173,14 +234,20 @@ const Partners = () => {
     setEditMode(false);
     setEditingPartnerId(null);
     setFormName("");
-    setFormType("Pet Insurance");
+    setFormType("Insurance");
     setFormStatus("Active");
     setFormEmail("");
     setFormMembers(0);
     setFormBilling(0);
     setFormRate(1.2);
+    setFormPartnerCode(generateSecure6DigitCode(partners));
+    setFormDefaultDeductible(0);
+    setFormDefaultReimbursement("80%");
+    setFormClaimsPortalUrl("");
+    setFormLogo("");
+    setLogoPreview("");
 
-    // Set realistic default date (YYYY-MM format for native type="month")
+    // Set realistic default date (YYYY-MM-DD to YYYY-MM conversion/fallback)
     const date = new Date();
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -208,6 +275,12 @@ const Partners = () => {
     setFormBilling(partner.billing || 0);
     setFormRate(partner.mrrRate || 1.2);
     setFormPartnerSince(parsePartnerSinceToMonth(partner.partnerSince) || "");
+    setFormPartnerCode(partner.partnerCode || generateSecure6DigitCode(partners));
+    setFormDefaultDeductible(partner.defaultDeductible || 0);
+    setFormDefaultReimbursement(partner.defaultReimbursement || "80%");
+    setFormClaimsPortalUrl(partner.claimsPortalUrl || "");
+    setFormLogo(partner.logo || "");
+    setLogoPreview(partner.logo ? `${global.IMAGEURL}/${partner.logo}` : "");
     setFormFeatures(partner.features || {
       costSearch: false,
       billExplainer: false,
@@ -246,6 +319,11 @@ const Partners = () => {
       body.append("mrr_rate", numericRate);
       body.append("monthly_billing", calculatedBilling);
       body.append("partner_since", formattedSince);
+      body.append("partner_code", formPartnerCode);
+      body.append("partner_logo", formLogo);
+      body.append("default_deductible", formType === "Insurance" ? formDefaultDeductible : 0);
+      body.append("default_reimbursement", formType === "Insurance" ? formDefaultReimbursement : "80%");
+      body.append("claims_portal_url", formType === "Insurance" ? formClaimsPortalUrl.trim() : "");
       body.append("feature_cost_search", formFeatures.costSearch ? 1 : 0);
       body.append("feature_bill_explainer", formFeatures.billExplainer ? 1 : 0);
       body.append("feature_farevet_ai", formFeatures.farevetAi ? 1 : 0);
@@ -390,15 +468,32 @@ const Partners = () => {
                     key={p.id}
                     className={`inbox-item ${isActive ? "selected" : ""}`}
                     onClick={() => setSelectedPartnerId(p.id)}
+                    style={{ display: "flex", alignItems: "center", gap: "12px" }}
                   >
-                    <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--ink)", marginBottom: "3px" }}>
-                      {p.name}
-                    </div>
-                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                      <span className={statusTagClass}>{p.status}</span>
-                      <span style={{ fontSize: "11px", color: "var(--ink3)" }}>
-                        {p.type} {p.status === "Active" ? `· ${p.members} members` : ""}
-                      </span>
+                    {p.logo && (
+                      <img
+                        src={`${global.IMAGEURL}/${p.logo}`}
+                        alt=""
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "8px",
+                          objectFit: "cover",
+                          border: "1px solid var(--border)",
+                          flexShrink: 0
+                        }}
+                      />
+                    )}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--ink)", marginBottom: "3px" }}>
+                        {p.name}
+                      </div>
+                      <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                        <span className={statusTagClass}>{p.status}</span>
+                        <span style={{ fontSize: "11px", color: "var(--ink3)" }}>
+                          {p.type} {p.status === "Active" ? `· ${p.members} members` : ""}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -412,8 +507,39 @@ const Partners = () => {
           <div id="partnerDetail">
             <div className="card">
               {/* Card Header */}
-              <div className="ph">
-                <div className="pt" style={{ fontSize: "15px" }}>{selectedPartner.name}</div>
+              <div className="ph" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                {selectedPartner.logo && (
+                  <img
+                    src={`${global.IMAGEURL}/${selectedPartner.logo}`}
+                    alt={`${selectedPartner.name} Logo`}
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "6px",
+                      objectFit: "cover",
+                      border: "1px solid var(--border)"
+                    }}
+                  />
+                )}
+                <div className="pt" style={{ fontSize: "15px", flex: 1, display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span>{selectedPartner.name}</span>
+                  {selectedPartner.partnerCode && (
+                    <span style={{
+                      fontWeight: "700",
+                      color: "var(--primary)",
+                      background: "rgba(137, 48, 249, 0.08)",
+                      border: "1px solid rgba(137, 48, 249, 0.15)",
+                      padding: "2px 8px",
+                      borderRadius: "6px",
+                      fontFamily: "monospace",
+                      fontSize: "11px",
+                      letterSpacing: "0.5px",
+                      lineHeight: "1"
+                    }}>
+                      Code: {selectedPartner.partnerCode}
+                    </span>
+                  )}
+                </div>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                   <button className="btn btn-ghost btn-sm" onClick={() => handleOpenEditModal(selectedPartner)}>
                     Edit
@@ -581,12 +707,44 @@ const Partners = () => {
                   </div>
                 </div>
 
+                {/* Insurance Fields */}
+                {selectedPartner.type === "Insurance" && (
+                  <div style={{
+                    background: "rgba(137, 48, 249, 0.04)",
+                    border: "1px solid rgba(137, 48, 249, 0.1)",
+                    borderRadius: "10px",
+                    padding: "14px",
+                    marginTop: "14px",
+                    marginBottom: "14px"
+                  }}>
+                    <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--ink)", marginBottom: "8px" }}>
+                      Insurance Default Configurations
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "12px", marginBottom: "8px" }}>
+                      <div>
+                        <span style={{ color: "var(--ink3)" }}>Default Deductible: </span>
+                        <strong style={{ color: "var(--ink)" }}>${selectedPartner.defaultDeductible || 0}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: "var(--ink3)" }}>Reimbursement Rate: </span>
+                        <strong style={{ color: "var(--ink)" }}>{selectedPartner.defaultReimbursement || "80%"}</strong>
+                      </div>
+                    </div>
+                    {selectedPartner.claimsPortalUrl && (
+                      <div style={{ fontSize: "11px", color: "var(--ink3)", wordBreak: "break-all" }}>
+                        Claims Portal: <a href={selectedPartner.claimsPortalUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)" }}>{selectedPartner.claimsPortalUrl}</a>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Contact Email */}
                 {selectedPartner.email && (
                   <div style={{ fontSize: "11px", color: "var(--ink3)" }}>
                     Contact: <a href={`mailto:${selectedPartner.email}`} style={{ color: "var(--primary)" }}>{selectedPartner.email}</a>
                   </div>
                 )}
+
               </div>
             </div>
           </div>
@@ -628,19 +786,106 @@ const Partners = () => {
         cancelText="Cancel"
         className="partner-form-modal"
         centered
+
         zIndex={9999}
-        width={500}
+        width={800}
       >
         <div style={{ marginTop: "14px" }}>
-          {/* Partner Name */}
-          <div className="form-group">
-            <label>Partner Name</label>
-            <Input
-              placeholder="e.g. Trupanion"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              size="large"
-            />
+          {/* Logo Upload Section */}
+          <div className="form-row" style={{ marginBottom: "18px" }}>
+            <div className="form-group" style={{
+              flex: 1,
+              display: "flex",
+              gap: "16px",
+              alignItems: "center",
+              background: "#fafafa",
+              border: "1px dashed var(--border)",
+              borderRadius: "10px",
+              padding: "16px",
+              margin: 0
+            }}>
+              <div style={{
+                width: "64px",
+                height: "64px",
+                borderRadius: "12px",
+                border: "1px solid var(--border)",
+                background: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+                position: "relative",
+                flexShrink: 0
+              }}>
+                {logoUploading ? (
+                  <Spinner size={20} className="text_dark" />
+                ) : logoPreview ? (
+                  <img src={logoPreview} alt="Logo Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: "13px", fontWeight: "600", color: "var(--ink2)", marginBottom: "4px" }}>
+                  Partner Brand Logo
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                  <label htmlFor="logo-upload" style={{
+                    display: "inline-block",
+                    padding: "6px 14px",
+                    background: "var(--bg)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "6px",
+                    cursor: logoUploading ? "not-allowed" : "pointer",
+                    opacity: logoUploading ? 0.6 : 1,
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    color: "var(--ink2)",
+                    margin: 0
+                  }}>
+                    {logoUploading ? "Uploading..." : "Upload Partner Logo"}
+                  </label>
+                  <span style={{ fontSize: "11px", color: "var(--ink3)" }}>
+                    Recommended: Square image (PNG, JPG, SVG)
+                  </span>
+                </div>
+                <input
+                  id="logo-upload"
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  disabled={logoUploading}
+                  onChange={handleLogoChange}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Partner Name & Code Row */}
+          <div className="form-row">
+            <div className="form-group" style={{ flex: 2 }}>
+              <label>Partner Name</label>
+              <Input
+                placeholder="e.g. Trupanion"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                size="large"
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label>Partner Code</label>
+              <Input
+                value={formPartnerCode}
+                readOnly
+                disabled
+                size="large"
+                style={{ textAlign: "center", fontWeight: "bold", background: "#f5f5f5", color: "#555" }}
+              />
+            </div>
           </div>
 
           <div className="form-row">
@@ -653,11 +898,10 @@ const Partners = () => {
                 size="large"
                 style={{ width: "100%" }}
               >
-                <Option value="Pet Insurance">Pet Insurance</Option>
-                <Option value="Pet Telehealth">Pet Telehealth</Option>
-                <Option value="Pet Retailer">Pet Retailer</Option>
-                <Option value="Wellness Plan">Wellness Plan</Option>
-                <Option value="Other B2B">Other B2B</Option>
+                <Option value="Insurance">Insurance</Option>
+                <Option value="Telehealth">Telehealth</Option>
+                <Option value="Wellness">Wellness</Option>
+                <Option value="Retail">Retail</Option>
               </Select>
             </div>
 
@@ -687,6 +931,63 @@ const Partners = () => {
               size="large"
             />
           </div>
+
+          {/* Conditional Insurance Fields */}
+          {formType === "Insurance" && (
+            <div style={{
+              background: "#fafafa",
+              border: "1px solid #e8e8e8",
+              borderRadius: "8px",
+              padding: "12px",
+              marginBottom: "14px",
+              marginTop: "4px"
+            }}>
+              <div style={{ fontSize: "12px", fontWeight: "600", color: "#555", marginBottom: "8px" }}>
+                Insurance Settings
+              </div>
+              <div className="form-row">
+                {/* Default Deductible */}
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Default Deductible ($)</label>
+                  <Input
+                    type="number"
+                    placeholder="e.g. 250"
+                    value={formDefaultDeductible}
+                    onChange={(e) => setFormDefaultDeductible(Math.max(0, parseFloat(e.target.value) || 0))}
+                    size="large"
+                  />
+                </div>
+
+                {/* Default Reimbursement Rate */}
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Reimbursement Rate</label>
+                  <Select
+                    value={formDefaultReimbursement}
+                    onChange={(val) => setFormDefaultReimbursement(val)}
+                    size="large"
+                    style={{ width: "100%" }}
+                  >
+                    <Option value="70%">70%</Option>
+                    <Option value="80%">80%</Option>
+                    <Option value="90%">90%</Option>
+                    <Option value="100%">100%</Option>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Claims Portal URL */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Claims Portal URL</label>
+                <Input
+                  type="text"
+                  placeholder="e.g. https://claims.trupanion.com"
+                  value={formClaimsPortalUrl}
+                  onChange={(e) => setFormClaimsPortalUrl(e.target.value)}
+                  size="large"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="form-row">
             {/* Total Members */}
