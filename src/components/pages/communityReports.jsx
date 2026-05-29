@@ -128,7 +128,7 @@ const CommunityReports = () => {
                             {statusId === row?.id && loading ? (
                                 <Spinner size={15} color='inherit' />
                             ) : (
-                                'Delete Post'
+                                'Delete Community Post'
                             )}
                         </button>
                     </div>
