@@ -25,6 +25,7 @@ import {
   HiOutlineGlobeAlt,
   HiOutlineChatBubbleLeftRight,
   HiOutlineExclamationTriangle,
+  HiOutlineFlag,
   HiOutlineDocumentText,
   HiOutlineArrowTrendingUp,
   HiOutlineChartBar,
@@ -77,7 +78,7 @@ const MENU_SECTION_CONFIG = [
   },
   {
     heading: "Community",
-    itemLabels: ["Community", "Community Messages", "Emergency"],
+    itemLabels: ["Community", "Community Reports", "Community Messages", "Emergency"],
   },
   {
     heading: "Requests & support",
@@ -507,6 +508,12 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
     },
     {
       badge: false,
+      Icon: HiOutlineFlag,
+      items: "Community Reports",
+      path: "/community-reports",
+    },
+    {
+      badge: false,
       Icon: HiOutlineChatBubbleLeftRight,
       items: "Community Messages",
       path: "/messge-community",
@@ -613,7 +620,8 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
   };
 
   const isChildPath = (parentPath, childPath) => {
-    return childPath.startsWith(parentPath);
+    if (!parentPath || !childPath) return false;
+    return childPath === parentPath || childPath.startsWith(parentPath + "/");
   };
 
   return (

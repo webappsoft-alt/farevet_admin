@@ -227,6 +227,58 @@
     background: var(--primary);
     transition: width 0.3s;
   }
+
+  .copy-btn-icon {
+    background: transparent;
+    border: none;
+    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--ink3);
+    border-radius: 4px;
+    transition: all 0.15s;
+    outline: none;
+
+    &:hover {
+      color: var(--primary);
+      background-color: rgba(137, 48, 249, 0.08);
+    }
+  }
+
+  .copy-btn-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--ink2);
+    border-radius: 6px;
+    transition: all 0.15s;
+    outline: none;
+
+    &:hover:not(:disabled) {
+      color: var(--primary);
+      background-color: var(--primL);
+      border-color: var(--primary);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+
+  .partner-signup-link {
+    transition: all 0.15s;
+    &:hover {
+      background-color: rgba(137, 48, 249, 0.15) !important;
+      border-color: rgba(137, 48, 249, 0.3) !important;
+    }
+  }
 }
 
 /* Premium modal styles */

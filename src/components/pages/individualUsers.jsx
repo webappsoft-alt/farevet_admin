@@ -65,41 +65,51 @@ const IndividualUsers = () => {
             name: 'User Name',
             sortable: true,
             minWidth: '180px',
-            selector: row => row?.name ? row?.name : 'N/A'
+            selector: row => row?.name || '',
+            cell: row => row?.name?.trim() ? row.name.trim() : '-'
         },
         {
             name: 'Email',
             sortable: true,
-            minWidth: '250px',
-            selector: row => row?.email ? row?.email : 'N/A'
+            minWidth: '220px',
+            selector: row => row?.email || '',
+            cell: row => row?.email?.trim() ? row.email.trim() : '-'
         },
         {
             name: "Phone",
             sortable: true,
             minWidth: '120px',
-            selector: row => row?.phone ? row?.phone : 'N/A'
+            selector: row => row?.phone || '',
+            cell: row => row?.phone?.trim() ? row.phone.trim() : '-'
+        },
+        {
+            name: "Bio",
+            sortable: true,
+            minWidth: '200px',
+            selector: row => row?.bio || '',
+            cell: row => row?.bio?.trim() ? row.bio.trim() : '-'
         },
         {
             name: "Job Title",
             sortable: true,
-            minWidth: '320px',
-            selector: row => row?.job_title ? row?.job_title : 'N/A'
+            minWidth: '180px',
+            selector: row => row?.job_title || '',
+            cell: row => row?.job_title?.trim() ? row.job_title.trim() : '-'
         },
         {
             name: 'Portfolio',
             sortable: true,
-            minWidth: '88px',
+            minWidth: '100px',
             cell: (row) => {
-                const src = row?.portfolio
-                    ? `${global.IMAGEURL}/${row.portfolio}`
-                    : profileavatar
+                if (!row?.portfolio?.trim()) return '-';
+                const src = `${global.IMAGEURL}/${row.portfolio}`;
                 return (
                     <div className="flex w-full gap-2 items-center">
                         <img
                             src={src}
                             onError={(e) => { e.currentTarget.src = profileavatar }}
                             onClick={() => handleImageClick(src)}
-                            style={{ width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', objectFit: 'cover' }} alt="" />
+                            style={{ width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', objectFit: 'cover' }} alt="Portfolio" />
                     </div>
                 )
             }
@@ -107,30 +117,43 @@ const IndividualUsers = () => {
         {
             name: 'License Doc',
             sortable: true,
-            minWidth: '88px',
+            minWidth: '100px',
             cell: (row) => {
-                const src = row?.license_doc
-                    ? `${global.IMAGEURL}/${row.license_doc}`
-                    : profileavatar
+                if (!row?.license_doc?.trim()) return '-';
+                const src = `${global.IMAGEURL}/${row.license_doc}`;
                 return (
                     <div className="flex w-full gap-2 items-center">
                         <img
                             src={src}
                             onError={(e) => { e.currentTarget.src = profileavatar }}
                             onClick={() => handleImageClick(src)}
-                            style={{ width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', objectFit: 'cover' }} alt="" />
+                            style={{ width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', objectFit: 'cover' }} alt="License" />
                     </div>
                 )
             }
         },
         {
-            name: 'Created At',
+            name: 'Subscription Type',
             sortable: true,
             minWidth: '150px',
+            selector: row => row?.sub_type || '',
+            cell: row => row?.sub_type?.trim() ? row.sub_type.trim() : '-'
+        },
+        {
+            name: 'Total Credits',
+            sortable: true,
+            minWidth: '120px',
+            selector: row => row?.total_credits || '',
+            cell: row => (row?.total_credits !== null && row?.total_credits !== undefined && row?.total_credits !== "") ? row.total_credits : '0'
+        },
+        {
+            name: 'Created At',
+            sortable: true,
+            minWidth: '120px',
             cell: (row) => {
                 return (
                     <p className="flex w-full mb-0 plusJakara_regular items-center text-[10.5px]">
-                        {moment(row?.created_at).format('DD-MM-YYYY')}
+                        {row?.created_at ? moment(row.created_at).format('DD-MM-YYYY') : '-'}
                     </p>
                 )
             }
@@ -138,7 +161,7 @@ const IndividualUsers = () => {
         {
             name: 'Action',
             sortable: true,
-            minWidth: '200px',
+            minWidth: '150px',
             cell: (row) => {
                 return (
                     <div className='flex gap-1'>
@@ -169,7 +192,6 @@ const IndividualUsers = () => {
                 )
             }
         }
-
     ]
 
     const handleUpdateIndividual = async (status, business, actionType) => {

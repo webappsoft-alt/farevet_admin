@@ -93,13 +93,14 @@ const selectStyles = {
 };
 
 const Reports = () => {
+  const currentYear = new Date().getFullYear();
   const [partners, setPartners] = useState([]);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Selection State
   const [selectedPartnerId, setSelectedPartnerId] = useState("");
-  const [selectedQuarter, setSelectedQuarter] = useState("Q1 2026");
+  const [selectedQuarter, setSelectedQuarter] = useState(`Q1 ${currentYear}`);
 
   // Manual input fields
   const [totalMembers, setTotalMembers] = useState("");
@@ -319,14 +320,10 @@ const Reports = () => {
   const currentPartnerOption = partnerOptions.find((opt) => opt.value === String(selectedPartnerId)) || null;
 
   const quarterOptions = [
-    { value: "Q4 2026", label: "Q4 2026 (Oct–Dec)" },
-    { value: "Q3 2026", label: "Q3 2026 (Jul–Sep)" },
-    { value: "Q2 2026", label: "Q2 2026 (Apr–Jun)" },
-    { value: "Q1 2026", label: "Q1 2026 (Jan–Mar)" },
-    { value: "Q4 2025", label: "Q4 2025 (Oct–Dec)" },
-    { value: "Q3 2025", label: "Q3 2025 (Jul–Sep)" },
-    { value: "Q2 2025", label: "Q2 2025 (Apr–Jun)" },
-    { value: "Q1 2025", label: "Q1 2025 (Jan–Mar)" },
+    { value: `Q4 ${currentYear}`, label: `Q4 ${currentYear} (Oct–Dec)` },
+    { value: `Q3 ${currentYear}`, label: `Q3 ${currentYear} (Jul–Sep)` },
+    { value: `Q2 ${currentYear}`, label: `Q2 ${currentYear} (Apr–Jun)` },
+    { value: `Q1 ${currentYear}`, label: `Q1 ${currentYear} (Jan–Mar)` },
   ];
   const currentQuarterOption = quarterOptions.find((opt) => opt.value === selectedQuarter) || { value: selectedQuarter, label: selectedQuarter };
 
@@ -606,7 +603,7 @@ const Reports = () => {
         rows.push(`
           <tr>
             <td style="font-weight: 600; color: #1A2744;">Calculated B2B MRR</td>
-            <td style="font-weight: 600; color: #38A169;">$${mrr.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td style="font-weight: 600; color: #38A169;">$${mrr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             <td>Active Members × $1.20</td>
           </tr>
         `);
@@ -1090,304 +1087,232 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* Two-Column Layout */}
-      <div className="two-col">
-        {/* Left Column: Generate Form & History */}
-        <div>
-          {/* Generate new report Card */}
-          <div className="card">
-            <div className="ph">
-              <div className="pt">Generate new report</div>
-            </div>
-            <div className="pb">
-              {/* Partner & Quarter Dropdowns Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                <div>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    Partner
-                  </div>
-                  <Select
-                    options={partnerOptions}
-                    value={currentPartnerOption}
-                    styles={selectStyles}
-                    onChange={(opt) => {
-                      handlePartnerOrQuarterChange(opt.value, selectedQuarter);
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    Quarter
-                  </div>
-                  <Select
-                    options={quarterOptions}
-                    value={currentQuarterOption}
-                    styles={selectStyles}
-                    onChange={(opt) => {
-                      handlePartnerOrQuarterChange(selectedPartnerId, opt.value);
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Members Row */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                <div>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    Total Members
-                  </div>
-                  <input
-                    type="number"
-                    className="form-control"
-                    placeholder="e.g. 500"
-                    value={totalMembers}
-                    onChange={(e) => setTotalMembers(e.target.value)}
-                    style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    Active Members
-                  </div>
-                  <input
-                    type="number"
-                    className="form-control"
-                    placeholder="e.g. 420"
-                    value={activeMembers}
-                    onChange={(e) => setActiveMembers(e.target.value)}
-                    style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
-                  />
-                </div>
-              </div>
-
-              {/* Searches and Analyses Row */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                <div>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    Cost Searches
-                  </div>
-                  <input
-                    type="number"
-                    className="form-control"
-                    placeholder="e.g. 1500"
-                    value={costSearches}
-                    onChange={(e) => setCostSearches(e.target.value)}
-                    style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    Bill Analyses
-                  </div>
-                  <input
-                    type="number"
-                    className="form-control"
-                    placeholder="e.g. 350"
-                    value={billAnalyses}
-                    onChange={(e) => setBillAnalyses(e.target.value)}
-                    style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
-                  />
-                </div>
-              </div>
-
-              {/* AI and Estimator Row */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                <div>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    FareVet AI Uses
-                  </div>
-                  <input
-                    type="number"
-                    className="form-control"
-                    placeholder="e.g. 600"
-                    value={farevetAiUses}
-                    onChange={(e) => setFarevetAiUses(e.target.value)}
-                    style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                    Estimator Uses
-                  </div>
-                  <input
-                    type="number"
-                    className="form-control"
-                    placeholder="e.g. 450"
-                    value={estimatorUses}
-                    onChange={(e) => setEstimatorUses(e.target.value)}
-                    style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
-                  />
-                </div>
-              </div>
-
-              {/* Potential Savings Row */}
-              <div style={{ marginBottom: "12px" }}>
+      {/* Centered Single-Column Layout */}
+      <div style={{ margin: "0 auto" }}>
+        {/* Generate new report Card */}
+        <div className="card">
+          <div className="ph">
+            <div className="pt">Generate new report</div>
+          </div>
+          <div className="pb">
+            {/* Partner & Quarter Dropdowns Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+              <div>
                 <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  Potential Savings Identified ($)
+                  Partner
+                </div>
+                <Select
+                  options={partnerOptions}
+                  value={currentPartnerOption}
+                  styles={selectStyles}
+                  onChange={(opt) => {
+                    handlePartnerOrQuarterChange(opt.value, selectedQuarter);
+                  }}
+                />
+              </div>
+
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Quarter
+                </div>
+                <Select
+                  options={quarterOptions}
+                  value={currentQuarterOption}
+                  styles={selectStyles}
+                  onChange={(opt) => {
+                    handlePartnerOrQuarterChange(selectedPartnerId, opt.value);
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Members Row */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Total Members
                 </div>
                 <input
                   type="number"
                   className="form-control"
-                  placeholder="e.g. 7250"
-                  value={potentialSavings}
-                  onChange={(e) => setPotentialSavings(e.target.value)}
+                  placeholder="e.g. 500"
+                  value={totalMembers}
+                  onChange={(e) => setTotalMembers(e.target.value)}
                   style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
                 />
               </div>
-
-              {/* Notes Row */}
-              <div style={{ marginBottom: "14px" }}>
+              <div>
                 <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  Notes (Optional)
+                  Active Members
                 </div>
-                <textarea
+                <input
+                  type="number"
                   className="form-control"
-                  placeholder="Operational notes or executive summary callouts..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={2}
-                  style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px", resize: "none" }}
+                  placeholder="e.g. 420"
+                  value={activeMembers}
+                  onChange={(e) => setActiveMembers(e.target.value)}
+                  style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
                 />
               </div>
-
-              <button
-                className="btn btn-primary"
-                style={{ width: "100%", justifyContent: "center" }}
-                onClick={handleGenerateReport}
-              >
-                Generate PDF report
-              </button>
-            </div>
-          </div>
-
-          {/* Report History Card */}
-          <div className="card">
-            <div className="ph">
-              <div className="pt">Report history</div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-              {history.length === 0 ? (
-                <div style={{ padding: "20px", textAlign: "center", color: "var(--ink3)" }}>
-                  No reports sent yet
+            {/* Searches and Analyses Row */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Cost Searches
                 </div>
-              ) : (
-                history.map((rep) => (
-                  <div key={rep.id} className="report-card" style={{ margin: "10px 16px" }}>
-                    <div>
-                      <div style={{ fontSize: "12px", fontWeight: "600", color: "var(--ink)" }}>
-                        {rep.partnerName} · {rep.quarter}
-                      </div>
-                      <div style={{ fontSize: "11px", color: "var(--ink3)" }}>
-                        Sent {rep.sentDate} · {rep.pages} pages · <span style={{ textTransform: "capitalize", fontWeight: "600", color: rep.status === "resent" ? "#8930F9" : (rep.status === "sent" ? "#2E7D32" : "#ED6C02") }}>{rep.status}</span>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => handlePreviewHistoryReport(rep)}
-                        title="Preview Report"
-                        style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "6px" }}
-                      >
-                        <FaEye size={14} style={{ color: "var(--ink2)" }} />
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => handleDownloadReport(rep)}
-                      >
-                        Download
-                      </button>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => {
-                          if (rep.status === "pending") {
-                            handleSendNowReport(rep);
-                          } else {
-                            handleResendReport(rep);
-                          }
-                        }}
-                        style={{
-                          backgroundColor: rep.status === "pending" ? "#2E7D32" : "#8930F9",
-                          borderColor: rep.status === "pending" ? "#2E7D32" : "#8930F9"
-                        }}
-                      >
-                        {rep.status === "pending" ? "Send Now" : "Resend"}
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
+                <input
+                  type="number"
+                  className="form-control"
+                  placeholder="e.g. 1500"
+                  value={costSearches}
+                  onChange={(e) => setCostSearches(e.target.value)}
+                  style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
+                />
+              </div>
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Bill Analyses
+                </div>
+                <input
+                  type="number"
+                  className="form-control"
+                  placeholder="e.g. 350"
+                  value={billAnalyses}
+                  onChange={(e) => setBillAnalyses(e.target.value)}
+                  style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
+                />
+              </div>
             </div>
+
+            {/* AI and Estimator Row */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  FareVet AI Uses
+                </div>
+                <input
+                  type="number"
+                  className="form-control"
+                  placeholder="e.g. 600"
+                  value={farevetAiUses}
+                  onChange={(e) => setFarevetAiUses(e.target.value)}
+                  style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
+                />
+              </div>
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Estimator Uses
+                </div>
+                <input
+                  type="number"
+                  className="form-control"
+                  placeholder="e.g. 450"
+                  value={estimatorUses}
+                  onChange={(e) => setEstimatorUses(e.target.value)}
+                  style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
+                />
+              </div>
+            </div>
+
+            {/* Potential Savings Row */}
+            <div style={{ marginBottom: "12px" }}>
+              <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                Potential Savings Identified ($)
+              </div>
+              <input
+                type="number"
+                className="form-control"
+                placeholder="e.g. 7250"
+                value={potentialSavings}
+                onChange={(e) => setPotentialSavings(e.target.value)}
+                style={{ width: "100%", padding: "6px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
+              />
+            </div>
+
+            {/* Notes Row */}
+            <div style={{ marginBottom: "14px" }}>
+              <div style={{ fontSize: "11px", fontWeight: "600", color: "var(--ink3)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                Notes (Optional)
+              </div>
+              <textarea
+                className="form-control"
+                placeholder="Operational notes or executive summary callouts..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px", resize: "none" }}
+              />
+            </div>
+
+            <button
+              className="btn btn-primary"
+              style={{ width: "100%", justifyContent: "center" }}
+              onClick={handleGenerateReport}
+            >
+              Generate PDF report
+            </button>
           </div>
         </div>
 
-        {/* Right Column: Report Preview */}
-        <div>
-          <div className="card" id="reportPreview">
-            <div className="ph">
-              <div className="pt">
-                Report preview — {currentPartner.name} {selectedQuarter}
-              </div>
-              <span className={`tag ${(currentReportStatus === "sent" || currentReportStatus === "resent") ? "tg-g" : "tg-a"}`}>
-                {currentReportStatus === "sent" ? "Sent" : (currentReportStatus === "resent" ? "Resent" : "Draft")}
-              </span>
-            </div>
+        {/* Report History Card */}
+        <div className="card">
+          <div className="ph">
+            <div className="pt">Report history</div>
+          </div>
 
-            <div className="pb">
-              <div style={{ fontSize: "11px", fontWeight: "700", color: "var(--ink3)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>
-                Contents
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+            {history.length === 0 ? (
+              <div style={{ padding: "20px", textAlign: "center", color: "var(--ink3)" }}>
+                No reports sent yet
               </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {/* Contents Rows */}
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
-                  <span>1. Executive summary</span>
-                  <span className="tag tg-g">Ready</span>
+            ) : (
+              history.map((rep) => (
+                <div key={rep.id} className="report-card" style={{ margin: "10px 16px" }}>
+                  <div>
+                    <div style={{ fontSize: "12px", fontWeight: "600", color: "var(--ink)" }}>
+                      {rep.partnerName} · {rep.quarter}
+                    </div>
+                    <div style={{ fontSize: "11px", color: "var(--ink3)" }}>
+                      Sent {rep.sentDate} · {rep.pages} pages · <span style={{ textTransform: "capitalize", fontWeight: "600", color: rep.status === "resent" ? "#8930F9" : (rep.status === "sent" ? "#2E7D32" : "#ED6C02") }}>{rep.status}</span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handlePreviewHistoryReport(rep)}
+                      title="Preview Report"
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "6px" }}
+                    >
+                      <FaEye size={14} style={{ color: "var(--ink2)" }} />
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handleDownloadReport(rep)}
+                    >
+                      Download
+                    </button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => {
+                        if (rep.status === "pending") {
+                          handleSendNowReport(rep);
+                        } else {
+                          handleResendReport(rep);
+                        }
+                      }}
+                      style={{
+                        backgroundColor: rep.status === "pending" ? "#2E7D32" : "#8930F9",
+                        borderColor: rep.status === "pending" ? "#2E7D32" : "#8930F9"
+                      }}
+                    >
+                      {rep.status === "pending" ? "Send Now" : "Resend"}
+                    </button>
+                  </div>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
-                  <span>2. Regional price trends</span>
-                  <span className="tag tg-g">Ready</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
-                  <span>3. Member engagement</span>
-                  <span className="tag tg-g">Ready</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
-                  <span>4. Top 10 procedures</span>
-                  <span className="tag tg-g">Ready</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
-                  <span>5. Anomaly alerts</span>
-                  <span className={`tag ${metadata.anomalies === "Ready" ? "tg-g" : "tg-a"}`}>
-                    {metadata.anomalies}
-                  </span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", padding: "8px 0" }}>
-                  <span>6. Phase 2 readiness</span>
-                  <span className="tag tg-a">{metadata.readiness}</span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
-                <button
-                  className="btn btn-ghost"
-                  style={{ flex: 1, justifyContent: "center" }}
-                  onClick={() => setIsPreviewOpen(true)}
-                >
-                  Preview
-                </button>
-                <button
-                  className="btn btn-green"
-                  disabled={currentReportStatus === "sent" || currentReportStatus === "resent"}
-                  style={{ flex: 1, justifyContent: "center" }}
-                  onClick={handleSendReport}
-                >
-                  {currentReportStatus === "sent" ? "Sent ✓" : (currentReportStatus === "resent" ? "Resent ✓" : `Send to ${currentPartner.name}`)}
-                </button>
-              </div>
-            </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -1528,7 +1453,7 @@ const Reports = () => {
                 {farevetAiUsesVal > 0 && <div>FareVet AI Uses: <strong>{farevetAiUsesVal.toLocaleString()}</strong></div>}
                 {estimatorUsesVal > 0 && <div>Estimator Uses: <strong>{estimatorUsesVal.toLocaleString()}</strong></div>}
                 {engagementRate > 0 && <div>Engagement Rate: <strong style={{ color: "#8930F9" }}>{engagementRate}%</strong></div>}
-                {calculatedMrr > 0 && <div>B2B MRR: <strong style={{ color: "#2E7D32" }}>${calculatedMrr.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></div>}
+                {calculatedMrr > 0 && <div>B2B MRR: <strong style={{ color: "#2E7D32" }}>${calculatedMrr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>}
               </div>
             </div>
           )}
@@ -1542,7 +1467,7 @@ const Reports = () => {
           )}
         </div>
       </Modal>
-    </main>
+    </main >
   );
 };
 

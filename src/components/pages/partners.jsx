@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus } from "react-feather";
+import { Search, Plus, Copy } from "react-feather";
 import { Modal, Input, Select, message } from "antd";
 import { apiRequest } from "../../api/auth_api";
 import "./partners.scss";
@@ -90,6 +90,19 @@ const Partners = () => {
   const [partners, setPartners] = useState([]);
   const [selectedPartnerId, setSelectedPartnerId] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const copySignupUrl = (code) => {
+    if (!code) return;
+    const url = `https://farevet-web.vercel.app/auth/signup?partner=${code}`;
+    navigator.clipboard.writeText(url)
+      .then(() => {
+        message.success("Signup link copied to clipboard!");
+      })
+      .catch((err) => {
+        console.error("Failed to copy text: ", err);
+        message.error("Failed to copy link");
+      });
+  };
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -306,7 +319,8 @@ const Partners = () => {
     try {
       const numericMembers = Number(formMembers) || 0;
       const numericRate = Number(formRate) || 1.2;
-      const calculatedBilling = Number(formBilling) || (numericMembers * numericRate);
+      const calculatedActive = formStatus === "Active" ? Math.round(numericMembers * 0.84) : 0;
+      const calculatedBilling = calculatedActive * numericRate;
       const formattedSince = formatMonthToPartnerSince(formPartnerSince);
 
       const body = new FormData();
@@ -523,22 +537,7 @@ const Partners = () => {
                 )}
                 <div className="pt" style={{ fontSize: "15px", flex: 1, display: "flex", alignItems: "center", gap: "8px" }}>
                   <span>{selectedPartner.name}</span>
-                  {selectedPartner.partnerCode && (
-                    <span style={{
-                      fontWeight: "700",
-                      color: "var(--primary)",
-                      background: "rgba(137, 48, 249, 0.08)",
-                      border: "1px solid rgba(137, 48, 249, 0.15)",
-                      padding: "2px 8px",
-                      borderRadius: "6px",
-                      fontFamily: "monospace",
-                      fontSize: "11px",
-                      letterSpacing: "0.5px",
-                      lineHeight: "1"
-                    }}>
-                      Code: {selectedPartner.partnerCode}
-                    </span>
-                  )}
+
                 </div>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                   <button className="btn btn-ghost btn-sm" onClick={() => handleOpenEditModal(selectedPartner)}>
@@ -559,6 +558,52 @@ const Partners = () => {
 
               {/* Card Body */}
               <div className="pb">
+                {/* Partner Signup URL Banner */}
+                {selectedPartner.partnerCode && (
+                  <div style={{
+                    background: "rgba(137, 48, 249, 0.04)",
+                    border: "1px solid rgba(137, 48, 249, 0.1)",
+                    borderRadius: "10px",
+                    padding: "12px 14px",
+                    marginBottom: "14px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "12px"
+                  }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                      <span style={{ fontSize: "10px", fontWeight: "700", color: "var(--ink3)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                        Partner Signup URL
+                      </span>
+                      <a
+                        href={`https://farevet-web.vercel.app/auth/signup?partner=${selectedPartner.partnerCode}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="partner-signup-link"
+                        style={{
+                          fontWeight: "600",
+                          color: "var(--primary)",
+                          fontSize: "12px",
+                          textDecoration: "none",
+                          wordBreak: "break-all"
+                        }}
+                      >
+                        https://farevet-web.vercel.app/auth/signup?partner={selectedPartner.partnerCode}
+                      </a>
+                    </div>
+                    <button
+                      onClick={() => copySignupUrl(selectedPartner.partnerCode)}
+                      className="copy-btn-input"
+                      title="Copy Signup URL"
+                      type="button"
+                      style={{ height: "32px", padding: "0 12px", flexShrink: 0 }}
+                    >
+                      <Copy size={13} style={{ marginRight: "4px" }} />
+                      Copy URL
+                    </button>
+                  </div>
+                )}
+
                 {/* Stats Grid */}
                 <div className="stat-grid sg2" style={{ marginBottom: "14px" }}>
                   <div className="stat-card">
@@ -573,15 +618,15 @@ const Partners = () => {
                     <div className="stat-val">{selectedPartner.activeMembers}</div>
                     <div className="stat-delta nt">
                       {selectedPartner.members > 0
-                        ? `${Math.round((selectedPartner.activeMembers / selectedPartner.members) * 1000) / 10}%`
+                        ? `${Math.round((selectedPartner.activeMembers / selectedPartner.members) * 100)}% Engagement`
                         : "—"}
                     </div>
                   </div>
                   <div className="stat-card">
                     <div className="stat-lbl">Monthly billing</div>
-                    <div className="stat-val">${Math.round(selectedPartner.billing)}</div>
+                    <div className="stat-val">${Math.round(selectedPartner.activeMembers * (selectedPartner.mrrRate || 1.20))}</div>
                     <div className="stat-delta nt">
-                      ${selectedPartner?.mrrRate?.toFixed(2)}/member
+                      ${selectedPartner?.mrrRate?.toFixed(2)}/active member
                     </div>
                   </div>
                   <div className="stat-card">
@@ -608,14 +653,14 @@ const Partners = () => {
                       Phase 2 readiness — Intelligence Reports
                     </div>
                     <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--amber)" }}>
-                      {selectedPartner.members} / {selectedPartner.threshold} members
+                      {selectedPartner.activeMembers} / {selectedPartner.threshold || 500} active members
                     </div>
                   </div>
 
                   {/* Calculate Progress Bar */}
                   {(() => {
-                    const pct = Math.min(100, Math.round((selectedPartner.members / selectedPartner.threshold) * 100));
-                    const needed = Math.max(0, selectedPartner.threshold - selectedPartner.members);
+                    const pct = Math.min(100, Math.round((selectedPartner.activeMembers / (selectedPartner.threshold || 500)) * 100));
+                    const needed = Math.max(0, (selectedPartner.threshold || 500) - selectedPartner.activeMembers);
                     return (
                       <>
                         <div className="progress-bar">
@@ -623,7 +668,7 @@ const Partners = () => {
                         </div>
                         <div style={{ fontSize: "11px", color: "var(--ink3)", marginTop: "6px" }}>
                           {needed > 0
-                            ? `${needed} more members needed to unlock Phase 2 data partnership conversation`
+                            ? `${needed} more active members needed to unlock Phase 2 data partnership conversation`
                             : "Threshold achieved! Unlock Phase 2 Intelligence Reports available now."}
                         </div>
                       </>
@@ -866,27 +911,36 @@ const Partners = () => {
           </div>
 
           {/* Partner Name & Code Row */}
-          <div className="form-row">
-            <div className="form-group" style={{ flex: 2 }}>
-              <label>Partner Name</label>
-              <Input
-                placeholder="e.g. Trupanion"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                size="large"
-              />
-            </div>
-            <div className="form-group" style={{ flex: 1 }}>
-              <label>Partner Code</label>
-              <Input
-                value={formPartnerCode}
-                readOnly
-                disabled
-                size="large"
-                style={{ textAlign: "center", fontWeight: "bold", background: "#f5f5f5", color: "#555" }}
-              />
-            </div>
+          <div className="form-group" style={{ flex: 2 }}>
+            <label>Partner Name</label>
+            <Input
+              placeholder="e.g. Trupanion"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              size="large"
+            />
           </div>
+          {/* <div className="form-group" style={{ flex: 1 }}>
+              <label>signup URL</label>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <Input
+                  value={formPartnerCode ? `https://farevet-web.vercel.app/auth/signup?partner=${formPartnerCode}` : ""}
+                  readOnly
+                  disabled
+                  size="large"
+                  style={{ fontWeight: "600", background: "#f5f5f5", color: "#555" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => copySignupUrl(formPartnerCode)}
+                  className="copy-btn-input"
+                  title="Copy Signup URL"
+                  disabled={!formPartnerCode}
+                >
+                  <Copy size={16} />
+                </button>
+              </div>
+            </div> */}
 
           <div className="form-row">
             {/* Partner Type */}

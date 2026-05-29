@@ -26,6 +26,7 @@ const pagesOptions = [
   { value: "Financing", label: "Financing" },
   { value: "Clinics", label: "Clinics" },
   { value: "Community", label: "Community" },
+  { value: "Community Reports", label: "Community Reports" },
   { value: "Community Messages", label: "Community Messages" },
   { value: "Emergency", label: "Emergency" },
   { value: "Quotes", label: "Quotes" },

@@ -71,6 +71,7 @@ const IndividualUsers = lazy(() =>
   import("./components/pages/individualUsers"),
 );
 const Community = lazy(() => import("./components/pages/community"));
+const CommunityReports = lazy(() => import("./components/pages/communityReports"));
 const Message2 = lazy(() => import("./components/pages/messages/message2"));
 const Emergency = lazy(() => import("./components/pages/emergency"));
 const Support = lazy(() => import("./components/pages/support"));
@@ -220,6 +221,7 @@ function App() {
       />
       <Route path="/deals/create-deal" element={<CreateDeal />} />
       <Route path="/community" element={<Community />} />
+      <Route path="/community-reports" element={<CommunityReports />} />
       <Route path="/messge-community" element={<CommunityMessages />} />
       <Route path="/emergency" element={<Emergency />} />
       <Route path="/support" element={<Support />} />
@@ -288,6 +290,7 @@ function App() {
       />
       <Route path="/deals/create-deal" element={<CreateDeal />} />
       <Route path="/community" element={<Community />} />
+      <Route path="/community-reports" element={<CommunityReports />} />
       <Route path="/messge-community" element={<CommunityMessages />} />
       <Route path="/emergency" element={<Emergency />} />
       <Route path="/support" element={<Support />} />
