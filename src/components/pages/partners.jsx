@@ -56,6 +56,7 @@ const mapApiPartnerToReact = (p) => {
     email: p.contact_email || "",
     partnerCode: p.partner_code || "",
     logo: p.partner_logo || "",
+    color: p.color || "#000000",
     defaultDeductible: parseFloat(p.default_deductible) || 0,
     defaultReimbursement: p.default_reimbursement || "80%",
     claimsPortalUrl: p.claims_portal_url || "",
@@ -125,6 +126,7 @@ const Partners = () => {
   const [formLogo, setFormLogo] = useState("");
   const [logoPreview, setLogoPreview] = useState("");
   const [logoUploading, setLogoUploading] = useState(false);
+  const [formColor, setFormColor] = useState("#000000");
   const [formFeatures, setFormFeatures] = useState({
     costSearch: false,
     billExplainer: false,
@@ -219,6 +221,7 @@ const Partners = () => {
     body.append("partner_since", parsePartnerSinceToMonth(target.partnerSince) || "2026-05");
     body.append("partner_code", target.partnerCode || "");
     body.append("partner_logo", target.logo || "");
+    body.append("color", target.color || "#000000");
     body.append("default_deductible", target.defaultDeductible || 0);
     body.append("default_reimbursement", target.defaultReimbursement || "80%");
     body.append("claims_portal_url", target.claimsPortalUrl || "");
@@ -259,6 +262,7 @@ const Partners = () => {
     setFormClaimsPortalUrl("");
     setFormLogo("");
     setLogoPreview("");
+    setFormColor("#000000");
 
     // Set realistic default date (YYYY-MM-DD to YYYY-MM conversion/fallback)
     const date = new Date();
@@ -294,6 +298,7 @@ const Partners = () => {
     setFormClaimsPortalUrl(partner.claimsPortalUrl || "");
     setFormLogo(partner.logo || "");
     setLogoPreview(partner.logo ? `${global.IMAGEURL}/${partner.logo}` : "");
+    setFormColor(partner.color || "#000000");
     setFormFeatures(partner.features || {
       costSearch: false,
       billExplainer: false,
@@ -335,6 +340,7 @@ const Partners = () => {
       body.append("partner_since", formattedSince);
       body.append("partner_code", formPartnerCode);
       body.append("partner_logo", formLogo);
+      body.append("color", formColor || "#000000");
       body.append("default_deductible", formType === "Insurance" ? formDefaultDeductible : 0);
       body.append("default_reimbursement", formType === "Insurance" ? formDefaultReimbursement : "80%");
       body.append("claims_portal_url", formType === "Insurance" ? formClaimsPortalUrl.trim() : "");
@@ -537,7 +543,6 @@ const Partners = () => {
                 )}
                 <div className="pt" style={{ fontSize: "15px", flex: 1, display: "flex", alignItems: "center", gap: "8px" }}>
                   <span>{selectedPartner.name}</span>
-
                 </div>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                   <button className="btn btn-ghost btn-sm" onClick={() => handleOpenEditModal(selectedPartner)}>
@@ -601,6 +606,24 @@ const Partners = () => {
                       <Copy size={13} style={{ marginRight: "4px" }} />
                       Copy URL
                     </button>
+                  </div>
+                )}
+
+                {/* Brand Color Field */}
+                {selectedPartner.type === "Insurance" && selectedPartner.color && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "14px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--ink3)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Brand Color:</span>
+                    <div
+                      style={{
+                        width: "14px",
+                        height: "14px",
+                        borderRadius: "50%",
+                        backgroundColor: selectedPartner.color,
+                        border: "1px solid var(--border)",
+                        marginLeft: "4px"
+                      }}
+                    ></div>
+                    <span style={{ fontSize: "12px", fontWeight: "600", fontFamily: "monospace", color: "var(--ink)" }}>{selectedPartner.color}</span>
                   </div>
                 )}
 
@@ -785,7 +808,7 @@ const Partners = () => {
 
                 {/* Contact Email */}
                 {selectedPartner.email && (
-                  <div style={{ fontSize: "11px", color: "var(--ink3)" }}>
+                  <div style={{ fontSize: "11px", color: "var(--ink3)", marginBottom: "6px" }}>
                     Contact: <a href={`mailto:${selectedPartner.email}`} style={{ color: "var(--primary)" }}>{selectedPartner.email}</a>
                   </div>
                 )}
@@ -910,15 +933,39 @@ const Partners = () => {
             </div>
           </div>
 
-          {/* Partner Name & Code Row */}
-          <div className="form-group" style={{ flex: 2 }}>
-            <label>Partner Name</label>
-            <Input
-              placeholder="e.g. Trupanion"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              size="large"
-            />
+          {/* Partner Name & Color Row */}
+          <div className="form-row">
+            <div className="form-group" style={{ flex: formType === "Insurance" ? 3 : 1 }}>
+              <label>Partner Name</label>
+              <Input
+                placeholder="e.g. Trupanion"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                size="large"
+              />
+            </div>
+            {formType === "Insurance" && (
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>Brand Color</label>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <input
+                    type="color"
+                    value={formColor}
+                    onChange={(e) => setFormColor(e.target.value)}
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      padding: "0",
+                      border: "none",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      background: "transparent"
+                    }}
+                  />
+                  <span style={{ fontSize: "12px", color: "var(--ink3)", fontFamily: "monospace" }}>{formColor}</span>
+                </div>
+              </div>
+            )}
           </div>
           {/* <div className="form-group" style={{ flex: 1 }}>
               <label>signup URL</label>

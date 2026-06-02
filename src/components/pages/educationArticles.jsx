@@ -65,16 +65,16 @@ function pickStatsFromResponse(res) {
 
   const total = toNum(
     row.total_articles ??
-      row.total ??
-      row.article_count ??
-      row.total_count ??
-      row.count,
+    row.total ??
+    row.article_count ??
+    row.total_count ??
+    row.count,
   );
   const published = toNum(
     row.published ??
-      row.published_count ??
-      row.published_articles ??
-      row.live_count,
+    row.published_count ??
+    row.published_articles ??
+    row.live_count,
   );
   const drafts = toNum(
     row.drafts ?? row.draft_count ?? row.draft_articles ?? row.draft,
@@ -88,9 +88,9 @@ function pickStatsFromResponse(res) {
     "";
   let mostReadViews = toNum(
     row.most_read_views ??
-      row.top_views ??
-      row.most_read_view_count ??
-      row.views,
+    row.top_views ??
+    row.most_read_view_count ??
+    row.views,
   );
 
   if (mostReadBlock) {
@@ -102,8 +102,8 @@ function pickStatsFromResponse(res) {
     if (String(t).trim()) mostReadTitle = t;
     const v = toNum(
       mostReadBlock.views ??
-        mostReadBlock.view_count ??
-        mostReadBlock.total_views,
+      mostReadBlock.view_count ??
+      mostReadBlock.total_views,
     );
     if (v != null) mostReadViews = v;
   }
@@ -160,10 +160,10 @@ function pickMostReadFromResponse(res) {
     "";
   let mostReadViews = toNum(
     row.views ??
-      row.view_count ??
-      row.total_views ??
-      row.most_read_views ??
-      row.most_read_view_count,
+    row.view_count ??
+    row.total_views ??
+    row.most_read_views ??
+    row.most_read_view_count,
   );
 
   if (nested) {
@@ -176,9 +176,9 @@ function pickMostReadFromResponse(res) {
     if (String(t).trim()) mostReadTitle = t;
     const v = toNum(
       nested.views ??
-        nested.view_count ??
-        nested.total_views ??
-        nested.read_count,
+      nested.view_count ??
+      nested.total_views ??
+      nested.read_count,
     );
     if (v != null) mostReadViews = v;
   }
@@ -200,6 +200,7 @@ const FILTER_TABS = [
   { id: "emergancy", label: "Emergency" },
   { id: "medications", label: "Medications" },
   { id: "tips", label: "Tips" },
+  { id: "adoption", label: "Adoption" },
 ];
 
 /** API `category` values (spellings match backend). */
@@ -210,6 +211,7 @@ const CATEGORY_LABELS = {
   emergancy: "Emergency",
   medications: "Medications",
   tips: "Tips",
+  adoption: "Adoption",
 };
 
 const CATEGORY_TAG_CLASS = {
@@ -219,6 +221,7 @@ const CATEGORY_TAG_CLASS = {
   Emergency: "edu-tg-r",
   Medications: "edu-tg-p",
   Tips: "edu-tg-p",
+  Adoption: "edu-tg-g",
 };
 
 function parseTagsInput(input) {
@@ -435,7 +438,7 @@ const EducationArticles = () => {
             activeFilter === "all" ? "" : activeFilter,
           );
       }
-      {searchDebounced && body.append("search", searchDebounced);}
+      { searchDebounced && body.append("search", searchDebounced); }
       {
         statusFilter !== "all" &&
           body.append(
@@ -807,10 +810,10 @@ const EducationArticles = () => {
           if (res) {
             message.success("Article deleted.");
             await Promise.all([
-          fetchArticles(),
-          fetchStats(),
-          fetchMostReadStats(),
-        ]);
+              fetchArticles(),
+              fetchStats(),
+              fetchMostReadStats(),
+            ]);
           } else {
             message.error("Delete failed.");
           }
@@ -1061,141 +1064,141 @@ const EducationArticles = () => {
                 ) : null}
                 {!loading || rows.length > 0
                   ? rows.map((row) => (
-                      <tr
-                        key={row.id}
-                        style={{
-                          opacity: row.status === "draft" ? 0.6 : 1,
-                        }}
-                      >
-                        <td>
-                          <input
-                            className="edu-svc-input"
-                            defaultValue={orderValue(row.id)}
-                            style={{ width: 40, textAlign: "center" }}
-                            key={`ord-${row.id}-${row.order}`}
-                            disabled={isProcessing}
-                            onBlur={(e) => {
-                              const v = e.target.value;
-                              if (v !== String(row.order)) {
-                                commitDisplayOrder(row, v);
-                              }
-                            }}
-                          />
-                        </td>
-                        <td className="edu-bold">{row.title}</td>
-                        <td>
-                          <span
-                            className={`edu-tag ${CATEGORY_TAG_CLASS[row.category] || "edu-tg-g"}`}
-                          >
-                            {row.category}
-                          </span>
-                        </td>
-                        <td>
-                          {row.tagsList?.length ? (
-                            <span
-                              style={{
-                                display: "flex",
-                                flexWrap: "wrap",
-                                gap: 4,
-                                maxWidth: 280,
-                              }}
-                            >
-                              {row.tagsList.map((t, idx) => (
-                                <span
-                                  key={`${row.id}-tag-${idx}-${t}`}
-                                  className="edu-tag edu-tg-g"
-                                  style={{
-                                    fontSize: 11,
-                                    fontWeight: 500,
-                                  }}
-                                >
-                                  {t}
-                                </span>
-                              ))}
-                            </span>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td>{row.readTime}</td>
-                        <td
-                          style={{
-                            fontWeight: 600,
-                            color: row.views
-                              ? "var(--edu-ink)"
-                              : "var(--edu-ink3)",
+                    <tr
+                      key={row.id}
+                      style={{
+                        opacity: row.status === "draft" ? 0.6 : 1,
+                      }}
+                    >
+                      <td>
+                        <input
+                          className="edu-svc-input"
+                          defaultValue={orderValue(row.id)}
+                          style={{ width: 40, textAlign: "center" }}
+                          key={`ord-${row.id}-${row.order}`}
+                          disabled={isProcessing}
+                          onBlur={(e) => {
+                            const v = e.target.value;
+                            if (v !== String(row.order)) {
+                              commitDisplayOrder(row, v);
+                            }
                           }}
+                        />
+                      </td>
+                      <td className="edu-bold">{row.title}</td>
+                      <td>
+                        <span
+                          className={`edu-tag ${CATEGORY_TAG_CLASS[row.category] || "edu-tg-g"}`}
                         >
-                          {row.views ?? "—"}
-                        </td>
-                        <td>
-                          <RowToggle
-                            on={!!row.featured}
-                            disabled={!!deletingRowId}
-                            onToggle={() => toggleRowFeatured(row)}
-                          />
-                        </td>
-                        <td>
+                          {row.category}
+                        </span>
+                      </td>
+                      <td>
+                        {row.tagsList?.length ? (
                           <span
-                            className={`edu-status ${row.status === "published" ? "edu-s-active" : "edu-s-pending"}`}
-                          >
-                            {row.status === "published" ? "Published" : "Draft"}
-                          </span>
-                        </td>
-                        <td>
-                          <div
                             style={{
                               display: "flex",
-                              gap: 4,
                               flexWrap: "wrap",
+                              gap: 4,
+                              maxWidth: 280,
                             }}
                           >
-                            {row.status === "draft" ? (
-                              <button
-                                type="button"
-                                className="edu-btn edu-btn-primary edu-btn-sm"
-                                disabled={isProcessing || !!deletingRowId}
-                                onClick={() => openForm("edit", row)}
+                            {row.tagsList.map((t, idx) => (
+                              <span
+                                key={`${row.id}-tag-${idx}-${t}`}
+                                className="edu-tag edu-tg-g"
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 500,
+                                }}
                               >
-                                Edit & publish
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                className="edu-btn edu-btn-ghost edu-btn-sm"
-                                disabled={isProcessing || !!deletingRowId}
-                                onClick={() => openForm("edit", row)}
-                              >
-                                Edit
-                              </button>
-                            )}
+                                {t}
+                              </span>
+                            ))}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td>{row.readTime}</td>
+                      <td
+                        style={{
+                          fontWeight: 600,
+                          color: row.views
+                            ? "var(--edu-ink)"
+                            : "var(--edu-ink3)",
+                        }}
+                      >
+                        {row.views ?? "—"}
+                      </td>
+                      <td>
+                        <RowToggle
+                          on={!!row.featured}
+                          disabled={!!deletingRowId}
+                          onToggle={() => toggleRowFeatured(row)}
+                        />
+                      </td>
+                      <td>
+                        <span
+                          className={`edu-status ${row.status === "published" ? "edu-s-active" : "edu-s-pending"}`}
+                        >
+                          {row.status === "published" ? "Published" : "Draft"}
+                        </span>
+                      </td>
+                      <td>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 4,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {row.status === "draft" ? (
                             <button
                               type="button"
-                              className="edu-btn edu-btn-red edu-btn-sm"
+                              className="edu-btn edu-btn-primary edu-btn-sm"
                               disabled={isProcessing || !!deletingRowId}
-                              onClick={() => handleDelete(row)}
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: 6,
-                                minWidth:
-                                  deletingRowId === String(row.id)
-                                    ? 88
-                                    : undefined,
-                              }}
+                              onClick={() => openForm("edit", row)}
                             >
-                              {deletingRowId === String(row.id) ? (
-                                <Spinner size={14} color="inherit" />
-                              ) : null}
-                              {deletingRowId === String(row.id)
-                                ? "Deleting…"
-                                : "Delete"}
+                              Edit & publish
                             </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                          ) : (
+                            <button
+                              type="button"
+                              className="edu-btn edu-btn-ghost edu-btn-sm"
+                              disabled={isProcessing || !!deletingRowId}
+                              onClick={() => openForm("edit", row)}
+                            >
+                              Edit
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="edu-btn edu-btn-red edu-btn-sm"
+                            disabled={isProcessing || !!deletingRowId}
+                            onClick={() => handleDelete(row)}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 6,
+                              minWidth:
+                                deletingRowId === String(row.id)
+                                  ? 88
+                                  : undefined,
+                            }}
+                          >
+                            {deletingRowId === String(row.id) ? (
+                              <Spinner size={14} color="inherit" />
+                            ) : null}
+                            {deletingRowId === String(row.id)
+                              ? "Deleting…"
+                              : "Delete"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
                   : null}
               </tbody>
             </table>
@@ -1294,6 +1297,7 @@ const EducationArticles = () => {
                       <option value="emergancy">Emergency</option>
                       <option value="medications">Medications</option>
                       <option value="tips">Tips</option>
+                      <option value="adoption">Adoption</option>
                     </select>
                   </div>
                   <div style={{ marginBottom: 14 }}>
@@ -1504,7 +1508,7 @@ const EducationArticles = () => {
                       </>
                     )}
                     {coverImageSource === "url" &&
-                    previewImage(articleImage) ? (
+                      previewImage(articleImage) ? (
                       <div style={{ marginTop: 8 }}>
                         <img
                           src={articleImage.trim()}
@@ -1590,7 +1594,7 @@ const EducationArticles = () => {
                         alignItems: "center",
                         gap: 8,
                       }}
-                      disabled={!!formSaveLoading}
+                      disabled={!!formSaveLoading || coverUploading}
                       onClick={() => saveArticle("draft")}
                     >
                       {formSaveLoading === "draft" ? (
@@ -1610,7 +1614,7 @@ const EducationArticles = () => {
                         alignItems: "center",
                         gap: 8,
                       }}
-                      disabled={!!formSaveLoading}
+                      disabled={!!formSaveLoading || coverUploading}
                       onClick={() => saveArticle("published")}
                     >
                       {formSaveLoading === "published" ? (
