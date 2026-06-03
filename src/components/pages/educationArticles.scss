@@ -17,6 +17,10 @@
   --edu-redL: #fdecea;
   --edu-blue: #2980b9;
   --edu-blueL: #eaf4fb;
+  --edu-cyan: #00cec9;
+  --edu-cyanL: #e0f9f8;
+  --edu-pink: #e84393;
+  --edu-pinkL: #fdecf3;
 
   padding: 24px;
   background: var(--edu-bg);
@@ -161,6 +165,14 @@
   .edu-tg-p {
     background: var(--edu-primL);
     color: var(--edu-primary);
+  }
+  .edu-tg-c {
+    background: var(--edu-cyanL);
+    color: var(--edu-cyan);
+  }
+  .edu-tg-pk {
+    background: var(--edu-pinkL);
+    color: var(--edu-pink);
   }
 
   .edu-tbl {

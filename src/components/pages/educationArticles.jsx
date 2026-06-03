@@ -215,13 +215,13 @@ const CATEGORY_LABELS = {
 };
 
 const CATEGORY_TAG_CLASS = {
-  Saving: "edu-tg-g",
-  "Understanding Bills": "edu-tg-a",
-  Insurance: "edu-tg-b",
-  Emergency: "edu-tg-r",
-  Medications: "edu-tg-p",
-  Tips: "edu-tg-p",
-  Adoption: "edu-tg-g",
+  Saving: "edu-tg-g", // Green
+  "Understanding Bills": "edu-tg-b", // Blue
+  Insurance: "edu-tg-p", // Purple
+  Emergency: "edu-tg-r", // Red
+  Medications: "edu-tg-c", // Cyan
+  Tips: "edu-tg-a", // Amber
+  Adoption: "edu-tg-pk", // Pink
 };
 
 function parseTagsInput(input) {
