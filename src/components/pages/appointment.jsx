@@ -6,6 +6,7 @@ import { Form, message, Segmented } from "antd";
 import moment from "moment";
 import React, { useEffect, useState } from "react";
 import { Modal } from "react-bootstrap";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -25,6 +26,8 @@ import "../styles/swiper.css";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Input } from "reactstrap";
 import { apiRequest } from "../../api/auth_api";
+import { MapPin, Tag } from "lucide-react";
+
 import {
   birthimage,
   breed,
@@ -47,6 +50,40 @@ const daysOfWeek = [
   "Friday",
   "Saturday",
 ];
+
+function SkeletonCard() {
+  return (
+    <div className="bg-white border border-[#F0F0F5] rounded-[20px] p-3 w-full sm:max-w-[25rem] md:max-w-[21rem] lg:max-w-[25rem] xl:max-w-[24rem] ">
+      <div className="flex justify-between items-center mb-4">
+        <div className="h-[22px] w-[72px] bg-gray-100 rounded-full" />
+        <div className="flex flex-col items-end gap-1.5">
+          <div className="h-[11px] w-[55px] bg-gray-100 rounded" />
+          <div className="h-[11px] w-[80px] bg-gray-100 rounded" />
+        </div>
+      </div>
+      <div className="flex items-center gap-4 mb-5">
+        <div className="w-[58px] h-[58px] rounded-[14px] bg-gray-100 shrink-0" />
+        <div className="flex flex-col gap-2 flex-1">
+          <div className="h-4 w-[55%] bg-gray-100 rounded" />
+          <div className="h-3 w-[75%] bg-gray-100 rounded" />
+        </div>
+      </div>
+      <div className="flex justify-between items-center pt-3.5 border-t border-[#F0F0F5]">
+        <div className="h-6 w-[60px] bg-gray-100 rounded" />
+        <div className="h-[30px] w-[80px] bg-gray-100 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+const STATUS_STYLES = {
+  pending: { pill: "bg-[#FFF3D6] text-[#B56F00]", dot: "bg-[#F5A623]", bar: "bg-[#F5A623]" },
+  processing: { pill: "bg-[#EDE9FE] text-[#5B21B6]", dot: "bg-[#7C3AED] animate-pulse", bar: "bg-[#7C3AED]" },
+  completed: { pill: "bg-[#DCFCE7] text-[#15803D]", dot: "bg-[#22C55E]", bar: "bg-[#06D6A0]" },
+  cancelled: { pill: "bg-[#FEE2E2] text-[#B91C1C]", dot: "bg-[#EF4444]", bar: "bg-[#EF4444]" },
+};
+
+const PET_EMOJI = { Dog: "🐕", Cat: "🐈", Bird: "🦜", Rabbit: "🐰" };
 
 const Appointments = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -71,17 +108,19 @@ const Appointments = () => {
   const [totalPages, setTotalPages] = useState(null);
   const [totalDataCount, setTotalDataCount] = useState(0);
 
-  const handleCloseDetail = () => setShowDetail(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.defaultTab) {
+      setSelectedOption(location.state.defaultTab);
+      // Clear state so it doesn't persist on subsequent refreshes
+      navigate(".", { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   const handleShowDetail = (item) => {
-    setSelectedItem(item);
-    setShowDetail(true);
-    const availability =
-      (item?.business?.availability &&
-        JSON.parse(item?.business?.availability)) ||
-      [];
-    setScheduleData(availability);
-    // console.log(availability);
+    navigate(`/appointments/${item.id}`, { state: { selectedItem: item } });
   };
 
   useEffect(() => {
@@ -379,7 +418,7 @@ const Appointments = () => {
           />
         </div>
       </div>
-      {isProcessing ? (
+      {/* {isProcessing ? (
         <div className="flex w-full justify-center items-center my-5">
           <Spinner className="text_primary" size={30} thickness={3} />
         </div>
@@ -395,101 +434,225 @@ const Appointments = () => {
             categories?.map((item, i) => (
               <div
                 key={i}
-                // style={{ maxWidth: "24rem" }}
-                className="border border-[#EDF2F6] box_styling bg_white shadow-sm relative rounded-lg flex items-start gap-2 w-full sm:max-w-[25rem] md:max-w-[21rem] lg:max-w-[25rem] xl:max-w-[24rem] h-auto p-2"
+                onClick={() => handleShowDetail(item)}
+                className="group bg-white border border-[#F0F0F5] hover:border-[#8930F9]/40 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 rounded-[20px] flex flex-col w-full sm:max-w-[25rem] md:max-w-[21rem] lg:max-w-[25rem] xl:max-w-[24rem] p-5 cursor-pointer"
               >
-                <div className="flex w-full gap-2">
-                  <div
-                    style={{ backgroundColor: "#BD66FF1A" }}
-                    onClick={() => handleShowDetail(item)}
-                    className="rounded-lg cursor-pointer flex justify-center items-center h-auto p-1"
+               
+                <div className="flex justify-between items-start mb-4">
+                  <span
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${item?.status === "pending" ? "bg-[#FFF8EC] text-[#F5A623]" :
+                      item?.status === "processing" ? "bg-[#F3E8FF] text-[#8930F9]" :
+                        item?.status === "completed" ? "bg-[#E6FBF5] text-[#06D6A0]" :
+                          "bg-[#FFF0F0] text-[#FF4D4F]"
+                      }`}
                   >
-                    <div className="flex flex-col items-center">
-                      <span className="text_primary text-center plusJakara_medium">
-                        {item?.booking_time_12hour}
-                      </span>
-                      {/* <span className="text_primary plusJakara_medium">P.M.</span> */}
+                    {item?.status}
+                  </span>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <div className="flex items-center gap-1 opacity-60">
+                      <img src={locationsmall} className="w-3 h-3" alt="" />
+                      <span className="text-[11px] font-medium text-[#4A4A68]">1.5 km</span>
                     </div>
+                    <span className="text-[11px] font-medium text-[#9B9BB5]">
+                      {item?.created_at ? moment(item?.created_at).format("MMM DD, YYYY") : "N/A"}
+                    </span>
                   </div>
-                  <div className="flex flex-col w-full gap-2">
-                    <div
-                      className="cursor-pointer"
-                      onClick={() => handleShowDetail(item)}
-                    >
-                      <div className="flex mb-1 justify-between items-center">
-                        <div
-                          style={{ backgroundColor: "#5CE2C51C" }}
-                          className="rounded-lg text-[#06D6A0] py-1 px-2 inter_medium text-xs"
-                        >
-                          {item?.status}
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <div className="flex items-center">
-                            <img src={locationsmall} alt="" />
-                            <span className="plusJakara_medium text-sm text_secondary">
-                              1.5 km
-                            </span>
-                          </div>
-                          <span className="text_secondary inter_medium whitespace-nowrap" style={{ fontSize: '11px' }}>
-                            {item?.created_at ? moment(item?.created_at).format("MMM DD, YYYY") : "N/A"}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex w-full flex-wrap flex-md-nowrap gap-2">
-                        <img
-                          src={`${global.IMAGEURL}/${item?.pet?.image}`}
-                          style={{
-                            width: "64px",
-                            height: "64px",
-                            borderRadius: "50%",
-                            objectFit: "cover",
-                          }}
-                          alt=""
-                        />
-                        <div className="flex flex-col">
-                          <span className="text-xl text_dark plusJakara_medium">
-                            {item?.pet?.name}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <div className="flex gap-1 items-center">
-                              <img src={specie} alt="" />
-                              <span className="text-sm text_dark inter_regular">
-                                {item?.pet?.species}
-                              </span>
-                            </div>
-                            <div className="flex gap-1 items-center">
-                              <img src={breed} alt="" />
-                              <span className="text-sm text_dark inter_regular">
-                                {item?.pet?.breed}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text_dark text-2xl plusJakara_medium">
-                        {item?.deal && (
-                          <button
-                            style={{ border: "2px solid #8930F9" }}
-                            onClick={() => handleShowDeal(item)}
-                            className="bg_white text_primary py-1 px-2 me-2 rounded-full text-sm inter_semibold"
-                          >
-                            View Deal
-                          </button>
-                        )}
-                        ${calculateDiscountedAmount(item)}
+                </div>
+
+                
+                <div className="flex items-center gap-4 mb-5">
+                  {item?.status === "processing" ? (
+                    <div className="w-[60px] h-[60px] shrink-0 rounded-[14px] bg-[#F9F9FB] border border-[#F0F0F5] flex flex-col items-center justify-center">
+                      <span className="text-[#8930F9] font-bold text-sm">
+                        {item?.booking_time_12hour?.split(' ')[0]}
                       </span>
-                      {item?.service && (
-                        <span className="text-xs text_secondary plusJakara_regular italic">
-                          ({item?.service?.cost_type})
+                      <span className="text-[#8930F9] font-semibold text-[10px] opacity-70">
+                        {item?.booking_time_12hour?.split(' ')[1]}
+                      </span>
+                    </div>
+                  ) : (
+                    <img
+                      src={`${global.IMAGEURL}/${item?.pet?.image}`}
+                      className="w-[60px] h-[60px] shrink-0 rounded-[14px] object-cover border border-[#F0F0F5]"
+                      alt=""
+                    />
+                  )}
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <span className="text-[17px] font-bold text-[#1A1A2E] truncate mb-1">
+                      {item?.pet?.name || item?.business?.name || "Client"}
+                    </span>
+                    <div className="flex items-center gap-2.5 opacity-70">
+                      <div className="flex items-center gap-1">
+                        <img src={specie} className="w-3.5 h-3.5" alt="" />
+                        <span className="text-xs font-medium text-[#4A4A68] truncate max-w-[80px]">
+                          {item?.pet?.species || "N/A"}
                         </span>
-                      )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <img src={breed} className="w-3.5 h-3.5" alt="" />
+                        <span className="text-xs font-medium text-[#4A4A68] truncate max-w-[80px]">
+                          {item?.pet?.breed || "N/A"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                
+                <div className="mt-auto flex justify-between items-end">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[22px] font-bold text-[#1A1A2E]">
+                      ${calculateDiscountedAmount(item)}
+                    </span>
+                    {item?.service && (
+                      <span className="text-[11px] font-medium text-[#9B9BB5]">
+                        {item?.service?.cost_type}
+                      </span>
+                    )}
+                  </div>
+                  {item?.deal && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShowDeal(item);
+                      }}
+                      className="bg-white border border-[#E8E8F0] hover:border-[#8930F9] text-[#4A4A68] hover:text-[#8930F9] transition-colors py-1.5 px-3 rounded-lg text-xs font-semibold"
+                    >
+                      View Deal
+                    </button>
+                  )}
+                </div>
               </div>
             ))
+          )}
+        </div>
+      )} */}
+
+      {isProcessing ? (
+        <div className="d-flex flex-wrap gap-3 mb-4 justify-content-center justify-content-lg-start">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+      ) : (
+        <div className="d-flex flex-wrap gap-3 mb-4 justify-content-center justify-content-lg-start">
+          {!categories || categories?.length === 0 ? (
+            <div className="my-12 flex flex-col items-center justify-center w-full gap-3 text-[#9B9BB5]">
+              <span className="text-4xl opacity-40">📅</span>
+              <span className="text-[15px] font-medium inter_medium">No Appointment Found</span>
+            </div>
+          ) : (
+            categories?.map((item, i) => {
+              const cfg = STATUS_STYLES[item?.status] || STATUS_STYLES.pending;
+              const timeParts = item?.booking_time_12hour?.split(" ") || [];
+              const emoji = PET_EMOJI[item?.pet?.species] || "🐾";
+
+              return (
+                <div
+                  key={i}
+                  onClick={() => handleShowDetail(item)}
+                  className="
+              group relative overflow-hidden
+              bg-white border border-[#F0F0F5]
+              hover:border-[#D1D1E0] hover:shadow-[0_12px_32px_rgba(0,0,0,0.07)]
+              transition-all duration-200 ease-out
+              rounded-[20px] flex flex-col
+              w-full sm:max-w-[25rem] md:max-w-[21rem] lg:max-w-[25rem] xl:max-w-[24rem]
+              p-3 cursor-pointer hover:-translate-y-[3px]
+            "
+                >
+                  {/* Accent bar — appears on hover, color matches status */}
+                  <div className={`absolute top-0 left-0 right-0 h-[3px] rounded-t-[20px] ${cfg.bar} opacity-0 group-hover:opacity-100 transition-opacity duration-200`} />
+
+                  {/* Header */}
+                  <div className="flex justify-between items-start mb-4">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase ${cfg.pill}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                      {item?.status}
+                    </span>
+
+                    <div className="flex flex-col items-end gap-0.5">
+                      <div className="flex items-center gap-1 text-[#9B9BB5]">
+                        <MapPin size={11} strokeWidth={2} />
+                        <span className="text-[11px] font-medium">1.5 km</span>
+                      </div>
+                      <span className="text-[11px] font-medium text-[#B0B0C8]">
+                        {item?.created_at ? moment(item?.created_at).format("MMM DD, YYYY") : "N/A"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Body */}
+                  <div className="flex items-center gap-4 mb-5">
+                    {item?.status === "processing" ? (
+                      <div className="w-[58px] h-[58px] shrink-0 rounded-[14px] bg-[#EDE9FE] border border-[#C4B5FD] flex flex-col items-center justify-center">
+                        <span className="text-[#5B21B6] font-extrabold text-sm leading-none">
+                          {timeParts[0]}
+                        </span>
+                        <span className="text-[#7C3AED] font-semibold text-[10px] opacity-80 mt-0.5">
+                          {timeParts[1]}
+                        </span>
+                      </div>
+                    ) : item?.pet?.image ? (
+                      <img
+                        src={`${global.IMAGEURL}/${item?.pet?.image}`}
+                        className="w-[58px] h-[58px] shrink-0 rounded-[14px] object-cover border border-[#F0F0F5]"
+                        alt=""
+                      />
+                    ) : (
+                      <div className="w-[58px] h-[58px] shrink-0 rounded-[14px] bg-[#F5F5FA] border border-[#EBEBF5] flex items-center justify-center text-[26px]">
+                        {emoji}
+                      </div>
+                    )}
+
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-[16px] font-bold text-[#1A1A2E] truncate mb-1.5">
+                        {item?.pet?.name || item?.business?.name || "Client"}
+                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {item?.pet?.species && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#6B6B8A] bg-[#F5F5FA] border border-[#EBEBF5] px-2 py-0.5 rounded-[6px] truncate max-w-[90px]">
+                            🐾 {item?.pet?.species}
+                          </span>
+                        )}
+                        {item?.pet?.breed && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#6B6B8A] bg-[#F5F5FA] border border-[#EBEBF5] px-2 py-0.5 rounded-[6px] truncate max-w-[90px]">
+                            🏷 {item?.pet?.breed}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="mt-auto flex justify-between items-center pt-3.5 border-t border-[#F0F0F5]">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-[22px] font-extrabold text-[#1A1A2E]">
+                        ${calculateDiscountedAmount(item)}
+                      </span>
+                      {item?.service && (
+                        <span className="text-[11px] font-medium text-[#B0B0C8]">
+                          {item?.service?.cost_type}
+                        </span>
+                      )}
+                    </div>
+
+                    {item?.deal && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShowDeal(item);
+                        }}
+                        className="flex items-center gap-1.5 text-[12px] font-semibold text-[#5B21B6] bg-[#EDE9FE] hover:bg-[#DDD6FE] border border-[#C4B5FD] py-1.5 px-3.5 rounded-xl transition-colors duration-150"
+                      >
+                        <Tag size={12} strokeWidth={2.5} />
+                        View Deal
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       )}
@@ -511,8 +674,8 @@ const Appointments = () => {
                   <button
                     key={i}
                     className={`px-3 py-1 text-sm border ${currentPage === page
-                        ? "bg_primary text_white cursor-not-allowed"
-                        : "bg_white text_dark"
+                      ? "bg_primary text_white cursor-not-allowed"
+                      : "bg_white text_dark"
                       }`}
                     disabled={currentPage === page}
                     onClick={() => handlePageClick(page)}
@@ -746,249 +909,6 @@ const Appointments = () => {
           </Form>
         </Modal.Body>
       </Modal>
-      {selectedItem && (
-        <Modal show={showDetail} onHide={handleCloseDetail} centered>
-          <Modal.Header
-            style={{ borderBottom: "none" }}
-            closeButton
-          ></Modal.Header>
-          <Modal.Body>
-            <Form onFinish={handleUpdate}>
-              <div className="flex items-start max-md:flex-col w-full gap-2">
-                <img
-                  src={`${global.IMAGEURL}/${selectedItem?.business?.logo}`}
-                  style={{
-                    height: "4rem",
-                    width: "4rem",
-                    aspectRatio: "4/4",
-                    objectFit: "cover",
-                    borderRadius: "18px",
-                  }}
-                  alt=""
-                />
-                <div className="flex flex-col">
-                  <span className="text-3xl text_dark plusJakara_medium">
-                    {selectedItem?.business?.name}
-                  </span>
-                  <span className="text_secondary plusJakara_medium">
-                    {selectedItem?.business?.address}
-                  </span>
-                </div>
-              </div>
-              <div className="my-2 rounded-lg flex flex-column flex-sm-row align-items-start align-items-sm-center gap-3 p-2 bg-[#E6FBF5]">
-                <img
-                  src={`${global.IMAGEURL}/${selectedItem?.pet?.image}`}
-                  style={{
-                    height: "5rem",
-                    width: "5rem",
-                    aspectRatio: "4/4",
-                    objectFit: "cover",
-                    borderRadius: "50%",
-                  }}
-                  alt=""
-                />
-                <div className="flex flex-col gap-1">
-                  <span className="text-2xl text_dark plusJakara_medium">
-                    {selectedItem?.pet?.name}
-                  </span>
-                  <div className="flex flex-wrap gap-2 items-center">
-                    <div className="flex items-center gap-1">
-                      <img src={specie} alt="" />
-                      <span className="text-sm plusJakara_medium text_dark">
-                        {selectedItem?.pet?.species}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <img src={breed} alt="" />
-                      <span className="text-sm plusJakara_medium text_dark">
-                        {selectedItem?.pet?.breed}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <img src={gender} alt="" />
-                      <span className="text-sm plusJakara_medium text_dark">
-                        {selectedItem?.pet?.gender}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <img src={birthimage} alt="" />
-                      <span className="text-sm plusJakara_medium text_dark">
-                        {selectedItem?.pet?.dob}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <img src={weight} alt="" />
-                      <span className="text-sm plusJakara_medium text_dark">
-                        {selectedItem?.pet?.avg_weight
-                          ? selectedItem?.pet?.avg_weight + " lbs"
-                          : selectedItem?.pet?.weight}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col mb-2 items-start">
-                <span className="text_dark plusJakara_medium">Created Date:</span>
-                <span className="text_secondary plusJakara_regular text-sm">
-                  {selectedItem?.created_at ? moment(selectedItem?.created_at).format("MMM DD, YYYY h:mm A") : "N/A"}
-                </span>
-              </div>
-              <div className="flex flex-col mb-2 items-start">
-                <span className="text_dark plusJakara_medium">Name:</span>
-                <span className="text_secondary plusJakara_regular">
-                  {selectedItem?.name}
-                </span>
-              </div>
-              <div className="flex flex-col mb-2">
-                <span className="text_dark plusJakara_medium">Notes:</span>
-                <span className="text_secondary text-sm plusJakara_regular">
-                  {selectedItem?.note}
-                </span>
-              </div>
-              <div className="flex flex-col mb-2">
-                <span className="text_dark plusJakara_medium">Service:</span>
-                <div className="d-flex flex-wrap gap-1 align-items-center">
-                  {selectedItem?.order_type === "deal" &&
-                    selectedItem?.deal?.deal_services?.map((item, i) => (
-                      <span
-                        key={i}
-                        className="text_secondary text-sm plusJakara_regular"
-                      >
-                        {item?.service_name} {i >= 0 && ", "}{" "}
-                      </span>
-                    ))}
-                  {selectedItem?.order_type === "service" &&
-                    selectedItem?.services?.map((item, i) => (
-                      <span
-                        key={i}
-                        className="text_secondary text-sm plusJakara_regular"
-                      >
-                        {item?.service_name} {i >= 0 && ", "}{" "}
-                      </span>
-                    ))}
-                </div>
-              </div>
-              <div className="flex flex-col mb-2">
-                <span className="text_dark plusJakara_medium">Subservice:</span>
-                <div className="d-flex flex-wrap gap-1 align-items-center">
-                  {(selectedItem?.order_type === "deal" &&
-                    !selectedItem?.deal?.deal_services) ||
-                    selectedItem?.deal?.deal_services === null ? (
-                    <span>Not Found</span>
-                  ) : (
-                    selectedItem?.deal?.deal_services?.map((dealService, i) => (
-                      <div key={i}>
-                        {dealService?.sub_service &&
-                          JSON.parse(dealService?.sub_service).map(
-                            (subItem, j) => (
-                              <span
-                                key={j}
-                                className="text_secondary text-sm plusJakara_regular"
-                              >
-                                {subItem} {j >= 0 && ", "}{" "}
-                              </span>
-                            ),
-                          )}
-                      </div>
-                    ))
-                  )}
-                  {selectedItem?.order_type === "service" &&
-                    selectedItem?.services?.map((service, i) => (
-                      <div key={i}>
-                        <span className="text_dark text-sm plusJakara_medium">
-                          {i + 1}. {service?.service_name}
-                        </span>
-                        <div className="ml-2">
-                          {service?.sub_service &&
-                            JSON.parse(service.sub_service).map(
-                              (subService, j) => (
-                                <span
-                                  key={j}
-                                  className="text_secondary text-sm plusJakara_regular"
-                                >
-                                  {subService}
-                                  {j <
-                                    JSON.parse(service.sub_service).length -
-                                    1 && ", "}
-                                </span>
-                              ),
-                            )}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2 items-center mb-2">
-                <div className="flex gap-1 items-center">
-                  <Phone className="text_dark" size={14} />
-                  <span className="text-sm plusJakara_medium text_dark">
-                    {selectedItem?.phone}
-                  </span>
-                </div>
-                <div className="flex gap-1 items-center">
-                  <Mail className="text_dark" size={14} />
-                  <span className="text-sm plusJakara_medium text_dark">
-                    {selectedItem?.email}
-                  </span>
-                </div>
-              </div>
-              <div className="flex justify-between w-full items-center flex-wrap gap-2 mb-2">
-                <div className="flex gap-2 items-center flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      selectedItem?.status === "pending" && handleSheduleModal()
-                    }
-                    className="flex items-center gap-1"
-                  >
-                    <img src={calendersmall} alt="" />
-                    <span className="plusJakara_medium text-sm text_dark">
-                      {selectedItem?.booking_date}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      selectedItem?.status === "pending" && handleSheduleModal()
-                    }
-                    className="flex items-center gap-1"
-                  >
-                    <img
-                      src={clock}
-                      style={{ width: "24px", height: "auto" }}
-                      alt=""
-                    />
-                    <span className="plusJakara_medium text-sm text_dark">
-                      {selectedItem?.booking_time_12hour}
-                    </span>
-                  </button>
-                  <div className="flex items-center gap-1">
-                    <img src={building} alt="" />
-                    <span className="plusJakara_medium text-sm text_dark">
-                      Office Visit
-                    </span>
-                  </div>
-                </div>
-                {selectedItem?.order_type === "service" && (
-                  <span className="text-3xl text_dark plusJakara_medium">
-                    {/* {typeof selectedItem?.service?.amount === 'string' ? parseFloat(selectedItem?.service?.amount).toFixed(2) : 'N/A'}$ */}
-                    ${calculateDiscountedAmount(selectedItem)}
-                  </span>
-                )}
-                {selectedItem?.order_type === "deal" && (
-                  <span className="text-3xl text_dark plusJakara_medium">
-                    ${calculateDiscountedAmount(selectedItem)}
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-2 items-center">
-                {renderStatusButtons(selectedItem)}
-              </div>
-            </Form>
-          </Modal.Body>
-        </Modal>
-      )}
     </main>
   );
 };

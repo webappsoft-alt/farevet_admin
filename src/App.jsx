@@ -32,6 +32,9 @@ const CreateReport = lazy(() =>
 );
 const Application = lazy(() => import("./components/pages/application"));
 const Appointments = lazy(() => import("./components/pages/appointment"));
+const AppointmentDetail = lazy(() =>
+  import("./components/pages/appointmentComponents/appointmentDetail")
+);
 const Deals = lazy(() => import("./components/pages/deals"));
 const CreateDeal = lazy(() =>
   import("./components/pages/dealComponents/createDeal"),
@@ -188,6 +191,7 @@ function App() {
       <Route path="/vet-bills/update/:type/:id" element={<UpdateVetBills />} />
       <Route path="/vet-bills/create/:type" element={<CreateVetBills />} />
       <Route path="/appointments" element={<Appointments />} />
+      <Route path="/appointments/:id" element={<AppointmentDetail />} />
       <Route path="/deals" element={<Deals />} />
       <Route path="/pet-insurance" element={<PetInsurance />} />
       <Route path="/pet-insurance/update" element={<UpdatePetInsurance />} />
@@ -263,6 +267,7 @@ function App() {
         element={<ConciergeRequestDetail />}
       />
       <Route path="/appointments" element={<Appointments />} />
+      <Route path="/appointments/:id" element={<AppointmentDetail />} />
       <Route path="/deals" element={<Deals />} />
       <Route path="/reward" element={<Reward />} />
       <Route path="/sub-admin" element={<SubAdmin />} />
