@@ -197,6 +197,11 @@ function App() {
       <Route path="/pet-insurance/update" element={<UpdatePetInsurance />} />
       <Route path="/pet-insurance/create" element={<CreatePetInsurance />} />
       <Route path="/reward" element={<Reward />} />
+      <Route path="/reward/points-leaderboard" element={<Reward />} />
+      <Route path="/reward/items" element={<Reward />} />
+      <Route path="/reward/redemptions" element={<Reward />} />
+      <Route path="/reward/redemptions/:redemptionId" element={<Reward />} />
+      <Route path="/reward/:redemptionId" element={<Reward />} />
       <Route path="/quotes" element={<Quotes />} />
       <Route path="/fund_campaign" element={<FundCampaign />} />
       <Route path="/pet_services_budget" element={<ServicesBudget />} />
@@ -270,6 +275,10 @@ function App() {
       <Route path="/appointments/:id" element={<AppointmentDetail />} />
       <Route path="/deals" element={<Deals />} />
       <Route path="/reward" element={<Reward />} />
+      <Route path="/reward/points-leaderboard" element={<Reward />} />
+      <Route path="/reward/items" element={<Reward />} />
+      <Route path="/reward/redemptions" element={<Reward />} />
+      <Route path="/reward/redemptions/:redemptionId" element={<Reward />} />
       <Route path="/sub-admin" element={<SubAdmin />} />
       <Route path="/change-password" element={<ChangePassword />} />
       <Route path="/chat" element={<Message2 />} />

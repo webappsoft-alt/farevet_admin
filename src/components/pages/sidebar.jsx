@@ -87,6 +87,7 @@ const MENU_SECTION_CONFIG = [
       "Fund Campaign",
       "Services Budget",
       "Customer Support",
+      "Rewards",
     ],
   },
   { heading: "Account", itemLabels: ["Chat", "Change Password"] },
@@ -151,15 +152,46 @@ function renderMenuRow(
 ) {
   const key = item.path || `sub-${item.items}`;
   if (item.subItems) {
+    const subMenuActive = item.subItems.some((subItem) =>
+      subMenuItemIsActive(subItem, location.pathname, location.search),
+    );
+    let subMenuBadgeCount = 0;
+    if (item.badge && item.tableName) {
+      const apiKey = tableToApiKeyMap[item.tableName];
+      if (apiKey && unseenCounts[apiKey]) {
+        subMenuBadgeCount = parseInt(unseenCounts[apiKey], 10) || 0;
+      }
+    }
     return (
       <Fragment key={key}>
         <SubMenu
           label={
-            <span className="inter_semibold sidebar-farevet-item-label">
-              {item.items}
-            </span>
+            <div className="flex w-full items-center justify-between gap-1.5">
+              <span className="inter_semibold sidebar-farevet-item-label">
+                {item.items}
+              </span>
+              {subMenuBadgeCount > 0 ? (
+                <div
+                  className="plusJakara_medium text_white shrink-0 rounded-full"
+                  style={{
+                    zIndex: 99,
+                    fontSize: "10px",
+                    backgroundColor: "#e74c3c",
+                    padding:
+                      subMenuBadgeCount > 99
+                        ? "2px 5px"
+                        : subMenuBadgeCount < 10
+                          ? "1px 6px"
+                          : "1px 5px",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {subMenuBadgeCount > 100 ? "99+" : subMenuBadgeCount}
+                </div>
+              ) : null}
+            </div>
           }
-          icon={<SidebarNavIcon Icon={item.Icon} active={false} />}
+          icon={<SidebarNavIcon Icon={item.Icon} active={subMenuActive} />}
           className="inter_semibold mb-0.5 rounded-lg sidebar-farevet-submenu-root"
         >
           {item.subItems.map((subItem, j) => {
@@ -304,6 +336,7 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
     fund_campaign: "fund_campaign_count",
     services_budget: "service_budget_count",
     support: "support_count",
+    redemptions: "redemptions_total_count",
   };
 
   const fetchUnseenCounts = async () => {
@@ -311,12 +344,40 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
 
     isLoadingRef.current = true;
     try {
-      const body = new FormData();
-      body.append("type", "get_unseen_sidebar");
-      const result = await apiRequest({ body });
-      if (result) {
-        setUnseenCounts(result);
-      }
+      const sidebarBody = new FormData();
+      sidebarBody.append("type", "get_unseen_sidebar");
+      const sidebarResult = await apiRequest({ body: sidebarBody });
+
+      const redemptionBody = new FormData();
+      redemptionBody.append("type", "admin_redemption_unseen");
+      redemptionBody.append("admin_id", adminData?.user_id || adminData?.id || 1);
+      redemptionBody.append("limit", 50);
+      redemptionBody.append("include_list", 0);
+      const redemptionResult = await apiRequest({ body: redemptionBody });
+
+      const unseenRedemptionsCount = parseInt(
+        redemptionResult?.unseen_redemptions_count ??
+          redemptionResult?.unseen_redemptions ??
+          redemptionResult?.unseen_count ??
+          0,
+        10,
+      ) || 0;
+      const unseenMessagesCount =
+        parseInt(
+          redemptionResult?.unseen_messages_count ??
+            redemptionResult?.unseen_messages ??
+            0,
+          10,
+        ) || 0;
+
+      const nextCounts = {
+        ...(sidebarResult || {}),
+        unseen_redemptions_count: unseenRedemptionsCount,
+        unseen_messages_count: unseenMessagesCount,
+        redemptions_total_count: unseenRedemptionsCount + unseenMessagesCount,
+      };
+
+      setUnseenCounts(nextCounts);
     } catch (error) {
       // minimal handling
     } finally {
@@ -551,6 +612,29 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
       items: "Customer Support",
       path: "/support",
       tableName: "support",
+    },
+    {
+      badge: true,
+      Icon: HiOutlineStar,
+      items: "Rewards",
+      path: null,
+      tableName: "redemptions",
+      subItems: [
+        {
+          label: "Points Leaderboard",
+          path: "/reward/points-leaderboard",
+          pathMatch: "exact",
+        },
+        {
+          label: "Items",
+          path: "/reward/items",
+          pathMatch: "exact",
+        },
+        {
+          label: "Redemptions",
+          path: "/reward/redemptions",
+        },
+      ],
     },
     {
       badge: false,
