@@ -22,7 +22,7 @@ const NavHeader = ({ broken, setToggled, toggled }) => {
             if (parts[1] === 'items') return 'Items';
             if (parts[1] === 'redemptions' && parts[2]) return 'Redemption Detail';
             if (parts[1] === 'redemptions') return 'Redemptions';
-            return 'Points Leaderboard';
+            return 'Reward Points';
         }
         if (path === 'user') return 'Users';
         if (path === 'vet') return 'Vets';

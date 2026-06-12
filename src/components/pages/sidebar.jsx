@@ -172,7 +172,7 @@ function renderMenuRow(
               </span>
               {subMenuBadgeCount > 0 ? (
                 <div
-                  className="plusJakara_medium text_white shrink-0 rounded-full"
+                  className="plusJakara_medium text_white shrink-0 rounded-full me-2"
                   style={{
                     zIndex: 99,
                     fontSize: "10px",
@@ -200,6 +200,10 @@ function renderMenuRow(
               location.pathname,
               location.search,
             );
+            const subBadgeCount =
+              subItem.badgeKey && unseenCounts[subItem.badgeKey]
+                ? parseInt(unseenCounts[subItem.badgeKey], 10) || 0
+                : 0;
             const linkTo = subItem.search
               ? {
                 pathname: subItem.path,
@@ -218,9 +222,30 @@ function renderMenuRow(
                   : "text_secondary"
                   }`}
               >
-                <span className="inter_semibold sidebar-farevet-item-label">
-                  {subItem.label}
-                </span>
+                <div className="flex w-full items-center justify-between gap-2">
+                  <span className="inter_semibold sidebar-farevet-item-label">
+                    {subItem.label}
+                  </span>
+                  {subBadgeCount > 0 ? (
+                    <div
+                      className="plusJakara_medium text_white shrink-0 rounded-full"
+                      style={{
+                        zIndex: 99,
+                        fontSize: "10px",
+                        backgroundColor: "#e74c3c",
+                        padding:
+                          subBadgeCount > 99
+                            ? "2px 5px"
+                            : subBadgeCount < 10
+                              ? "1px 6px"
+                              : "1px 5px",
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {subBadgeCount > 100 ? "99+" : subBadgeCount}
+                    </div>
+                  ) : null}
+                </div>
               </MenuItem>
             );
           })}
@@ -350,22 +375,23 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
 
       const redemptionBody = new FormData();
       redemptionBody.append("type", "admin_redemption_unseen");
-      redemptionBody.append("admin_id", adminData?.user_id || adminData?.id || 1);
+      redemptionBody.append("admin_id", 0);
       redemptionBody.append("limit", 50);
       redemptionBody.append("include_list", 0);
       const redemptionResult = await apiRequest({ body: redemptionBody });
 
+      const redemptionData = redemptionResult?.data || redemptionResult || {};
       const unseenRedemptionsCount = parseInt(
-        redemptionResult?.unseen_redemptions_count ??
-          redemptionResult?.unseen_redemptions ??
-          redemptionResult?.unseen_count ??
+        redemptionData?.unseen_redemptions_count ??
+          redemptionData?.unseen_redemptions ??
+          redemptionData?.unseen_count ??
           0,
         10,
       ) || 0;
       const unseenMessagesCount =
         parseInt(
-          redemptionResult?.unseen_messages_count ??
-            redemptionResult?.unseen_messages ??
+          redemptionData?.unseen_messages_count ??
+            redemptionData?.unseen_messages ??
             0,
           10,
         ) || 0;
@@ -621,18 +647,19 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
       tableName: "redemptions",
       subItems: [
         {
-          label: "Points Leaderboard",
+          label: "Reward Points",
           path: "/reward/points-leaderboard",
           pathMatch: "exact",
         },
         {
-          label: "Items",
+          label: "Reward Items",
           path: "/reward/items",
           pathMatch: "exact",
         },
         {
           label: "Redemptions",
           path: "/reward/redemptions",
+          badgeKey: "unseen_redemptions_count",
         },
       ],
     },

@@ -4,6 +4,7 @@ import { Badge, Button, Form, Input, InputNumber, Modal, message } from "antd";
 import { Spinner } from "react-bootstrap";
 import moment from "moment";
 import ReactPaginate from "react-paginate";
+import { Check } from "react-feather";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { apiRequest } from "../../../api/auth_api";
 import ProductTableNoData from "../../DataTable/NoDataComponent";
@@ -77,11 +78,57 @@ function isRewardActive(value) {
   );
 }
 
+function toPositiveInt(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return undefined;
+  return Math.max(0, Math.trunc(parsed));
+}
+
+function toPositiveMoney(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return undefined;
+  return Math.max(0, parsed);
+}
+
+function parsePositiveIntInput(value) {
+  const raw = String(value ?? "");
+  const digitsOnly = raw.replace(/[^\d]/g, "");
+  return digitsOnly;
+}
+
+function parsePositiveMoneyInput(value) {
+  const raw = String(value ?? "");
+  const cleaned = raw.replace(/[^\d.]/g, "");
+  const firstDot = cleaned.indexOf(".");
+  if (firstDot === -1) return cleaned;
+  const head = cleaned.slice(0, firstDot + 1);
+  const tail = cleaned.slice(firstDot + 1).replace(/\./g, "");
+  return head + tail;
+}
+
+function isRewardRowActive(row) {
+  return isRewardActive(row?.is_active ?? 1);
+}
+
 function statusClass(status) {
   const value = String(status || "").toLowerCase();
   if (value === "fulfilled" || value === "approved") return "med-status med-s-active";
   if (value === "rejected") return "med-status med-s-urgent";
   return "med-tag med-tg-b";
+}
+
+function formatStatusLabel(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "Pending";
+  const lower = raw.toLowerCase();
+  if (lower === "pending") return "Pending";
+  if (lower === "fulfilled" || lower === "approved") return "Fulfilled";
+  if (lower === "rejected") return "Rejected";
+  return lower
+    .split(/[_\s]+/g)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 function sectionFromPath(pathname) {
@@ -128,12 +175,13 @@ const Reward = () => {
   const [rewardModalMode, setRewardModalMode] = useState("create");
   const [rewardEditing, setRewardEditing] = useState(null);
   const [rewardSaving, setRewardSaving] = useState(false);
-  const [deactivateModalOpen, setDeactivateModalOpen] = useState(false);
-  const [rewardPendingDeactivate, setRewardPendingDeactivate] = useState(null);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [rewardPendingStatus, setRewardPendingStatus] = useState(null);
+  const [rewardNextIsActive, setRewardNextIsActive] = useState(0);
   const [rewardForm] = Form.useForm();
 
   const [activeRedemptionCategory, setActiveRedemptionCategory] = useState("all");
-  const [redemptionsStatus, setRedemptionsStatus] = useState("pending");
+  const [redemptionsStatus, setRedemptionsStatus] = useState("all");
   const [redemptionsPage, setRedemptionsPage] = useState(1);
   const [redemptionsCount, setRedemptionsCount] = useState(0);
   const [redemptionRows, setRedemptionRows] = useState([]);
@@ -286,6 +334,7 @@ const Reward = () => {
         type: "admin_list_rewards",
         admin_id: adminId,
         category,
+       
       });
       setRewardRowsByCategory((prev) => ({
         ...prev,
@@ -447,11 +496,16 @@ const Reward = () => {
         reward_key: values.reward_key,
         title: values.title,
         description: values.description,
-        points_cost: values.points_cost,
-        dollar_value: values.dollar_value,
+        points_cost: toPositiveInt(values.points_cost),
+        dollar_value:
+          values.dollar_value === undefined || values.dollar_value === null || values.dollar_value === ""
+            ? undefined
+            : toPositiveMoney(values.dollar_value),
         credits_amount:
-          activeItemCategory === "credits" ? values.credits_amount : undefined,
-        sort_order: values.sort_order,
+          activeItemCategory === "credits"
+            ? toPositiveInt(values.credits_amount)
+            : undefined,
+        sort_order: toPositiveInt(values.sort_order),
         is_active: 1,
       };
       const rewardId = rewardEditing?.reward_id || rewardEditing?.id;
@@ -476,32 +530,53 @@ const Reward = () => {
     }
   };
 
-  const openDeactivateRewardModal = (row) => {
+  const openRewardStatusModal = (row, nextIsActive) => {
     const rewardId = row?.reward_id || row?.id;
     if (!rewardId) return;
-    setRewardPendingDeactivate(row);
-    setDeactivateModalOpen(true);
+    setRewardPendingStatus(row);
+    setRewardNextIsActive(nextIsActive);
+    setStatusModalOpen(true);
   };
 
-  const deactivateReward = async () => {
+  const updateRewardStatus = async () => {
     const rewardId =
-      rewardPendingDeactivate?.reward_id || rewardPendingDeactivate?.id;
+      rewardPendingStatus?.reward_id || rewardPendingStatus?.id;
     if (!rewardId) return;
     setRewardSaving(true);
     try {
+      const categoryKey =
+        rewardPendingStatus?.category || activeItemCategory || "credits";
       const res = await postType({
         type: "admin_save_reward",
         admin_id: adminId,
         reward_id: rewardId,
-        is_active: 0,
+        category: categoryKey,
+        reward_key: rewardPendingStatus?.reward_key,
+        title: rewardPendingStatus?.title,
+        description: rewardPendingStatus?.description,
+        points_cost: toPositiveInt(rewardPendingStatus?.points_cost),
+        dollar_value:
+          rewardPendingStatus?.dollar_value === undefined ||
+          rewardPendingStatus?.dollar_value === null ||
+          rewardPendingStatus?.dollar_value === ""
+            ? undefined
+            : toPositiveMoney(rewardPendingStatus?.dollar_value),
+        credits_amount:
+          String(categoryKey) === "credits"
+            ? toPositiveInt(rewardPendingStatus?.credits_amount)
+            : undefined,
+        sort_order: toPositiveInt(rewardPendingStatus?.sort_order),
+        is_active: rewardNextIsActive,
       });
       if (res?.result === false) {
         message.error(res?.message || "Reward update failed.");
         return;
       }
-      message.success("Reward deactivated.");
-      setDeactivateModalOpen(false);
-      setRewardPendingDeactivate(null);
+      message.success(
+        rewardNextIsActive === 1 ? "Reward activated." : "Reward deactivated.",
+      );
+      setStatusModalOpen(false);
+      setRewardPendingStatus(null);
       await fetchRewardCategory(activeItemCategory);
     } finally {
       setRewardSaving(false);
@@ -608,7 +683,7 @@ const Reward = () => {
     <div className="medication-panel">
       <div className="med-page-hdr">
         <div>
-          <div className="med-page-title">Points Leaderboard</div>
+          <div className="med-page-title">Reward Points</div>
           <div className="med-page-sub">
             Users with points activity and current redemption summary.
           </div>
@@ -618,7 +693,7 @@ const Reward = () => {
       <div className="med-card">
         <div className="med-ph">
           <div className="med-pt">
-            Points Users - {leaderboardCount || leaderboardRows.length || 0}
+            Users Points
           </div>
         </div>
         <div style={{ overflowX: "auto" }}>
@@ -742,7 +817,7 @@ const Reward = () => {
                     <td>{row?.dollar_value || "—"}</td>
                     <td>
                       {(() => {
-                        const active = isRewardActive(row?.is_active ?? 1);
+                        const active = isRewardRowActive(row);
                         return (
                       <span
                         className={
@@ -767,16 +842,29 @@ const Reward = () => {
                         >
                           <img style={{ width: "14px", height: "auto" }} src={edit2} alt="" />
                         </button>
-                        <button
-                          type="button"
-                          className="bg-[#ED5D67] flex justify-center rounded-3 items-center"
-                          style={{ width: "24px", height: "24px", backgroundColor: "#ED5D67", opacity: rewardSaving ? 0.7 : 1 }}
-                          onClick={() => openDeactivateRewardModal(row)}
-                          disabled={rewardSaving}
-                          aria-label="Deactivate reward"
-                        >
-                          <img style={{ width: "14px", height: "auto" }} src={trash} alt="" />
-                        </button>
+                        {isRewardRowActive(row) ? (
+                          <button
+                            type="button"
+                            className="bg-[#ED5D67] flex justify-center rounded-3 items-center"
+                            style={{ width: "24px", height: "24px", backgroundColor: "#ED5D67", opacity: rewardSaving ? 0.7 : 1 }}
+                            onClick={() => openRewardStatusModal(row, 0)}
+                            disabled={rewardSaving}
+                            aria-label="Deactivate reward"
+                          >
+                            <img style={{ width: "14px", height: "auto" }} src={trash} alt="" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="bg-[#22C55E] flex justify-center rounded-3 items-center"
+                            style={{ width: "24px", height: "24px", backgroundColor: "#22C55E", opacity: rewardSaving ? 0.7 : 1 }}
+                            onClick={() => openRewardStatusModal(row, 1)}
+                            disabled={rewardSaving}
+                            aria-label="Activate reward"
+                          >
+                            <Check size={14} color="#ffffff" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -845,10 +933,22 @@ const Reward = () => {
               label="Points Cost"
               rules={[{ required: true, message: "Points cost is required" }]}
             >
-              <InputNumber className="w-full" min={0} precision={0} />
+              <InputNumber
+                className="w-full"
+                min={0}
+                precision={0}
+                parser={parsePositiveIntInput}
+              />
             </Form.Item>
             <Form.Item name="dollar_value" label="Dollar Value">
-              <Input placeholder="25.00" />
+              <InputNumber
+                className="w-full"
+                min={0}
+                precision={2}
+                step={0.01}
+                parser={parsePositiveMoneyInput}
+                placeholder="25.00"
+              />
             </Form.Item>
             {activeItemCategory === "credits" ? (
               <Form.Item
@@ -856,26 +956,37 @@ const Reward = () => {
                 label="Credits Amount"
                 rules={[{ required: true, message: "Credits amount is required" }]}
               >
-                <InputNumber className="w-full" min={0} precision={0} />
+                <InputNumber
+                  className="w-full"
+                  min={0}
+                  precision={0}
+                  parser={parsePositiveIntInput}
+                />
               </Form.Item>
             ) : null}
             <Form.Item name="sort_order" label="Sort Order">
-              <InputNumber className="w-full" min={0} precision={0} />
+              <InputNumber
+                className="w-full"
+                min={0}
+                precision={0}
+                parser={parsePositiveIntInput}
+              />
             </Form.Item>
           </div>
         </Form>
       </Modal>
 
       <Modal
-        title="Deactivate Reward"
-        open={deactivateModalOpen}
+        title={rewardNextIsActive === 1 ? "Activate Reward" : "Deactivate Reward"}
+        open={statusModalOpen}
+        centered
         onCancel={() => {
           if (rewardSaving) return;
-          setDeactivateModalOpen(false);
-          setRewardPendingDeactivate(null);
+          setStatusModalOpen(false);
+          setRewardPendingStatus(null);
         }}
-        onOk={deactivateReward}
-        okText="Deactivate"
+        onOk={updateRewardStatus}
+        okText={rewardNextIsActive === 1 ? "Activate" : "Deactivate"}
         cancelText="Cancel"
         confirmLoading={rewardSaving}
         okButtonProps={{
@@ -888,11 +999,12 @@ const Reward = () => {
         destroyOnClose
       >
         <p style={{ marginBottom: 8 }}>
-          Are you sure you want to deactivate this reward?
+          {rewardNextIsActive === 1
+            ? "Are you sure you want to activate this reward?"
+            : "Are you sure you want to deactivate this reward?"}
         </p>
         <p style={{ marginBottom: 0, color: "#6b7280", fontSize: 13 }}>
-          This will send <strong>`is_active: 0`</strong> for{" "}
-          <strong>{rewardPendingDeactivate?.title || "this reward"}</strong>.
+          <strong>{rewardPendingStatus?.title || "this reward"}</strong>.
         </p>
       </Modal>
     </div>
@@ -936,10 +1048,10 @@ const Reward = () => {
             className="med-fsel"
             aria-label="Filter redemptions"
           >
+            <option value="all">All</option>
             <option value="pending">Pending</option>
             <option value="fulfilled">Fulfilled</option>
             <option value="rejected">Rejected</option>
-            <option value="all">All</option>
           </select>
         </div>
         <div style={{ overflowX: "auto" }}>
@@ -987,40 +1099,49 @@ const Reward = () => {
                     <td>{categoryLabel(row?.category)}</td>
                     <td>{row?.points_cost ?? "—"}</td>
                     <td>
+                      {(() => {
+                        const value = String(row?.status || "pending").toLowerCase();
+                        return (
                       <span className={statusClass(row?.status)}>
-                        {String(row?.status || "Pending")}
+                            {formatStatusLabel(value)}
                       </span>
+                        );
+                      })()}
                     </td>
                     <td>{row?.message_count ?? row?.messages_count ?? "0"}</td>
                     <td>{formatDate(row?.created_at || row?.created_date)}</td>
                     <td>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        <button
-                          type="button"
-                          className="med-btn med-btn-primary med-btn-sm"
-                          onClick={() =>
-                            openRedemptionActionModal(
-                              row?.redemption_id || row?.id,
-                              "approve",
-                            )
-                          }
-                          disabled={String(row?.status || "").toLowerCase() !== "pending" || actionLoading}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          type="button"
-                          className="med-btn med-btn-amber med-btn-sm"
-                          onClick={() =>
-                            openRedemptionActionModal(
-                              row?.redemption_id || row?.id,
-                              "reject",
-                            )
-                          }
-                          disabled={String(row?.status || "").toLowerCase() !== "pending" || actionLoading}
-                        >
-                          Reject
-                        </button>
+                        {String(row?.status || "").toLowerCase() === "pending" ? (
+                          <>
+                            <button
+                              type="button"
+                              className="med-btn med-btn-primary med-btn-sm"
+                              onClick={() =>
+                                openRedemptionActionModal(
+                                  row?.redemption_id || row?.id,
+                                  "approve",
+                                )
+                              }
+                              disabled={actionLoading}
+                            >
+                              Approve
+                            </button>
+                            <button
+                              type="button"
+                              className="med-btn med-btn-amber med-btn-sm"
+                              onClick={() =>
+                                openRedemptionActionModal(
+                                  row?.redemption_id || row?.id,
+                                  "reject",
+                                )
+                              }
+                              disabled={actionLoading}
+                            >
+                              Reject
+                            </button>
+                          </>
+                        ) : null}
                         <button
                           type="button"
                           className="bg-[#54A6FF] flex justify-center rounded-3 items-center"
