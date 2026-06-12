@@ -131,6 +131,41 @@ function formatStatusLabel(value) {
     .join(" ");
 }
 
+function compactLine(value) {
+  return String(value || "").trim();
+}
+
+function isAdminThreadMessage(message) {
+  const sender = String(
+    message?.sender_type ??
+      message?.sender ??
+      message?.from ??
+      message?.role ??
+      message?.author_type ??
+      "",
+  ).toLowerCase();
+
+  if (sender.includes("admin")) return true;
+  if (sender.includes("user") || sender.includes("customer") || sender === "me") {
+    return false;
+  }
+
+  if (message?.admin_id || message?.is_admin === true) return true;
+  return false;
+}
+
+function extractAdminDetailMessages(payload) {
+  const source =
+    payload?.messages ||
+    payload?.message_thread ||
+    payload?.thread ||
+    payload?.data?.messages ||
+    payload?.data?.message_thread ||
+    payload?.data?.thread ||
+    [];
+  return Array.isArray(source) ? source : [];
+}
+
 function sectionFromPath(pathname) {
   const parts = pathname.split("/").filter(Boolean);
   if (parts[0] !== "reward") return "points-leaderboard";
@@ -151,6 +186,7 @@ const Reward = () => {
   });
   const unseenTimerRef = useRef(null);
   const unseenLoadingRef = useRef(false);
+  const detailThreadRef = useRef(null);
 
   const [leaderboardRows, setLeaderboardRows] = useState([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
@@ -377,9 +413,10 @@ const Reward = () => {
     }
   };
 
-  const fetchRedemptionDetail = async (id) => {
+  const fetchRedemptionDetail = async (id, options = {}) => {
     if (!id) return;
-    setDetailLoading(true);
+    const silent = options?.silent === true;
+    if (!silent) setDetailLoading(true);
     try {
       const res = await postType({
         type: "admin_redemption_detail",
@@ -388,9 +425,11 @@ const Reward = () => {
       });
       setRedemptionDetail(res);
     } catch (error) {
-      setRedemptionDetail(null);
+      if (!silent) {
+        setRedemptionDetail(null);
+      }
     } finally {
-      setDetailLoading(false);
+      if (!silent) setDetailLoading(false);
     }
   };
 
@@ -443,6 +482,19 @@ const Reward = () => {
       markSeen(redemptionId);
     }
   }, [isDetailPage, redemptionId]);
+
+  useEffect(() => {
+    if (!isDetailPage || !redemptionId) return undefined;
+    const timer = setInterval(() => {
+      fetchRedemptionDetail(redemptionId, { silent: true });
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [isDetailPage, redemptionId]);
+
+  useEffect(() => {
+    if (!detailThreadRef.current) return;
+    detailThreadRef.current.scrollTop = detailThreadRef.current.scrollHeight;
+  }, [detailMessages, detailLoading]);
 
   const openCreateReward = () => {
     setRewardEditing(null);
@@ -605,8 +657,28 @@ const Reward = () => {
         return;
       }
       message.success("Message sent.");
+      const latestThread = extractAdminDetailMessages(res);
+      if (latestThread.length) {
+        setRedemptionDetail((prev) => ({
+          ...(prev || {}),
+          ...res,
+          messages: latestThread,
+        }));
+      } else {
+        setRedemptionDetail((prev) => ({
+          ...(prev || {}),
+          messages: [
+            ...(extractAdminDetailMessages(prev) || []),
+            {
+              id: `admin-local-${Date.now()}`,
+              message: text,
+              sender_type: "admin",
+              created_at: new Date().toISOString(),
+            },
+          ],
+        }));
+      }
       setMessageText("");
-      await fetchRedemptionDetail(redemptionId);
       fetchUnseen(0);
     } finally {
       setSendingMessage(false);
@@ -1208,44 +1280,85 @@ const Reward = () => {
                 subtitle="Please try again."
               />
             ) : (
-              <div style={{ display: "grid", gap: 14 }}>
-                <div>
-                  <div className="med-stat-lbl">User Info</div>
-                  <div className="med-bold">
-                    {detailUser?.name ||
-                      detailUser?.full_name ||
-                      redemptionDetail?.user_name ||
-                      "—"}
-                  </div>
-                  <div style={{ color: "var(--med-ink3)", fontSize: 12 }}>
-                    {detailUser?.email ||
-                      redemptionDetail?.email ||
-                      redemptionDetail?.user_email ||
-                      "—"}
-                  </div>
-                </div>
-                <div>
-                  <div className="med-stat-lbl">Reward Info</div>
-                  <div>{detailReward?.title || redemptionDetail?.reward_title || "—"}</div>
-                  <div style={{ color: "var(--med-ink3)", fontSize: 12 }}>
-                    {categoryLabel(detailReward?.category || redemptionDetail?.category)}
-                  </div>
-                </div>
-                <div>
-                  <div className="med-stat-lbl">Status</div>
-                  <span className={statusClass(detailStatus)}>{detailStatus || "pending"}</span>
-                </div>
-                <div>
-                  <div className="med-stat-lbl">Shipping Info</div>
-                  <div>
-                    {String(detailReward?.category || redemptionDetail?.category) === "swag"
-                      ? detailShipping?.address ||
-                        detailShipping?.shipping_address ||
-                        detailShipping?.full_address ||
-                        "—"
-                      : "Not required for this category."}
-                  </div>
-                </div>
+              <div style={{ overflowX: "auto" }}>
+                <table className="med-tbl" style={{ minWidth: 520 }}>
+                  <tbody>
+                    <tr>
+                      <td className="med-bold" style={{ width: 180 }}>
+                        Category
+                      </td>
+                      <td>{categoryLabel(redemptionDetail?.category)}</td>
+                    </tr>
+                    <tr>
+                      <td className="med-bold">Reward Key</td>
+                      <td>{redemptionDetail?.reward_key || "—"}</td>
+                    </tr>
+                    <tr>
+                      <td className="med-bold">Reward Title</td>
+                      <td>{redemptionDetail?.reward_title || "—"}</td>
+                    </tr>
+                    <tr>
+                      <td className="med-bold">Reward Description</td>
+                      <td style={{ color: "var(--med-ink3)" }}>
+                        {redemptionDetail?.reward_description
+                          ? compactLine(redemptionDetail.reward_description)
+                          : "—"}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="med-bold">Points Cost</td>
+                      <td>{redemptionDetail?.points_cost ?? "—"}</td>
+                    </tr>
+                    <tr>
+                      <td className="med-bold">Dollar Value</td>
+                      <td>{redemptionDetail?.dollar_value || "—"}</td>
+                    </tr>
+                    <tr>
+                      <td className="med-bold">Credits Amount</td>
+                      <td>{redemptionDetail?.credits_amount ?? "—"}</td>
+                    </tr>
+                    <tr>
+                      <td className="med-bold">Status</td>
+                      <td>
+                        <span className={statusClass(detailStatus)}>
+                          {formatStatusLabel(detailStatus)}
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="med-bold">Admin Note</td>
+                      <td style={{ color: "var(--med-ink3)" }}>
+                        {redemptionDetail?.admin_note
+                          ? compactLine(redemptionDetail.admin_note)
+                          : "—"}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="med-bold">Fulfilled At</td>
+                      <td>
+                        {redemptionDetail?.fulfilled_at
+                          ? formatDate(redemptionDetail.fulfilled_at)
+                          : "—"}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="med-bold">User Name</td>
+                      <td>{redemptionDetail?.user_name || "—"}</td>
+                    </tr>
+                    <tr>
+                      <td className="med-bold">User Email</td>
+                      <td>{redemptionDetail?.user_email || "—"}</td>
+                    </tr>
+                    <tr>
+                      <td className="med-bold">User Earned Points</td>
+                      <td>{redemptionDetail?.user_earned_points ?? "—"}</td>
+                    </tr>
+                    <tr>
+                      <td className="med-bold">User Hero Level</td>
+                      <td>{redemptionDetail?.user_hero_level || "—"}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -1256,10 +1369,126 @@ const Reward = () => {
             <div className="med-pt">Chat / Actions</div>
           </div>
           <div className="med-pb">
-            <ProductTableNoData
-              title="Chat system will be added later."
-              subtitle="Approve and reject actions are available in the redemptions list section."
-            />
+            {detailLoading ? (
+              <div style={{ textAlign: "center", padding: 24 }}>
+                <Spinner size="sm" color="inherit" />
+              </div>
+            ) : (
+              <>
+                <div
+                  ref={detailThreadRef}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                    maxHeight: 420,
+                    minHeight: 260,
+                    overflowY: "auto",
+                    paddingRight: 4,
+                  }}
+                >
+                  {detailMessages.length ? (
+                    detailMessages.map((msg, index) => {
+                      const isAdmin = isAdminThreadMessage(msg);
+                      const text = compactLine(msg?.message ?? msg?.text ?? "—") || "—";
+                      const stamp = formatDate(
+                        msg?.created_at ?? msg?.date ?? msg?.updated_at,
+                      );
+
+                      return (
+                        <div
+                          key={msg?.id ?? `${msg?.created_at ?? "msg"}-${index}`}
+                          style={{
+                            display: "flex",
+                            justifyContent: isAdmin ? "flex-end" : "flex-start",
+                          }}
+                        >
+                          <div
+                            style={{
+                              maxWidth: "82%",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: isAdmin ? "flex-end" : "flex-start",
+                            }}
+                          >
+                            <div
+                              style={{
+                                borderRadius: 16,
+                                padding: "10px 12px",
+                                fontSize: 13,
+                                lineHeight: 1.6,
+                                backgroundColor: isAdmin ? "#8930F9" : "#F7F7FB",
+                                color: isAdmin ? "#ffffff" : "#1A1A2E",
+                                border: isAdmin ? "none" : "1px solid #E8E8F0",
+                              }}
+                            >
+                              {text}
+                            </div>
+                            <div
+                              style={{
+                                marginTop: 4,
+                                fontSize: 11,
+                                color: "var(--med-ink3)",
+                              }}
+                            >
+                              {isAdmin ? "Admin" : "User"}
+                              {stamp && stamp !== "—" ? ` · ${stamp}` : ""}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <ProductTableNoData
+                      title="No messages yet."
+                      subtitle="Start the conversation from here."
+                    />
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 16,
+                    display: "grid",
+                    gap: 10,
+                    position: "sticky",
+                    bottom: 0,
+                    background: "#ffffff",
+                    paddingTop: 12,
+                    borderTop: "1px solid #F1F1F6",
+                  }}
+                >
+                  <TextArea
+                    rows={4}
+                    value={messageText}
+                    placeholder="Write a message to the user..."
+                    onChange={(e) => setMessageText(e.target.value)}
+                    onPressEnter={(e) => {
+                      if (!e.shiftKey) {
+                        e.preventDefault();
+                        if (!sendingMessage && String(messageText || "").trim()) {
+                          sendRedemptionMessage();
+                        }
+                      }
+                    }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <Button
+                      type="primary"
+                      onClick={sendRedemptionMessage}
+                      loading={sendingMessage}
+                      disabled={!String(messageText || "").trim()}
+                      style={{
+                        backgroundColor: "#8930F9",
+                        borderColor: "#8930F9",
+                      }}
+                    >
+                      Send Message
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
