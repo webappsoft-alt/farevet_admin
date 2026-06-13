@@ -155,15 +155,198 @@ function isAdminThreadMessage(message) {
 }
 
 function extractAdminDetailMessages(payload) {
-  const source =
-    payload?.messages ||
-    payload?.message_thread ||
-    payload?.thread ||
-    payload?.data?.messages ||
-    payload?.data?.message_thread ||
-    payload?.data?.thread ||
-    [];
-  return Array.isArray(source) ? source : [];
+  if (!payload) return [];
+  const candidates = [
+    payload?.messages,
+    payload?.message_thread,
+    payload?.thread,
+    payload?.data?.messages,
+    payload?.data?.message_thread,
+    payload?.data?.thread,
+    payload?.redemption?.messages,
+    payload?.redemption?.message_thread,
+    payload?.redemption?.thread,
+  ];
+  for (const source of candidates) {
+    if (Array.isArray(source)) return source;
+  }
+  return [];
+}
+
+function messageTextKey(msg) {
+  return String(msg?.message ?? msg?.text ?? "").trim();
+}
+
+function isPendingChatMessage(msg) {
+  return Boolean(msg?._pending || String(msg?.id || "").startsWith("pending-"));
+}
+
+function areDuplicateChatMessages(a, b) {
+  if (!a || !b) return false;
+  if (
+    a.id &&
+    b.id &&
+    !String(a.id).startsWith("pending-") &&
+    !String(b.id).startsWith("pending-")
+  ) {
+    return String(a.id) === String(b.id);
+  }
+
+  const onePending = isPendingChatMessage(a);
+  const otherPending = isPendingChatMessage(b);
+  if (onePending !== otherPending) {
+    return (
+      messageTextKey(a) === messageTextKey(b) &&
+      isAdminThreadMessage(a) === isAdminThreadMessage(b)
+    );
+  }
+
+  return false;
+}
+
+function dedupeChatMessages(messages) {
+  const result = [];
+  for (const msg of messages || []) {
+    const duplicateIndex = result.findIndex((existing) =>
+      areDuplicateChatMessages(existing, msg),
+    );
+    if (duplicateIndex >= 0) {
+      const existing = result[duplicateIndex];
+      if (isPendingChatMessage(existing) && !isPendingChatMessage(msg)) {
+        result[duplicateIndex] = msg;
+      }
+      continue;
+    }
+    result.push(msg);
+  }
+  return result;
+}
+
+function pendingMessageExistsOnServer(pendingMsg, serverMessages) {
+  const pendingText = messageTextKey(pendingMsg);
+  if (!pendingText) return false;
+  const pendingIsAdmin = isAdminThreadMessage(pendingMsg);
+  return (serverMessages || []).some((serverMsg) => {
+    if (messageTextKey(serverMsg) !== pendingText) return false;
+    return isAdminThreadMessage(serverMsg) === pendingIsAdmin;
+  });
+}
+
+function mergeChatMessages(serverMessages, localMessages) {
+  const server = dedupeChatMessages(serverMessages);
+  const pending = (Array.isArray(localMessages) ? localMessages : []).filter(
+    (item) => item?._pending,
+  );
+  if (!pending.length) return server;
+
+  const unmatchedPending = pending.filter(
+    (pendingMsg) => !pendingMessageExistsOnServer(pendingMsg, server),
+  );
+  return dedupeChatMessages([...server, ...unmatchedPending]);
+}
+
+function resolveSendMessages(existingMessages, responsePayload, optimisticMsg, pendingId) {
+  const baseline = (Array.isArray(existingMessages) ? existingMessages : []).filter(
+    (item) => item.id !== pendingId,
+  );
+  const responseMessages = dedupeChatMessages(extractAdminDetailMessages(responsePayload));
+  const baselineWithoutPending = baseline.filter((item) => !item._pending);
+
+  if (responseMessages.length >= baselineWithoutPending.length + 1) {
+    return responseMessages;
+  }
+
+  if (responseMessages.length > 0) {
+    const confirmed =
+      responseMessages.find(
+        (item) =>
+          messageTextKey(item) === messageTextKey(optimisticMsg) &&
+          isAdminThreadMessage(item),
+      ) || responseMessages[responseMessages.length - 1];
+
+    return dedupeChatMessages([
+      ...baselineWithoutPending,
+      { ...confirmed, _pending: false },
+    ]);
+  }
+
+  return dedupeChatMessages([
+    ...baselineWithoutPending,
+    { ...optimisticMsg, _pending: false },
+  ]);
+}
+
+function displayValue(value) {
+  if (value === null || value === undefined || value === "") return "—";
+  return String(value);
+}
+
+function normalizeRedemptionDetail(payload) {
+  if (!payload || payload.result === false) return null;
+
+  const nestedData =
+    payload?.data && typeof payload.data === "object" && !Array.isArray(payload.data)
+      ? payload.data
+      : null;
+  const redemptionBlock = payload?.redemption || payload?.detail || null;
+  const root = nestedData || redemptionBlock || payload;
+
+  if (!root || typeof root !== "object" || Array.isArray(root)) return null;
+
+  const user =
+    root.user || root.user_info || root.customer || payload?.user || payload?.customer || {};
+  const reward = root.reward || root.reward_details || payload?.reward || {};
+  const messages = extractAdminDetailMessages(payload);
+
+  return {
+    ...root,
+    category: root.category ?? reward.category ?? root.reward_category,
+    reward_key: root.reward_key ?? reward.reward_key ?? reward.key,
+    reward_title:
+      root.reward_title ??
+      root.title ??
+      reward.title ??
+      reward.reward_title ??
+      reward.name,
+    reward_description:
+      root.reward_description ??
+      root.description ??
+      reward.description ??
+      reward.reward_description,
+    dollar_value: root.dollar_value ?? reward.dollar_value,
+    points_cost: root.points_cost ?? reward.points_cost,
+    status: root.status ?? root.redemption_status,
+    credits_amount: root.credits_amount ?? reward.credits_amount,
+    user_name:
+      root.user_name ?? root.name ?? user.name ?? user.user_name ?? user.customer_name,
+    user_email: root.user_email ?? root.email ?? user.email ?? user.user_email,
+    user_hero_level:
+      root.user_hero_level ?? user.hero_level ?? user.user_hero_level ?? user.heroLevel,
+    user_earned_points:
+      root.user_earned_points ??
+      user.earned_points ??
+      user.user_earned_points ??
+      user.points ??
+      user.total_points,
+    message_count:
+      payload?.message_count ??
+      payload?.messages_count ??
+      root.message_count ??
+      root.messages_count ??
+      (messages.length ? messages.length : undefined),
+    admin_seen: root.admin_seen ?? root.seen ?? root.is_seen ?? root.admin_viewed,
+    messages,
+  };
+}
+
+function formatAdminSeenLabel(value) {
+  if (value === null || value === undefined || value === "") return "—";
+  return isRewardActive(value) ? "Seen" : "Unseen";
+}
+
+function adminSeenClass(value) {
+  if (value === null || value === undefined || value === "") return "med-tag med-tg-b";
+  return isRewardActive(value) ? "med-status med-s-active" : "med-tag med-tg-b";
 }
 
 function sectionFromPath(pathname) {
@@ -187,6 +370,7 @@ const Reward = () => {
   const unseenTimerRef = useRef(null);
   const unseenLoadingRef = useRef(false);
   const detailThreadRef = useRef(null);
+  const sendInFlightRef = useRef(false);
 
   const [leaderboardRows, setLeaderboardRows] = useState([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
@@ -226,7 +410,6 @@ const Reward = () => {
   const [redemptionDetail, setRedemptionDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [messageText, setMessageText] = useState("");
-  const [sendingMessage, setSendingMessage] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionModalOpen, setActionModalOpen] = useState(false);
   const [actionModalType, setActionModalType] = useState("approve");
@@ -257,19 +440,9 @@ const Reward = () => {
   );
 
   const detailMessages = useMemo(() => {
-    return safeArray(
-      redemptionDetail?.messages ||
-        redemptionDetail?.message_thread ||
-        redemptionDetail?.thread,
-    );
+    return dedupeChatMessages(extractAdminDetailMessages(redemptionDetail));
   }, [redemptionDetail]);
 
-  const detailUser =
-    redemptionDetail?.user || redemptionDetail?.user_info || redemptionDetail?.customer;
-  const detailReward =
-    redemptionDetail?.reward || redemptionDetail?.reward_details || null;
-  const detailShipping =
-    redemptionDetail?.shipping || redemptionDetail?.shipping_info || null;
   const detailStatus =
     redemptionDetail?.status || redemptionDetail?.redemption_status || "";
 
@@ -423,7 +596,20 @@ const Reward = () => {
         admin_id: adminId,
         redemption_id: id,
       });
-      setRedemptionDetail(res);
+      const normalized = normalizeRedemptionDetail(res);
+      if (normalized) {
+        setRedemptionDetail((prev) => {
+          const pending = extractAdminDetailMessages(prev).filter((item) => item?._pending);
+          if (!pending.length) return normalized;
+          return {
+            ...normalized,
+            messages: mergeChatMessages(normalized.messages, pending),
+            message_count: mergeChatMessages(normalized.messages, pending).length,
+          };
+        });
+      } else if (!silent) {
+        setRedemptionDetail(null);
+      }
     } catch (error) {
       if (!silent) {
         setRedemptionDetail(null);
@@ -643,8 +829,29 @@ const Reward = () => {
 
   const sendRedemptionMessage = async () => {
     const text = String(messageText || "").trim();
-    if (!text || !redemptionId) return;
-    setSendingMessage(true);
+    if (!text || !redemptionId || sendInFlightRef.current) return;
+
+    const pendingId = `pending-${Date.now()}`;
+    const optimisticMsg = {
+      id: pendingId,
+      message: text,
+      sender_type: "admin",
+      created_at: new Date().toISOString(),
+      _pending: true,
+    };
+
+    sendInFlightRef.current = true;
+    setRedemptionDetail((prev) => {
+      const currentMessages = extractAdminDetailMessages(prev);
+      const nextMessages = [...currentMessages, optimisticMsg];
+      return {
+        ...(prev || {}),
+        messages: nextMessages,
+        message_count: nextMessages.length,
+      };
+    });
+    setMessageText("");
+
     try {
       const res = await postType({
         type: "admin_redemption_message",
@@ -654,34 +861,36 @@ const Reward = () => {
       });
       if (res?.result === false) {
         message.error(res?.message || "Message send failed.");
+        setRedemptionDetail((prev) => ({
+          ...(prev || {}),
+          messages: extractAdminDetailMessages(prev).filter((item) => item.id !== pendingId),
+        }));
         return;
       }
-      message.success("Message sent.");
-      const latestThread = extractAdminDetailMessages(res);
-      if (latestThread.length) {
-        setRedemptionDetail((prev) => ({
+
+      setRedemptionDetail((prev) => {
+        const existingMessages = extractAdminDetailMessages(prev);
+        const serverThread = resolveSendMessages(
+          existingMessages,
+          res,
+          optimisticMsg,
+          pendingId,
+        );
+        return {
           ...(prev || {}),
-          ...res,
-          messages: latestThread,
-        }));
-      } else {
-        setRedemptionDetail((prev) => ({
-          ...(prev || {}),
-          messages: [
-            ...(extractAdminDetailMessages(prev) || []),
-            {
-              id: `admin-local-${Date.now()}`,
-              message: text,
-              sender_type: "admin",
-              created_at: new Date().toISOString(),
-            },
-          ],
-        }));
-      }
-      setMessageText("");
+          messages: serverThread,
+          message_count: serverThread.length,
+        };
+      });
       fetchUnseen(0);
+    } catch (error) {
+      setRedemptionDetail((prev) => ({
+        ...(prev || {}),
+        messages: extractAdminDetailMessages(prev).filter((item) => item.id !== pendingId),
+      }));
+      message.error("Message send failed.");
     } finally {
-      setSendingMessage(false);
+      sendInFlightRef.current = false;
     }
   };
 
@@ -1258,13 +1467,7 @@ const Reward = () => {
           </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(320px, 1fr) minmax(360px, 1fr)",
-          gap: 16,
-        }}
-      >
+      <div className="redemption-detail-grid">
         <div className="med-card">
           <div className="med-ph">
             <div className="med-pt">Request Info</div>
@@ -1280,91 +1483,102 @@ const Reward = () => {
                 subtitle="Please try again."
               />
             ) : (
-              <div style={{ overflowX: "auto" }}>
-                <table className="med-tbl" style={{ minWidth: 520 }}>
-                  <tbody>
-                    <tr>
-                      <td className="med-bold" style={{ width: 180 }}>
-                        Category
-                      </td>
-                      <td>{categoryLabel(redemptionDetail?.category)}</td>
-                    </tr>
-                    <tr>
-                      <td className="med-bold">Reward Key</td>
-                      <td>{redemptionDetail?.reward_key || "—"}</td>
-                    </tr>
-                    <tr>
-                      <td className="med-bold">Reward Title</td>
-                      <td>{redemptionDetail?.reward_title || "—"}</td>
-                    </tr>
-                    <tr>
-                      <td className="med-bold">Reward Description</td>
-                      <td style={{ color: "var(--med-ink3)" }}>
+              <div className="redemption-info-sections">
+                <div className="med-detail-block">
+                  <div className="med-detail-section-label">Reward</div>
+                  <dl className="med-detail-grid">
+                    <div className="med-detail-item">
+                      <dt className="med-detail-dt">Category</dt>
+                      <dd className="med-detail-dd">{categoryLabel(redemptionDetail?.category)}</dd>
+                    </div>
+                    <div className="med-detail-item">
+                      <dt className="med-detail-dt">Reward Key</dt>
+                      <dd className="med-detail-dd">{displayValue(redemptionDetail?.reward_key)}</dd>
+                    </div>
+                    <div className="med-detail-item med-detail-item-full">
+                      <dt className="med-detail-dt">Reward Title</dt>
+                      <dd className="med-detail-dd med-detail-strong">
+                        {displayValue(redemptionDetail?.reward_title)}
+                      </dd>
+                    </div>
+                    <div className="med-detail-item med-detail-item-full">
+                      <dt className="med-detail-dt">Reward Description</dt>
+                      <dd className="med-detail-dd med-detail-multiline">
                         {redemptionDetail?.reward_description
                           ? compactLine(redemptionDetail.reward_description)
                           : "—"}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="med-bold">Points Cost</td>
-                      <td>{redemptionDetail?.points_cost ?? "—"}</td>
-                    </tr>
-                    <tr>
-                      <td className="med-bold">Dollar Value</td>
-                      <td>{redemptionDetail?.dollar_value || "—"}</td>
-                    </tr>
-                    <tr>
-                      <td className="med-bold">Credits Amount</td>
-                      <td>{redemptionDetail?.credits_amount ?? "—"}</td>
-                    </tr>
-                    <tr>
-                      <td className="med-bold">Status</td>
-                      <td>
+                      </dd>
+                    </div>
+                    <div className="med-detail-item">
+                      <dt className="med-detail-dt">Points Cost</dt>
+                      <dd className="med-detail-dd">{displayValue(redemptionDetail?.points_cost)}</dd>
+                    </div>
+                    <div className="med-detail-item">
+                      <dt className="med-detail-dt">Dollar Value</dt>
+                      <dd className="med-detail-dd">{displayValue(redemptionDetail?.dollar_value)}</dd>
+                    </div>
+                    <div className="med-detail-item">
+                      <dt className="med-detail-dt">Credits Amount</dt>
+                      <dd className="med-detail-dd">{displayValue(redemptionDetail?.credits_amount)}</dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div className="med-detail-block">
+                  <div className="med-detail-section-label">Request</div>
+                  <dl className="med-detail-grid">
+                    <div className="med-detail-item">
+                      <dt className="med-detail-dt">Status</dt>
+                      <dd className="med-detail-dd">
                         <span className={statusClass(detailStatus)}>
                           {formatStatusLabel(detailStatus)}
                         </span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="med-bold">Admin Note</td>
-                      <td style={{ color: "var(--med-ink3)" }}>
-                        {redemptionDetail?.admin_note
-                          ? compactLine(redemptionDetail.admin_note)
-                          : "—"}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="med-bold">Fulfilled At</td>
-                      <td>
-                        {redemptionDetail?.fulfilled_at
-                          ? formatDate(redemptionDetail.fulfilled_at)
-                          : "—"}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="med-bold">User Name</td>
-                      <td>{redemptionDetail?.user_name || "—"}</td>
-                    </tr>
-                    <tr>
-                      <td className="med-bold">User Email</td>
-                      <td>{redemptionDetail?.user_email || "—"}</td>
-                    </tr>
-                    <tr>
-                      <td className="med-bold">User Earned Points</td>
-                      <td>{redemptionDetail?.user_earned_points ?? "—"}</td>
-                    </tr>
-                    <tr>
-                      <td className="med-bold">User Hero Level</td>
-                      <td>{redemptionDetail?.user_hero_level || "—"}</td>
-                    </tr>
-                  </tbody>
-                </table>
+                      </dd>
+                    </div>
+                    <div className="med-detail-item">
+                      <dt className="med-detail-dt">Message Count</dt>
+                      <dd className="med-detail-dd">{displayValue(redemptionDetail?.message_count)}</dd>
+                    </div>
+                    <div className="med-detail-item">
+                      <dt className="med-detail-dt">Admin Seen</dt>
+                      <dd className="med-detail-dd">
+                        <span className={adminSeenClass(redemptionDetail?.admin_seen)}>
+                          {formatAdminSeenLabel(redemptionDetail?.admin_seen)}
+                        </span>
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <div className="med-detail-block">
+                  <div className="med-detail-section-label">User</div>
+                  <dl className="med-detail-grid">
+                    <div className="med-detail-item">
+                      <dt className="med-detail-dt">User Name</dt>
+                      <dd className="med-detail-dd med-detail-strong">
+                        {displayValue(redemptionDetail?.user_name)}
+                      </dd>
+                    </div>
+                    <div className="med-detail-item">
+                      <dt className="med-detail-dt">User Email</dt>
+                      <dd className="med-detail-dd">{displayValue(redemptionDetail?.user_email)}</dd>
+                    </div>
+                    <div className="med-detail-item">
+                      <dt className="med-detail-dt">User Hero Level</dt>
+                      <dd className="med-detail-dd">{displayValue(redemptionDetail?.user_hero_level)}</dd>
+                    </div>
+                    <div className="med-detail-item">
+                      <dt className="med-detail-dt">User Earned Points</dt>
+                      <dd className="med-detail-dd">{displayValue(redemptionDetail?.user_earned_points)}</dd>
+                    </div>
+                  </dl>
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        <div className="med-card">
+        <div className="med-card redemption-chat-card">
           <div className="med-ph">
             <div className="med-pt">Chat / Actions</div>
           </div>
@@ -1375,18 +1589,7 @@ const Reward = () => {
               </div>
             ) : (
               <>
-                <div
-                  ref={detailThreadRef}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 12,
-                    maxHeight: 420,
-                    minHeight: 260,
-                    overflowY: "auto",
-                    paddingRight: 4,
-                  }}
-                >
+                <div ref={detailThreadRef} className="redemption-chat-thread">
                   {detailMessages.length ? (
                     detailMessages.map((msg, index) => {
                       const isAdmin = isAdminThreadMessage(msg);
@@ -1398,39 +1601,21 @@ const Reward = () => {
                       return (
                         <div
                           key={msg?.id ?? `${msg?.created_at ?? "msg"}-${index}`}
-                          style={{
-                            display: "flex",
-                            justifyContent: isAdmin ? "flex-end" : "flex-start",
-                          }}
+                          className={`redemption-chat-row ${
+                            isAdmin ? "redemption-chat-row-admin" : "redemption-chat-row-user"
+                          }`}
                         >
-                          <div
-                            style={{
-                              maxWidth: "82%",
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: isAdmin ? "flex-end" : "flex-start",
-                            }}
-                          >
+                          <div className="redemption-chat-bubble-wrap">
                             <div
-                              style={{
-                                borderRadius: 16,
-                                padding: "10px 12px",
-                                fontSize: 13,
-                                lineHeight: 1.6,
-                                backgroundColor: isAdmin ? "#8930F9" : "#F7F7FB",
-                                color: isAdmin ? "#ffffff" : "#1A1A2E",
-                                border: isAdmin ? "none" : "1px solid #E8E8F0",
-                              }}
+                              className={`redemption-chat-bubble ${
+                                isAdmin
+                                  ? "redemption-chat-bubble-admin"
+                                  : "redemption-chat-bubble-user"
+                              }${msg?._pending ? " redemption-chat-bubble-pending" : ""}`}
                             >
                               {text}
                             </div>
-                            <div
-                              style={{
-                                marginTop: 4,
-                                fontSize: 11,
-                                color: "var(--med-ink3)",
-                              }}
-                            >
+                            <div className="redemption-chat-meta">
                               {isAdmin ? "Admin" : "User"}
                               {stamp && stamp !== "—" ? ` · ${stamp}` : ""}
                             </div>
@@ -1444,20 +1629,10 @@ const Reward = () => {
                       subtitle="Start the conversation from here."
                     />
                   )}
+
                 </div>
 
-                <div
-                  style={{
-                    marginTop: 16,
-                    display: "grid",
-                    gap: 10,
-                    position: "sticky",
-                    bottom: 0,
-                    background: "#ffffff",
-                    paddingTop: 12,
-                    borderTop: "1px solid #F1F1F6",
-                  }}
-                >
+                <div className="redemption-chat-compose">
                   <TextArea
                     rows={4}
                     value={messageText}
@@ -1466,21 +1641,21 @@ const Reward = () => {
                     onPressEnter={(e) => {
                       if (!e.shiftKey) {
                         e.preventDefault();
-                        if (!sendingMessage && String(messageText || "").trim()) {
+                        if (String(messageText || "").trim()) {
                           sendRedemptionMessage();
                         }
                       }
                     }}
                   />
-                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <div className="redemption-chat-actions">
                     <Button
                       type="primary"
                       onClick={sendRedemptionMessage}
-                      loading={sendingMessage}
                       disabled={!String(messageText || "").trim()}
                       style={{
                         backgroundColor: "#8930F9",
                         borderColor: "#8930F9",
+                        color: "#ffffff",
                       }}
                     >
                       Send Message

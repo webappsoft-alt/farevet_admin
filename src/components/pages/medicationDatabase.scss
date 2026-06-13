@@ -564,3 +564,144 @@
   font-weight: 600;
   font-family: ui-monospace, monospace;
 }
+
+.redemption-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .redemption-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.redemption-info-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.redemption-chat-card .med-pb {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.redemption-chat-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 220px;
+  max-height: min(420px, calc(100vh - 360px));
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+@media (max-width: 960px) {
+  .redemption-chat-thread {
+    max-height: min(360px, calc(100vh - 420px));
+  }
+}
+
+@media (max-width: 520px) {
+  .redemption-chat-thread {
+    min-height: 180px;
+    max-height: min(300px, calc(100vh - 480px));
+  }
+}
+
+.redemption-chat-row {
+  display: flex;
+}
+
+.redemption-chat-row-admin {
+  justify-content: flex-end;
+}
+
+.redemption-chat-row-user {
+  justify-content: flex-start;
+}
+
+.redemption-chat-bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  max-width: 82%;
+}
+
+@media (max-width: 520px) {
+  .redemption-chat-bubble-wrap {
+    max-width: 90%;
+  }
+}
+
+.redemption-chat-row-admin .redemption-chat-bubble-wrap {
+  align-items: flex-end;
+}
+
+.redemption-chat-row-user .redemption-chat-bubble-wrap {
+  align-items: flex-start;
+}
+
+.redemption-chat-bubble {
+  border-radius: 16px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.redemption-chat-bubble-admin {
+  background-color: #8930f9;
+  color: #ffffff;
+}
+
+.redemption-chat-bubble-user {
+  background-color: #f7f7fb;
+  color: #1a1a2e;
+  border: 1px solid #e8e8f0;
+}
+
+.redemption-chat-bubble-pending {
+  opacity: 0.72;
+}
+
+.redemption-chat-meta {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #9b9bb5;
+}
+
+.redemption-chat-meta-sending {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.redemption-chat-compose {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+  position: sticky;
+  bottom: 0;
+  background: #ffffff;
+  padding-top: 12px;
+  border-top: 1px solid #f1f1f6;
+}
+
+.redemption-chat-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 520px) {
+  .redemption-chat-actions .ant-btn {
+    width: 100%;
+  }
+}
+
+.redemption-chat-actions .ant-btn-primary {
+  color: #ffffff !important;
+}
