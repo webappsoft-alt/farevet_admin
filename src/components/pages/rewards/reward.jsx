@@ -367,6 +367,7 @@ const Reward = () => {
     unseen_redemptions_count: 0,
     unseen_messages_count: 0,
   });
+  const [redemptionUnseenMap, setRedemptionUnseenMap] = useState(new Map());
   const unseenTimerRef = useRef(null);
   const unseenLoadingRef = useRef(false);
   const detailThreadRef = useRef(null);
@@ -422,6 +423,58 @@ const Reward = () => {
       safeNumber(unseenCounts.unseen_messages_count),
     [unseenCounts],
   );
+
+  const buildRedemptionUnseenMap = (list) => {
+    const items = safeArray(list);
+    const map = new Map();
+    items.forEach((item) => {
+      const entry = {
+        count: safeNumber(
+          item?.unseen_message_count ??
+            item?.unseen_messages_count ??
+            item?.unseen_messages ??
+            item?.count ??
+            item?.unread ??
+            0,
+        ),
+        lastMessageAt:
+          item?.last_message_at ||
+          item?.last_message_date ||
+          item?.last_message_time ||
+          item?.last_message_timestamp ||
+          item?.last_message ||
+          null,
+      };
+      const candidateKeys = [
+        item?.redemption_id,
+        item?.id,
+      ]
+        .map((value) => String(value ?? "").trim())
+        .filter(Boolean);
+
+      candidateKeys.forEach((key) => {
+        map.set(key, entry);
+      });
+    });
+    return map;
+  };
+
+  const getRedemptionUnseenEntry = (row) => {
+    const candidateKeys = [
+      row?.id,
+      row?.redemption_id,
+      row?.redemptionId,
+    ]
+      .map((value) => String(value ?? "").trim())
+      .filter(Boolean);
+
+    for (const key of candidateKeys) {
+      const match = redemptionUnseenMap.get(key);
+      if (match) return match;
+    }
+
+    return null;
+  };
 
   const activeItemRows = rewardRowsByCategory[activeItemCategory] || [];
   const itemPage = itemPages[activeItemCategory] || 1;
@@ -498,14 +551,26 @@ const Reward = () => {
         include_list: includeList ? 1 : 0,
       });
       if (res) {
+        const unseenPayload =
+          res?.data && typeof res.data === "object" && !Array.isArray(res.data)
+            ? res.data
+            : res;
+        const rawList =
+          unseenPayload?.redemptions_with_unseen_messages ||
+          [];
+
+        if (includeList) {
+          setRedemptionUnseenMap(buildRedemptionUnseenMap(rawList));
+        }
+
         setUnseenCounts({
           unseen_redemptions_count: safeNumber(
-            res.unseen_redemptions_count ??
-              res.unseen_redemptions ??
-              res.unseen_count,
+            unseenPayload?.unseen_redemptions_count ??
+              unseenPayload?.unseen_redemptions ??
+              unseenPayload?.unseen_count,
           ),
           unseen_messages_count: safeNumber(
-            res.unseen_messages_count ?? res.unseen_messages,
+            unseenPayload?.unseen_messages_count ?? unseenPayload?.unseen_messages,
           ),
         });
       }
@@ -628,7 +693,7 @@ const Reward = () => {
         action: "mark_seen",
         redemption_id: id,
       });
-      fetchUnseen(0);
+      fetchUnseen(section === "redemptions" ? 1 : 0);
     } catch (error) {
       // ignore
     }
@@ -643,6 +708,12 @@ const Reward = () => {
       if (unseenTimerRef.current) clearInterval(unseenTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (section === "redemptions" && !isDetailPage) {
+      fetchUnseen(1);
+    }
+  }, [section, isDetailPage]);
 
   useEffect(() => {
     if (section === "points-leaderboard") {
@@ -664,6 +735,7 @@ const Reward = () => {
 
   useEffect(() => {
     if (isDetailPage && redemptionId) {
+      fetchUnseen(1);
       fetchRedemptionDetail(redemptionId);
       markSeen(redemptionId);
     }
@@ -672,6 +744,7 @@ const Reward = () => {
   useEffect(() => {
     if (!isDetailPage || !redemptionId) return undefined;
     const timer = setInterval(() => {
+      fetchUnseen(1);
       fetchRedemptionDetail(redemptionId, { silent: true });
     }, 3000);
     return () => clearInterval(timer);
@@ -824,6 +897,7 @@ const Reward = () => {
   const openRedemptionDetail = (row) => {
     const id = row?.redemption_id || row?.id;
     if (!id) return;
+    fetchUnseen(1);
     navigate(`/reward/redemptions/${id}`);
   };
 
@@ -1300,14 +1374,6 @@ const Reward = () => {
             Review redemption requests category-wise and open detail to approve or reject.
           </div>
         </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Badge count={safeNumber(unseenCounts.unseen_redemptions_count)} overflowCount={99}>
-            <span style={{ fontSize: 12, color: "#6b7280" }}>Unseen redemptions</span>
-          </Badge>
-          <Badge count={safeNumber(unseenCounts.unseen_messages_count)} overflowCount={99}>
-            <span style={{ fontSize: 12, color: "#6b7280" }}>Unseen messages</span>
-          </Badge>
-        </div>
       </div>
 
       {renderCategoryTabs(REDEMPTION_TABS, activeRedemptionCategory, (category) => {
@@ -1345,6 +1411,7 @@ const Reward = () => {
                 <th>Points</th>
                 <th>Status</th>
                 <th>Messages</th>
+                <th>Unread</th>
                 <th>Date</th>
                 <th>Actions</th>
               </tr>
@@ -1352,13 +1419,13 @@ const Reward = () => {
             <tbody>
               {redemptionsLoading ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: "center", padding: 24 }}>
+                  <td colSpan={9} style={{ textAlign: "center", padding: 24 }}>
                     <Spinner size="sm" color="inherit" />
                   </td>
                 </tr>
               ) : redemptionRows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: "center", padding: 24 }}>
+                  <td colSpan={9} style={{ textAlign: "center", padding: 24 }}>
                     <ProductTableNoData
                       title="No redemptions found."
                       subtitle="There is nothing to show for this filter."
@@ -1389,7 +1456,28 @@ const Reward = () => {
                         );
                       })()}
                     </td>
-                    <td>{row?.message_count ?? row?.messages_count ?? "0"}</td>
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span>{row?.message_count ?? row?.messages_count ?? "0"}</span>
+                      </div>
+                    </td>
+                    <td>
+                      {(() => {
+                        const unseenEntry = getRedemptionUnseenEntry(row);
+                        const unreadCount = safeNumber(unseenEntry?.count);
+                        return (
+                          <Badge
+                            showZero
+                            count={unreadCount}
+                            overflowCount={99}
+                            style={{
+                              backgroundColor: unreadCount > 0 ? "#ef4444" : "#d1d5db",
+                              boxShadow: "none",
+                            }}
+                          />
+                        );
+                      })()}
+                    </td>
                     <td>{formatDate(row?.created_at || row?.created_date)}</td>
                     <td>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>

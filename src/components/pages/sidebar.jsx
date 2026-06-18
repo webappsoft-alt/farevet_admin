@@ -659,7 +659,7 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
         {
           label: "Redemptions",
           path: "/reward/redemptions",
-          badgeKey: "unseen_redemptions_count",
+          badgeKey: "redemptions_total_count",
         },
       ],
     },
