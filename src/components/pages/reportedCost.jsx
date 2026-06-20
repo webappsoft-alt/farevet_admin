@@ -14,14 +14,11 @@ import moment from 'moment';
 
 const ReportedCost = () => {
     const [show, setShow] = useState(false);
-    const [show3, setShow3] = useState(false);
     const [selectItem, setSelectItem] = useState(null)
     const [isProcessing, setIsProcessing] = useState(false);
     const [lastId, setLastId] = useState(1);
     const [amount, setAmount] = useState(null)
-    const [points, setPoints] = useState(null)
     const [lastId2, setLastId2] = useState(0);
-    const [loading2, setLoading2] = useState('')
     const [reportStatus, setReportStatus] = useState('')
     const [showImagePreview, setShowImagePreview] = useState(false);
     const [selectedImage, setSelectedImage] = useState("");
@@ -56,24 +53,8 @@ const ReportedCost = () => {
         }
     };
 
-    const getLevelDetails = (points) => {
-        if (points >= 1500) {
-            return { level: "5", levelName: "Legend Status", };
-        } else if (points >= 750) {
-            return { level: "4", levelName: "Super Hero", };
-        } else if (points >= 400) {
-            return { level: "3", levelName: "Prime Hero", };
-        } else if (points >= 220) {
-            return { level: "2", levelName: "Junior Hero", };
-        } else if (points >= 100) {
-            return { level: "1", levelName: "Rookie Hero", };
-        } else {
-            return null;
-        }
-    }
-
     // useEffect(() => {
-    //     if (selectItem && selectItem.services) {
+    //     if (selectItem and selectItem.services) {
     //         form.setFieldsValue({
     //             service: selectItem.services
     //         });
@@ -238,74 +219,29 @@ const ReportedCost = () => {
             });
     };
     // console.log(selectedReport)
-    const handleSubmit2 = async (e) => {
-        e.preventDefault();
-        setLoading2(true);
-        const body2 = new FormData();
-        const finalPoints = Number(selectedReport?.user?.points) + Number(points);
-        const levelDetails = getLevelDetails(finalPoints);
-        const level = levelDetails ? levelDetails.level : null;
-        body2.append('type', 'update_data');
-        body2.append('table_name', 'users');
-        body2.append('user_type', 'customer');
-        body2.append('level', level);
-        body2.append('points', finalPoints);
-        body2.append('id', selectedReport?.user_id);
-        await apiRequest({ body: body2 })
-            .then(async (res) => {
-                setLoading2(false);
-                if (res?.result === true) {
-                    const body = new FormData();
-                    body.append('type', 'update_data');
-                    body.append('table_name', 'report_cost');
-                    body.append('status', 'accepted');
-                    body.append('id', selectedReport?.id);
-                    await apiRequest({ body });
-                    message.success("Points added successfully");
-                    setShow3(false);
-                    handleFetchBusiness();
-                } else {
-                    message.error("Creation failed...");
-                    setShow3(false);
-                }
-            })
-            .catch((error) => {
-                console.error(error);
-                setLoading2(false);
-            })
-            .finally(() => {
-                setLoading2(false);
-            });
-    };
-
 
     const handleUpdate = async (status) => {
         setReportStatus(status);
         setLoading(true);
-        if (status === 'accept') {
-            setShow3(true)
-            setShow(false)
-        }
-        else {
-            try {
-                const body = new FormData();
-                body.append('type', 'update_data');
-                body.append('table_name', 'report_cost');
-                body.append('status', 'cancelled');
-                body.append('id', selectedReport?.id);
-                const res = await apiRequest({ body });
-                if (res?.result === true) {
-                    handleFetchBusiness();
-                    setShow(false);
-                } else {
-                    message.error('Creation failed...');
-                }
-            } catch (error) {
-                console.error(error);
-                message.error(error.message || 'An error occurred');
-            } finally {
-                setLoading(false);
+        try {
+            const body = new FormData();
+            body.append('type', 'update_report_cost');
+            body.append('id', selectedReport?.id);
+            body.append('user_id', selectedReport?.user_id);
+            body.append('status', status === 'accept' ? 'accepted' : 'cancelled');
+            const res = await apiRequest({ body });
+            if (res?.result === true) {
+                message.success(`Report ${status === 'accept' ? 'accepted' : 'cancelled'} successfully`);
+                handleFetchBusiness();
+                setShow(false);
+            } else {
+                message.error(`${status === 'accept' ? 'Acceptance' : 'Cancellation'} failed...`);
             }
+        } catch (error) {
+            console.error(error);
+            message.error(error.message || 'An error occurred');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -352,48 +288,6 @@ const ReportedCost = () => {
                                         className="flex justify-center bg_primary py-[12px] px-[1rem] rounded-3 items-center button_shadow">
                                         <span className="inter_semibold text-sm text_white">
                                             Update Price
-                                        </span>
-                                    </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        className="flex justify-center bg_primary cursor-not-allowed py-[12px] px-[4rem] rounded-3 items-center button_shadow"
-                                        disabled
-                                    >
-                                        <Spinner size={18} className="text_white" />
-                                    </button>
-                                )}
-                            </div>
-                        </Form>
-                    </Modal.Body>
-                </Modal>
-                <Modal show={show3} onHide={() => setShow3(false)} centered>
-                    <Modal.Header closeButton
-                        style={{ borderBottom: 'none' }}>
-                    </Modal.Header>
-                    <Modal.Body>
-                        <Form
-                            // form={form}
-                            onSubmit={handleSubmit2} >
-                            <span className="inter-sm text_dark inter_medium">Enter Points</span>
-                            <Form.Group
-                                className='mb-2'
-                            >
-                                <Form.Control
-                                    required
-                                    type='text'
-                                    size='large'
-                                    onChange={(e) => setPoints(e.target.value)}
-                                />
-                            </Form.Group>
-                            <div className="flex justify-end w-full my-3">
-                                {!loading2 ? (
-                                    <button
-                                        disabled={loading2}
-                                        type="submit"
-                                        className="flex justify-center bg_primary py-[12px] px-[1rem] rounded-3 items-center button_shadow">
-                                        <span className="inter_semibold text-sm text_white">
-                                            Add Points
                                         </span>
                                     </button>
                                 ) : (
@@ -492,21 +386,20 @@ const ReportedCost = () => {
                         </div >
                         <div className="flex gap-2 items-center">
                             <button
-                                // disabled={loading}
+                                disabled={loading}
                                 style={{ backgroundColor: '#06D6A0' }}
                                 onClick={() => { handleUpdate('accept') }}
                                 className="w-1/2 rounded-lg text_white flex items-center justify-center p-2"
                             >
-                                {/* {loading && reportStatus === 'accept' ? <Spinner size={20} color='inherit' /> : 'Approve'} */}
-                                Approve
+                                {loading && reportStatus === 'accept' ? <Spinner size={18} color='inherit' /> : 'Approve'}
                             </button>
                             <button
-                                // disabled={loading}
+                                disabled={loading}
                                 style={{ backgroundColor: '#FF6F61' }}
                                 onClick={() => { handleUpdate('reject') }}
                                 className="w-1/2 rounded-lg text_white flex items-center justify-center p-2"
                             >
-                                {loading && reportStatus === 'reject' ? <Spinner size={20} color='inherit' /> : 'Reject'}
+                                {loading && reportStatus === 'reject' ? <Spinner size={18} color='inherit' /> : 'Reject'}
                             </button>
                         </div>
                     </Modal.Body>
