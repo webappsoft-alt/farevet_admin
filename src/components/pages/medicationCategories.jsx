@@ -48,15 +48,20 @@ const MedicationCategories = () => {
   const [saving, setSaving] = useState(false);
   const [listPage, setListPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const categoryInputRef = useRef(null);
 
-  const fetchCategories = useCallback(async () => {
+  const fetchCategories = useCallback(async (pageNum = 1, search = "") => {
     setLoading(true);
     try {
       const body = new FormData();
       body.append("type", "get_list");
       body.append("table_name", TABLE_NAME);
-      body.append("page", String(listPage));
+      body.append("page", String(pageNum));
+      if (search) {
+        body.append("search", search);
+      }
       const res = await apiRequest({ body });
       if (res && Array.isArray(res.data)) {
         setRows(res.data.map(normalizeCategoryRow));
@@ -77,11 +82,19 @@ const MedicationCategories = () => {
     } finally {
       setLoading(false);
     }
-  }, [listPage]);
+  }, []);
 
   useEffect(() => {
-    void fetchCategories();
-  }, [fetchCategories]);
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setListPage(1);
+    void fetchCategories(1, debouncedSearchQuery);
+  }, [debouncedSearchQuery, fetchCategories]);
 
   const sortedRows = useMemo(
     () =>
@@ -96,7 +109,9 @@ const MedicationCategories = () => {
   const pageCount = Math.max(1, Math.ceil((totalCount || 0) / PAGE_SIZE));
 
   const handlePagination = (page) => {
-    setListPage(page.selected + 1);
+    const nextPage = page.selected + 1;
+    setListPage(nextPage);
+    void fetchCategories(nextPage, debouncedSearchQuery);
   };
 
   const Previous = () => (
@@ -200,7 +215,7 @@ const MedicationCategories = () => {
       if (apiOk(res)) {
         message.success(isEdit ? "Category updated." : "Category added.");
         closeForm();
-        await fetchCategories();
+        await fetchCategories(listPage, debouncedSearchQuery);
       } else {
         message.error(res?.message || "Save failed.");
       }
@@ -263,7 +278,7 @@ const MedicationCategories = () => {
             const res = await apiRequest({ body });
             if (apiOk(res)) {
               message.success("Category deleted.");
-              await fetchCategories();
+              await fetchCategories(listPage, debouncedSearchQuery);
             } else {
               message.error(res?.message || "Delete failed.");
             }
@@ -274,7 +289,7 @@ const MedicationCategories = () => {
         },
       });
     },
-    [fetchCategories],
+    [fetchCategories, listPage, debouncedSearchQuery],
   );
 
   const modalLabelStyle = {
@@ -329,8 +344,24 @@ const MedicationCategories = () => {
       </div>
 
       <div className="edu-card">
-        <div className="edu-ph">
+        <div className="edu-ph" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
           <div className="edu-pt">Medication categories list</div>
+          <input
+            type="text"
+            style={{ 
+              width: "250px", 
+              border: "1px solid #e8e8f0", 
+              borderRadius: "6px", 
+              padding: "6px 12px", 
+              fontSize: "12px", 
+              outline: "none",
+              color: "#1a1a2e",
+              background: "#f9f9fb"
+            }}
+            placeholder="Search categories..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
         <div>
           <table className="edu-tbl">

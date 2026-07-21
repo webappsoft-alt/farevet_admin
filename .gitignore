@@ -10,10 +10,12 @@
 
 farevet-admin-panel.*
 
+
 # production
-/build
+/build*
 /build-old
 /build.zip
+.build.zip
 
 
 .fareVet-admin-panel.html

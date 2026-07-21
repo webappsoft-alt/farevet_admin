@@ -209,6 +209,10 @@ const MedicationDatabase = () => {
 
   const [medCategories, setMedCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoryPage, setCategoryPage] = useState(1);
+  const [hasMoreCategories, setHasMoreCategories] = useState(true);
+  const [categorySearch, setCategorySearch] = useState("");
+  const [debouncedCategorySearch, setDebouncedCategorySearch] = useState("");
   const [medications, setMedications] = useState([]);
   const [medicationsLoading, setMedicationsLoading] = useState(false);
   const [listPage, setListPage] = useState(1);
@@ -224,33 +228,67 @@ const MedicationDatabase = () => {
       .map((r) => ({ label: r.name, value: r.name, id: r.id }));
   }, [medCategories]);
 
-  const fetchMedCategories = useCallback(async () => {
+  const fetchMedCategories = useCallback(async (pageNum = 1, search = "") => {
     setCategoriesLoading(true);
     try {
       const body = new FormData();
       body.append("type", "get_list");
       body.append("table_name", MEDICATIONS_CATEGORY_TABLE);
+      body.append("page", String(pageNum));
+      if (search) {
+        body.append("search", search);
+      }
       const res = await apiRequest({ body });
+
+      let fetched = [];
       if (res && Array.isArray(res.data)) {
-        setMedCategories(res.data.map(normalizeCategoryRow));
+        fetched = res.data.map(normalizeCategoryRow);
       } else if (res?.data && typeof res.data === "object") {
         const arr = Array.isArray(res.data) ? res.data : [];
-        setMedCategories(arr.map(normalizeCategoryRow));
-      } else {
-        setMedCategories([]);
+        fetched = arr.map(normalizeCategoryRow);
       }
+
+      if (fetched.length < PAGE_SIZE) {
+        setHasMoreCategories(false);
+      } else {
+        setHasMoreCategories(true);
+      }
+
+      setMedCategories((prev) => {
+        if (pageNum === 1) return fetched;
+        const existingIds = new Set(prev.map((c) => c.id));
+        const uniqueNew = fetched.filter((c) => !existingIds.has(c.id));
+        return [...prev, ...uniqueNew];
+      });
     } catch (e) {
       console.error(e);
       message.error("Could not load medication categories.");
-      setMedCategories([]);
+      if (pageNum === 1) setMedCategories([]);
     } finally {
       setCategoriesLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void fetchMedCategories();
-  }, [fetchMedCategories]);
+    const handler = setTimeout(() => {
+      setDebouncedCategorySearch(categorySearch);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [categorySearch]);
+
+  useEffect(() => {
+    setCategoryPage(1);
+    setHasMoreCategories(true);
+    void fetchMedCategories(1, debouncedCategorySearch);
+  }, [debouncedCategorySearch, fetchMedCategories]);
+
+  const handleCategoryScrollToBottom = useCallback(() => {
+    if (!categoriesLoading && hasMoreCategories) {
+      const nextPage = categoryPage + 1;
+      setCategoryPage(nextPage);
+      void fetchMedCategories(nextPage, debouncedCategorySearch);
+    }
+  }, [categoriesLoading, hasMoreCategories, categoryPage, debouncedCategorySearch, fetchMedCategories]);
 
   const fetchMedications = useCallback(async () => {
     setMedicationsLoading(true);
@@ -421,20 +459,9 @@ const MedicationDatabase = () => {
     }
   }, [location.search, navigate]);
 
-  useEffect(() => {
-    if (categorySelectOptions.length === 0) {
-      setCategory(null);
-      return;
-    }
-    setCategory((prev) => {
-      if (prev && categorySelectOptions.some((o) => o.value === prev.value)) {
-        return prev;
-      }
-      return categorySelectOptions[0];
-    });
-  }, [categorySelectOptions]);
 
   const openCreateForm = () => {
+    setCategorySearch("");
     setEditingMedicationId(null);
     setCategory(categorySelectOptions[0] ?? null);
     setPetType("dog");
@@ -453,6 +480,7 @@ const MedicationDatabase = () => {
   };
 
   const openEditForm = (row) => {
+    setCategorySearch("");
     const categoryLabel =
       categoryById.get(String(row?.category_id ?? "")) ||
       categoryText(row?.category_name) ||
@@ -464,10 +492,10 @@ const MedicationDatabase = () => {
       ) ||
       (categoryLabel
         ? {
-            id: row?.category_id,
-            value: categoryLabel,
-            label: categoryLabel,
-          }
+          id: row?.category_id,
+          value: categoryLabel,
+          label: categoryLabel,
+        }
         : null);
 
     setEditingMedicationId(row?.id ?? null);
@@ -490,6 +518,7 @@ const MedicationDatabase = () => {
   };
 
   const closeForm = () => {
+    setCategorySearch("");
     setShowCatalog(true);
     setEditingMedicationId(null);
   };
@@ -595,7 +624,7 @@ const MedicationDatabase = () => {
   return (
     <div className="medication-panel">
       <Modal
-      zIndex={9999}
+        zIndex={9999}
         title={
           <span className="med-detail-modal-title">
             Medication details
@@ -751,7 +780,7 @@ const MedicationDatabase = () => {
                       className={`med-status ${String(detailRow?.status ?? "current").toLowerCase().trim() === "stale" ? "med-s-urgent" : "med-s-active"}`}
                     >
                       {String(detailRow?.status ?? "current").toLowerCase().trim() ===
-                      "stale"
+                        "stale"
                         ? "Stale"
                         : "Current"}
                     </span>
@@ -856,7 +885,7 @@ const MedicationDatabase = () => {
                 21 days.
                 Update them to keep comparisons accurate.
               </div>
-              
+
             </div>
           ) : null}
 
@@ -912,66 +941,66 @@ const MedicationDatabase = () => {
                       .trim();
                     const isStale = statusRaw === "stale";
                     return (
-                  <tr key={row.id}>
-                    <td className="med-bold">{row?.medication_name || "—"}</td>
-                    <td>{categoryLabel}</td>
-                    <td>{prettyPetType(row?.pet_type)}</td>
-                    <td>
-                      <span
-                        className={`med-tag ${rx === "yes" ? "med-tg-a" : "med-tg-b"}`}
-                      >
-                        {rxText}
-                      </span>
-                    </td>
-                    <td className="med-price-red">{formatMoney(row?.clinic_price)}</td>
-                    <td className="med-price-green">{formatMoney(row?.chewy_price)}</td>
-                    <td>{prettyDate(row?.updated_at || row?.created_at)}</td>
-                    <td>
-                      <span
-                        className={`med-status ${isStale ? "med-s-urgent" : "med-s-active"}`}
-                      >
-                        {isStale ? "Stale" : "Current"}
-                      </span>
-                    </td>
-                    <td>
-                      <div
-                        style={{ display: "flex", gap: 4, flexWrap: "wrap" }}
-                      >
-                        <button
-                          type="button"
-                          className="med-btn med-btn-ghost med-btn-sm"
-                          onClick={() => setDetailRow(row)}
-                        >
-                          Details
-                        </button>
-                        <button
-                          type="button"
-                          className="med-btn med-btn-ghost med-btn-sm"
-                          onClick={() => openEditForm(row)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="bg-[#ED5D67] flex justify-center rounded-3 items-center"
-                          style={{
-                            width: "24px",
-                            height: "24px",
-                            backgroundColor: "#ED5D67",
-                            opacity:
-                              deletingMedicationId === String(row?.id) ? 0.7 : 1,
-                          }}
-                          onClick={() => deleteMedication(row)}
-                          disabled={deletingMedicationId === String(row?.id)}
-                          aria-label="Delete medication"
-                        >
-                          <img
-                            style={{ width: "14px", height: "auto" }}
-                            src={trash}
-                            alt=""
-                          />
-                        </button>
-                        {/* <button
+                      <tr key={row.id}>
+                        <td className="med-bold">{row?.medication_name || "—"}</td>
+                        <td>{categoryLabel}</td>
+                        <td>{prettyPetType(row?.pet_type)}</td>
+                        <td>
+                          <span
+                            className={`med-tag ${rx === "yes" ? "med-tg-a" : "med-tg-b"}`}
+                          >
+                            {rxText}
+                          </span>
+                        </td>
+                        <td className="med-price-red">{formatMoney(row?.clinic_price)}</td>
+                        <td className="med-price-green">{formatMoney(row?.chewy_price)}</td>
+                        <td>{prettyDate(row?.updated_at || row?.created_at)}</td>
+                        <td>
+                          <span
+                            className={`med-status ${isStale ? "med-s-urgent" : "med-s-active"}`}
+                          >
+                            {isStale ? "Stale" : "Current"}
+                          </span>
+                        </td>
+                        <td>
+                          <div
+                            style={{ display: "flex", gap: 4, flexWrap: "wrap" }}
+                          >
+                            <button
+                              type="button"
+                              className="med-btn med-btn-ghost med-btn-sm"
+                              onClick={() => setDetailRow(row)}
+                            >
+                              Details
+                            </button>
+                            <button
+                              type="button"
+                              className="med-btn med-btn-ghost med-btn-sm"
+                              onClick={() => openEditForm(row)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="bg-[#ED5D67] flex justify-center rounded-3 items-center"
+                              style={{
+                                width: "24px",
+                                height: "24px",
+                                backgroundColor: "#ED5D67",
+                                opacity:
+                                  deletingMedicationId === String(row?.id) ? 0.7 : 1,
+                              }}
+                              onClick={() => deleteMedication(row)}
+                              disabled={deletingMedicationId === String(row?.id)}
+                              aria-label="Delete medication"
+                            >
+                              <img
+                                style={{ width: "14px", height: "auto" }}
+                                src={trash}
+                                alt=""
+                              />
+                            </button>
+                            {/* <button
                           type="button"
                           className={`med-btn med-btn-sm ${isStale ? "med-btn-amber" : "med-btn-primary"}`}
                           onClick={() =>
@@ -980,9 +1009,9 @@ const MedicationDatabase = () => {
                         >
                           Prices
                         </button> */}
-                      </div>
-                    </td>
-                  </tr>
+                          </div>
+                        </td>
+                      </tr>
                     );
                   })
                 )}
@@ -1074,7 +1103,18 @@ const MedicationDatabase = () => {
                       inputId="medication-category-input"
                       options={categorySelectOptions}
                       value={category}
-                      onChange={(opt) => setCategory(opt)}
+                      isClearable
+                      onChange={(opt) => {
+                        setCategory(opt);
+                        setCategorySearch("");
+                      }}
+                      onMenuClose={() => setCategorySearch("")}
+                      onInputChange={(val, actionMeta) => {
+                        if (actionMeta.action === "input-change") {
+                          setCategorySearch(val);
+                        }
+                      }}
+                      onMenuScrollToBottom={handleCategoryScrollToBottom}
                       placeholder={
                         categorySelectOptions.length
                           ? "Select category"
@@ -1082,7 +1122,8 @@ const MedicationDatabase = () => {
                       }
                       classNamePrefix="med-react-select"
                       isSearchable
-                      isDisabled={!categorySelectOptions.length}
+                      isLoading={categoriesLoading}
+                      isDisabled={!categorySelectOptions.length && !categoriesLoading}
                       menuPortalTarget={
                         typeof document !== "undefined" ? document.body : null
                       }
