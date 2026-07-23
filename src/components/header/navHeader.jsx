@@ -13,10 +13,17 @@ const NavHeader = ({ broken, setToggled, toggled }) => {
     const admindata = JSON.parse(window.localStorage.getItem('login_farevet_formData'))
 
     const getPageName = (pathname) => {
-        const path = pathname.split('/')[1];
+        const parts = pathname.split('/').filter(Boolean);
+        const path = parts[0];
         if (!path || path === 'dashboard') return 'Dashboard';
         if (path === 'chat') return 'Messages';
         if (path === 'change-password') return 'Settings';
+        if (path === 'reward') {
+            if (parts[1] === 'items') return 'Items';
+            if (parts[1] === 'redemptions' && parts[2]) return 'Redemption Detail';
+            if (parts[1] === 'redemptions') return 'Redemptions';
+            return 'Reward Points';
+        }
         if (path === 'user') return 'Users';
         if (path === 'vet') return 'Vets';
 
@@ -31,7 +38,7 @@ const NavHeader = ({ broken, setToggled, toggled }) => {
 
     return (
         <>
-            <Navbar bg="white" expand="lg" sticky="top" className='p-3 shadow-sm w-[100%]' id="navbar">
+            <Navbar bg="white" expand="lg" sticky="top" className='p-3 shadow-sm w-[100%] !z-[100]' id="navbar">
                 <Container fluid className="w-full max-w-none px-3">
                     <div className='flex items-center gap-3 md:w-1/2'>
                         {broken && (
