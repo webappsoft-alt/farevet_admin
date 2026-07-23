@@ -310,9 +310,9 @@ const ChatMessageList = ({ chatDetail, setShowChat, setCheckMsg, checkMsg, setRe
                                     ? "No Name"
                                     : chatDetail?.sender_name}
                             </h6>
-                            <span className="text-[11px] text-gray-500 m-0 mt-0.5 leading-none">
+                            {/* <span className="text-[11px] text-gray-500 m-0 mt-0.5 leading-none">
                                 {chatDetail?.sender_email || chatDetail?.email || chatDetail?.user_email || "No email available"}
-                            </span>
+                            </span> */}
                         </div>
                     </div>
                     {

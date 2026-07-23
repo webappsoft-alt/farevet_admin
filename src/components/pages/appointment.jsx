@@ -13,6 +13,8 @@ import {
   Calendar,
   Code,
   Mail,
+  MessageSquare,
+  Edit2,
   Phone,
   PhoneCall,
 } from "react-feather";
@@ -39,6 +41,9 @@ import {
   specie,
   weight,
 } from "../icons/icon";
+
+import EditAppointmentModal from "./appointmentComponents/editAppointmentModal";
+import ChatMessageList from "./messages/chatMessageList";
 
 
 const daysOfWeek = [
@@ -97,6 +102,8 @@ const Appointments = () => {
   const [scheduleData, setScheduleData] = useState([]);
   const [timeSlots, setTimeSlots] = useState([]);
   const [date, setDate] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editItem, setEditItem] = useState(null);
   const [categories, setCategories] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isProcessing2, setIsProcessing2] = useState(false);
@@ -107,6 +114,9 @@ const Appointments = () => {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [totalPages, setTotalPages] = useState(null);
   const [totalDataCount, setTotalDataCount] = useState(0);
+
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [chatUserDetail, setChatUserDetail] = useState(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -121,6 +131,16 @@ const Appointments = () => {
 
   const handleShowDetail = (item) => {
     navigate(`/appointments/${item.id}`, { state: { selectedItem: item } });
+  };
+
+  const handleShowChatModal = (item) => {
+    setChatUserDetail({ 
+      sender_id: item?.user?.id || item?.user_id, 
+      sender_name: item?.user?.name || item?.business?.name || 'User', 
+      sender_email: item?.user?.email || item?.business?.email,
+      sender_img: item?.user?.image ? `${global.IMAGEURL}/${item?.user?.image}` : ""
+    });
+    setShowChatModal(true);
   };
 
   useEffect(() => {
@@ -566,17 +586,49 @@ const Appointments = () => {
 
                   {/* Header */}
                   <div className="flex justify-between items-start mb-4">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase ${cfg.pill}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                      {item?.status}
-                    </span>
+                    <div className="flex flex-col gap-2 items-start">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase ${cfg.pill}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                        {item?.status}
+                      </span>
+                      {(item?.rescheduled === "1" || item?.rescheduled === 1) && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide uppercase bg-[#E0F2FE] text-[#0284C7] border border-[#BAE6FD]">
+                          Rescheduled
+                        </span>
+                      )}
+                    </div>
 
                     <div className="flex flex-col items-end gap-0.5">
-                      <div className="flex items-center gap-1 text-[#9B9BB5]">
-                        <MapPin size={11} strokeWidth={2} />
-                        <span className="text-[11px] font-medium">1.5 km</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditItem(item);
+                            setShowEditModal(true);
+                          }}
+                          className="flex items-center justify-center w-[26px] h-[26px] rounded-full bg-[#F5F5FA] border border-[#EBEBF5] hover:bg-[#E2E2EA] transition-colors"
+                          title="Edit Appointment"
+                        >
+                          <Edit2 size={12} className="text-[#6B6B8A]" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShowChatModal(item);
+                          }}
+                          className="flex items-center justify-center w-[26px] h-[26px] rounded-full bg-[#F3EEFF] border border-[#D8B4FE] hover:bg-[#EDE9FE] transition-colors"
+                          title="Send message"
+                        >
+                          <MessageSquare size={12} className="text-[#8930F9]" />
+                        </button>
+                        <div className="flex items-center gap-1 text-[#9B9BB5] ml-1">
+                          <MapPin size={11} strokeWidth={2} />
+                          <span className="text-[11px] font-medium">1.5 km</span>
+                        </div>
                       </div>
-                      <span className="text-[11px] font-medium text-[#B0B0C8]">
+                      <span className="text-[11px] font-medium text-[#B0B0C8] mt-0.5">
                         {item?.created_at ? moment(item?.created_at).format("MMM DD, YYYY") : "N/A"}
                       </span>
                     </div>
@@ -624,6 +676,16 @@ const Appointments = () => {
                     </div>
                   </div>
 
+                  {/* Admin message preview */}
+                  {item?.admin_note && (
+                    <div className="mt-2.5 flex items-start gap-1.5 bg-[#F3EEFF] border border-[#D8B4FE] rounded-xl px-2.5 py-2">
+                      <MessageSquare size={11} className="text-[#8930F9] shrink-0 mt-0.5" />
+                      <span className="text-[11px] font-medium text-[#5B21B6] leading-snug line-clamp-1">
+                        {item?.admin_note}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Footer */}
                   <div className="mt-auto flex justify-between items-center pt-3.5 border-t border-[#F0F0F5]">
                     <div className="flex items-baseline gap-1.5">
@@ -656,6 +718,38 @@ const Appointments = () => {
           )}
         </div>
       )}
+
+      <EditAppointmentModal
+        show={showEditModal}
+        handleClose={() => setShowEditModal(false)}
+        selectedItem={editItem}
+        onSuccess={() => {
+          handleFetchData(currentPage);
+        }}
+      />
+
+      <Modal show={showChatModal} onHide={() => setShowChatModal(false)} centered size="lg">
+        <Modal.Header closeButton>
+          <div className="flex justify-start">
+            <span className="text_dark text-xl plusJakara_medium">
+              Chat with {chatUserDetail?.sender_name}
+            </span>
+          </div>
+        </Modal.Header>
+        <Modal.Body style={{ height: '600px', padding: 0 }}>
+          {chatUserDetail && (
+            <ChatMessageList 
+              chatDetail={chatUserDetail} 
+              setShowChat={setShowChatModal} 
+              setCheckMsg={() => {}} 
+              checkMsg={false} 
+              setReload={() => {}} 
+              activeId={chatUserDetail?.sender_id} 
+            />
+          )}
+        </Modal.Body>
+      </Modal>
+
       <div className="mt-auto">
         <div className="flex justify-between items-center border shadow-sm bg_white rounded-lg w-full py-2 px-3">
           <span className="text_secondary inter_medium text">{`Total showing ${totalDataCount}`}</span>

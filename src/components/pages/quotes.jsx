@@ -479,7 +479,8 @@ const Quotes = () => {
                       petInformation?.species,
                       petInformation?.breed,
                       petInformation?.gender,
-                      petInformation?.weight,
+                      petInformation?.weight ? `Weight: ${petInformation.weight}` : null,
+                      petInformation?.spayed ? `Spayed/Neutered: ${petInformation.spayed}` : null,
                     ]
                       .filter(Boolean)
                       .map((val, i) => (

@@ -4,8 +4,8 @@
 import Spinner from "../../Spinner";
 import { Form, message } from "antd";
 import moment from "moment";
-import React, { useEffect, useState } from "react";
-import { ArrowLeft, Mail, Phone, Clock as ClockIcon } from "react-feather";
+import React, { useEffect, useRef, useState } from "react";
+import { ArrowLeft, Mail, Phone, Clock as ClockIcon, Send, Edit2, Check, X, MessageSquare } from "react-feather";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { apiRequest } from "../../../api/auth_api";
 import {
@@ -18,6 +18,10 @@ import {
   specie,
   weight,
 } from "../../icons/icon";
+
+import EditAppointmentModal from "./editAppointmentModal";
+import ChatMessageList from "../messages/chatMessageList";
+import { Modal } from "react-bootstrap";
 
 const safeParseSchedule = (value) => {
   if (!value) return [];
@@ -46,14 +50,37 @@ const AppointmentDetail = () => {
   const [orderStatus, setOrderStatus] = useState("");
   const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
 
-  // If data wasn't passed via state, we ideally fetch it by ID. 
-  // For now, if no state, redirect back.
+  // ---------- Edit Modal State ----------
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  // ---------- Admin Note ----------
+  const [adminNote, setAdminNote] = useState("");
+  const [editingNote, setEditingNote] = useState(false);
+  const [isSavingNote, setIsSavingNote] = useState(false);
+
+  // ---------- Send Message ----------
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [chatUserDetail, setChatUserDetail] = useState(null);
+
+  const userData = JSON.parse(window.localStorage.getItem("login_farevet_formData"));
+
   useEffect(() => {
     if (!selectedItem) {
       message.error("Appointment details not found.");
       navigate("/appointments");
     }
   }, [selectedItem, navigate]);
+
+  // ---- Handlers: Send Message ----
+  const handleShowChatModal = () => {
+    setChatUserDetail({
+      sender_id: selectedItem?.user?.id || selectedItem?.user_id,
+      sender_name: selectedItem?.user?.name || selectedItem?.business?.name || 'User',
+      sender_email: selectedItem?.user?.email || selectedItem?.business?.email,
+      sender_img: selectedItem?.user?.image ? `${global.IMAGEURL}/${selectedItem?.user?.image}` : ""
+    });
+    setShowChatModal(true);
+  };
 
   const calculateDiscountedAmount = (item) => {
     const orderType = item?.order_type;
@@ -217,17 +244,42 @@ const AppointmentDetail = () => {
                 </span>
               </div>
             </div>
-            <div
-              className={`px-4 py-1.5 rounded-full text-sm font-bold capitalize ${selectedItem?.status === "pending"
-                ? "bg-yellow-100 text-yellow-700"
-                : selectedItem?.status === "processing"
-                  ? "bg-blue-100 text-blue-700"
-                  : selectedItem?.status === "completed"
-                    ? "bg-[#5CE2C51C] text-[#06D6A0]"
-                    : "bg-red-100 text-red-700"
-                }`}
-            >
-              {selectedItem?.status}
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(true)}
+                  className="flex items-center justify-center w-[34px] h-[34px] rounded-full bg-[#F5F5FA] border border-[#EBEBF5] hover:bg-[#E2E2EA] transition-colors shadow-sm"
+                  title="Edit Appointment"
+                >
+                  <Edit2 size={14} className="text-[#6B6B8A]" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShowChatModal}
+                  className={`flex items-center justify-center w-[34px] h-[34px] rounded-full border transition-colors shadow-sm bg-[#F3EEFF] border-[#D8B4FE] text-[#8930F9] hover:bg-[#EDE9FE]`}
+                  title="Send message"
+                >
+                  <MessageSquare size={14} />
+                </button>
+                <div
+                  className={`px-4 py-1.5 rounded-full text-sm font-bold capitalize ${selectedItem?.status === "pending"
+                    ? "bg-yellow-100 text-yellow-700"
+                    : selectedItem?.status === "processing"
+                      ? "bg-blue-100 text-blue-700"
+                      : selectedItem?.status === "completed"
+                        ? "bg-[#5CE2C51C] text-[#06D6A0]"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                >
+                  {selectedItem?.status}
+                </div>
+                {(selectedItem?.rescheduled === "1" || selectedItem?.rescheduled === 1) && (
+                  <div className="px-4 py-1.5 rounded-full text-sm font-bold uppercase bg-[#E0F2FE] text-[#0284C7] border border-[#BAE6FD]">
+                    Rescheduled
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -311,12 +363,26 @@ const AppointmentDetail = () => {
                 </div>
               </div>
 
+              {/* Client Note */}
               <div className="bg-white rounded-2xl border border-[#E8E8F0] p-4 shadow-sm flex flex-col gap-2">
                 <h4 className="text-[10px] font-bold text-[#9B9BB5] uppercase tracking-wider mb-1">
-                  Notes
+                  Client Note
                 </h4>
                 <span className="text-sm font-medium text-[#4A4A68] italic">
                   {selectedItem?.note || "No notes provided."}
+                </span>
+              </div>
+
+              {/* ── Note for Client ── */}cd farvetunderscoreadmin
+
+              <div className="bg-white rounded-2xl border border-[#E8E8F0] p-4 shadow-sm flex flex-col gap-2">
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-[10px] font-bold text-[#9B9BB5] uppercase tracking-wider">
+                    Admin Note
+                  </h4>
+                </div>
+                <span className="text-sm font-medium text-[#4A4A68] italic">
+                  {selectedItem?.admin_note || "No note for client yet."}
                 </span>
               </div>
             </div>
@@ -397,9 +463,9 @@ const AppointmentDetail = () => {
             </div>
           </div>
 
-          {/* Schedule & Price Section */}
+          {/* ── Schedule & Price Section (with inline edit) ── */}
           <div className="bg-white rounded-2xl border border-[#E8E8F0] p-4 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div className="flex flex-col gap-2 w-full flex-1">
+            <div className="flex flex-col gap-3 w-full flex-1">
               {(() => {
                 const parsedSchedule = safeParseSchedule(selectedItem?.schedule);
                 if (parsedSchedule && parsedSchedule.length > 0) {
@@ -451,66 +517,55 @@ const AppointmentDetail = () => {
                       </div>
                     );
                   } else if (selectedItem?.status === "cancelled") {
-                    return (
-                      <div className="flex gap-4 items-center flex-wrap">
-                        {/* <div className="flex items-center gap-1 bg-[#F9F9FB] px-3 py-2 rounded-xl border border-[#E8E8F0]">
-                          <img src={calendersmall} alt="" />
-                          <span className="plusJakara_medium text-sm text_dark">
-                            {selectedItem?.booking_date || parsedSchedule[0]?.date}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 bg-[#F9F9FB] px-3 py-2 rounded-xl border border-[#E8E8F0]">
-                          <img
-                            src={clock}
-                            style={{ width: "24px", height: "auto" }}
-                            alt=""
-                          />
-                          <span className="plusJakara_medium text-sm text_dark">
-                            {selectedItem?.booking_time_12hour || parsedSchedule[0]?.time}
-                          </span>
-                        </div> */}
-                      </div>
-                    );
+                    return <div className="flex gap-4 items-center flex-wrap"></div>;
                   } else {
                     return (
                       <div className="flex gap-4 items-center flex-wrap">
-                        <div className="flex items-center gap-1 bg-[#F9F9FB] px-3 py-2 rounded-xl border border-[#E8E8F0]">
-                          <img src={calendersmall} alt="" />
-                          <span className="plusJakara_medium text-sm text_dark">
-                            {selectedItem?.booking_date || parsedSchedule[0]?.date}
-                          </span>
+                        {/* Date display */}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-bold text-[#9B9BB5] uppercase tracking-wider">Date</span>
+                          <div className="flex items-center gap-2 bg-[#F9F9FB] px-3 py-2 rounded-xl border border-[#E8E8F0] group">
+                            <img src={calendersmall} alt="" />
+                            <span className="plusJakara_medium text-sm text_dark">
+                              {selectedItem?.booking_date || parsedSchedule[0]?.date}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 bg-[#F9F9FB] px-3 py-2 rounded-xl border border-[#E8E8F0]">
-                          <img
-                            src={clock}
-                            style={{ width: "24px", height: "auto" }}
-                            alt=""
-                          />
-                          <span className="plusJakara_medium text-sm text_dark">
-                            {selectedItem?.booking_time_12hour || parsedSchedule[0]?.time}
-                          </span>
+                        {/* Time display */}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-bold text-[#9B9BB5] uppercase tracking-wider">Time</span>
+                          <div className="flex items-center gap-2 bg-[#F9F9FB] px-3 py-2 rounded-xl border border-[#E8E8F0] group">
+                            <img src={clock} style={{ width: "24px", height: "auto" }} alt="" />
+                            <span className="plusJakara_medium text-sm text_dark">
+                              {selectedItem?.booking_time_12hour || parsedSchedule[0]?.time}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     );
                   }
                 } else {
                   return (
-                    <div className="flex gap-2 items-center flex-wrap">
-                      <div className="flex items-center gap-1">
-                        <img src={calendersmall} alt="" />
-                        <span className="plusJakara_medium text-sm text_dark">
-                          {selectedItem?.booking_date}
-                        </span>
+                    <div className="flex gap-4 items-center flex-wrap">
+                      {/* Date display */}
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-bold text-[#9B9BB5] uppercase tracking-wider">Date</span>
+                        <div className="flex items-center gap-2 bg-[#F9F9FB] px-3 py-2 rounded-xl border border-[#E8E8F0] group">
+                          <img src={calendersmall} alt="" />
+                          <span className="plusJakara_medium text-sm text_dark">
+                            {selectedItem?.booking_date}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <img
-                          src={clock}
-                          style={{ width: "24px", height: "auto" }}
-                          alt=""
-                        />
-                        <span className="plusJakara_medium text-sm text_dark">
-                          {selectedItem?.booking_time_12hour}
-                        </span>
+                      {/* Time display */}
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-bold text-[#9B9BB5] uppercase tracking-wider">Time</span>
+                        <div className="flex items-center gap-2 bg-[#F9F9FB] px-3 py-2 rounded-xl border border-[#E8E8F0] group">
+                          <img src={clock} style={{ width: "24px", height: "auto" }} alt="" />
+                          <span className="plusJakara_medium text-sm text_dark">
+                            {selectedItem?.booking_time_12hour}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -547,6 +602,36 @@ const AppointmentDetail = () => {
           </div>
         </div>
       </Form>
+      <EditAppointmentModal
+        show={showEditModal}
+        handleClose={() => setShowEditModal(false)}
+        selectedItem={selectedItem}
+        onSuccess={(updated) => {
+          setSelectedItem({ ...selectedItem, ...updated });
+        }}
+      />
+
+      <Modal show={showChatModal} onHide={() => setShowChatModal(false)} centered size="lg">
+        <Modal.Header closeButton>
+          <div className="flex justify-start">
+            <span className="text_dark text-xl plusJakara_medium">
+              Chat with {chatUserDetail?.sender_name}
+            </span>
+          </div>
+        </Modal.Header>
+        <Modal.Body style={{ height: '600px', padding: 0 }}>
+          {chatUserDetail && (
+            <ChatMessageList
+              chatDetail={chatUserDetail}
+              setShowChat={setShowChatModal}
+              setCheckMsg={() => { }}
+              checkMsg={false}
+              setReload={() => { }}
+              activeId={chatUserDetail?.sender_id}
+            />
+          )}
+        </Modal.Body>
+      </Modal>
     </main>
   );
 };

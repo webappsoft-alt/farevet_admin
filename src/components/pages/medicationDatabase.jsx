@@ -523,17 +523,11 @@ const MedicationDatabase = () => {
     setEditingMedicationId(null);
   };
 
-  const refreshPrices = () => {
-    message.info("Would pull from GoodRx API and Chewy affiliate feed");
-  };
 
   const exportCsv = () => {
     message.info("Export would download a CSV in the full version.");
   };
 
-  const updateStale = () => {
-    message.success("Stale price update queued.");
-  };
 
   const deleteMedication = (row) => {
     const id = row?.id;
