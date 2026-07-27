@@ -87,6 +87,162 @@ function prettyPetType(raw) {
   return "—";
 }
 
+const PRESCRIPTION_OPTIONS = [
+  { id: "yes", label: "Rx" },
+  { id: "no", label: "OTC" },
+  { id: "in_store", label: "In store" },
+];
+
+function normalizePrescriptionValue(raw) {
+  const v = String(raw ?? "yes").toLowerCase().trim();
+  if (v === "no") return "no";
+  if (v === "in_store" || v === "instore" || v === "in-store") {
+    return "in_store";
+  }
+  return "yes";
+}
+
+function prettyPrescription(raw) {
+  const v = normalizePrescriptionValue(raw);
+  if (v === "no") return "OTC";
+  if (v === "in_store") return "In store";
+  return "Rx";
+}
+
+function prescriptionTagClass(raw) {
+  const v = normalizePrescriptionValue(raw);
+  if (v === "yes") return "med-tg-a";
+  if (v === "in_store") return "med-tg-c";
+  return "med-tg-b";
+}
+
+function customPharmacyFromRow(row, index) {
+  return {
+    name: String(row?.[`custom_pharmacy_${index}_name`] ?? "").trim(),
+    price: row?.[`custom_pharmacy_${index}_price`],
+    url: String(row?.[`custom_pharmacy_${index}_url`] ?? "").trim(),
+  };
+}
+
+function renderCustomPharmacyTableCell(row, index) {
+  const { name, price, url } = customPharmacyFromRow(row, index);
+  if (!name && !price && !url) return "—";
+  return (
+    <div style={{ minWidth: 88 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--med-ink)" }}>
+        {name || "—"}
+      </div>
+      {price != null && String(price).trim() !== "" ? (
+        <div className="med-price-green" style={{ fontSize: 10 }}>
+          {formatMoney(price)}
+        </div>
+      ) : null}
+      {url ? (
+        <div
+          style={{
+            fontSize: 9,
+            color: "var(--med-ink3)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            maxWidth: 120,
+          }}
+          title={url}
+        >
+          {url}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function normalizeMedicationRow(row) {
+  if (!row || typeof row !== "object") return row;
+  return {
+    ...row,
+    strength: row.strength ?? row.Strength ?? "",
+    quantity: row.quantity ?? row.Quantity ?? "",
+    prescription: normalizePrescriptionValue(row.prescription ?? row.Prescription),
+    custom_pharmacy_1_name:
+      row.custom_pharmacy_1_name ?? row.customPharmacy1Name ?? "",
+    custom_pharmacy_1_price:
+      row.custom_pharmacy_1_price ?? row.customPharmacy1Price ?? "",
+    custom_pharmacy_1_url: row.custom_pharmacy_1_url ?? row.customPharmacy1Url ?? "",
+    custom_pharmacy_2_name:
+      row.custom_pharmacy_2_name ?? row.customPharmacy2Name ?? "",
+    custom_pharmacy_2_price:
+      row.custom_pharmacy_2_price ?? row.customPharmacy2Price ?? "",
+    custom_pharmacy_2_url: row.custom_pharmacy_2_url ?? row.customPharmacy2Url ?? "",
+  };
+}
+
+function CustomPharmacyFields({
+  slotLabel,
+  name,
+  price,
+  url,
+  onNameChange,
+  onPriceChange,
+  onUrlChange,
+}) {
+  return (
+    <div className="med-pharm-block med-pharm-block-custom">
+      <div className="med-pharm-block-custom-lbl">{slotLabel}</div>
+      <div style={{ marginBottom: 8 }}>
+        <div className="med-field-lbl">Pharmacy name</div>
+        <input
+          className="med-finput"
+          value={name}
+          onChange={(e) => onNameChange(e.target.value)}
+          placeholder="e.g. Local compounding pharmacy"
+        />
+      </div>
+      <div className="med-pharm-grid">
+        <input
+          className="med-finput"
+          type="number"
+          value={price}
+          onChange={(e) => onPriceChange(e.target.value)}
+          placeholder="0.00"
+        />
+        <input
+          className="med-finput"
+          value={url}
+          onChange={(e) => onUrlChange(e.target.value)}
+          placeholder="https://..."
+          style={{ fontSize: 10 }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function CustomPharmacyDetail({ row, index }) {
+  const { name, price, url } = customPharmacyFromRow(row, index);
+  if (!name && !price && !url) return null;
+  const title = name || `Custom pharmacy ${index}`;
+  return (
+    <>
+      <div className="med-detail-item">
+        <div className="med-detail-dt">{title} — price</div>
+        <div className="med-detail-dd">{formatMoney(price)}</div>
+      </div>
+      <div className="med-detail-item med-detail-item-full">
+        <div className="med-detail-dt">{title} — link</div>
+        <div className="med-detail-dd">
+          {url ? (
+            <a href={url} target="_blank" rel="noopener noreferrer" className="med-detail-link">
+              {url}
+            </a>
+          ) : (
+            "—"
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 function prettyDate(raw) {
   if (!raw) return "—";
   const d = new Date(raw);
@@ -193,6 +349,8 @@ const MedicationDatabase = () => {
   const [prescription, setPrescription] = useState("yes");
   const [category, setCategory] = useState(null);
   const [medicationName, setMedicationName] = useState("");
+  const [strength, setStrength] = useState("");
+  const [quantity, setQuantity] = useState("");
   const [genericName, setGenericName] = useState("");
   const [noteText, setNoteText] = useState("");
   const [clinicPrice, setClinicPrice] = useState("");
@@ -202,6 +360,12 @@ const MedicationDatabase = () => {
   const [petMedsUrl, setPetMedsUrl] = useState("");
   const [walmartPrice, setWalmartPrice] = useState("");
   const [costcoPrice, setCostcoPrice] = useState("");
+  const [customPharmacy1Name, setCustomPharmacy1Name] = useState("");
+  const [customPharmacy1Price, setCustomPharmacy1Price] = useState("");
+  const [customPharmacy1Url, setCustomPharmacy1Url] = useState("");
+  const [customPharmacy2Name, setCustomPharmacy2Name] = useState("");
+  const [customPharmacy2Price, setCustomPharmacy2Price] = useState("");
+  const [customPharmacy2Url, setCustomPharmacy2Url] = useState("");
   const [savingMedication, setSavingMedication] = useState(false);
   const [editingMedicationId, setEditingMedicationId] = useState(null);
   const [deletingMedicationId, setDeletingMedicationId] = useState(null);
@@ -299,11 +463,11 @@ const MedicationDatabase = () => {
       body.append("page", String(listPage));
       const res = await apiRequest({ body });
       if (res && Array.isArray(res.data)) {
-        setMedications(res.data);
+        setMedications(res.data.map(normalizeMedicationRow));
         setListCount(Number(res.count) || res.data.length || 0);
       } else if (res?.data && typeof res.data === "object") {
         const arr = Array.isArray(res.data) ? res.data : [];
-        setMedications(arr);
+        setMedications(arr.map(normalizeMedicationRow));
         setListCount(Number(res.count) || arr.length || 0);
       } else {
         setMedications([]);
@@ -467,6 +631,8 @@ const MedicationDatabase = () => {
     setPetType("dog");
     setPrescription("yes");
     setMedicationName("");
+    setStrength("");
+    setQuantity("");
     setGenericName("");
     setNoteText("");
     setClinicPrice("");
@@ -476,44 +642,57 @@ const MedicationDatabase = () => {
     setPetMedsUrl("");
     setWalmartPrice("");
     setCostcoPrice("");
+    setCustomPharmacy1Name("");
+    setCustomPharmacy1Price("");
+    setCustomPharmacy1Url("");
+    setCustomPharmacy2Name("");
+    setCustomPharmacy2Price("");
+    setCustomPharmacy2Url("");
     setShowCatalog(false);
   };
 
   const openEditForm = (row) => {
     setCategorySearch("");
+    const normalized = normalizeMedicationRow(row);
     const categoryLabel =
-      categoryById.get(String(row?.category_id ?? "")) ||
-      categoryText(row?.category_name) ||
-      categoryText(row?.category) ||
+      categoryById.get(String(normalized?.category_id ?? "")) ||
+      categoryText(normalized?.category_name) ||
+      categoryText(normalized?.category) ||
       "";
     const selectedCat =
       categorySelectOptions.find(
-        (opt) => String(opt.id) === String(row?.category_id ?? ""),
+        (opt) => String(opt.id) === String(normalized?.category_id ?? ""),
       ) ||
       (categoryLabel
         ? {
-          id: row?.category_id,
+          id: normalized?.category_id,
           value: categoryLabel,
           label: categoryLabel,
         }
         : null);
 
-    setEditingMedicationId(row?.id ?? null);
-    setMedicationName(String(row?.medication_name ?? ""));
-    setGenericName(String(row?.generic_name ?? ""));
+    setEditingMedicationId(normalized?.id ?? null);
+    setMedicationName(String(normalized?.medication_name ?? ""));
+    setStrength(String(normalized?.strength ?? ""));
+    setQuantity(String(normalized?.quantity ?? ""));
+    setGenericName(String(normalized?.generic_name ?? ""));
     setCategory(selectedCat);
-    setPetType(String(row?.pet_type ?? "dog").toLowerCase() || "dog");
-    setPrescription(
-      String(row?.prescription ?? "yes").toLowerCase() === "no" ? "no" : "yes",
-    );
-    setNoteText(String(row?.Note ?? row?.note ?? ""));
-    setClinicPrice(String(row?.clinic_price ?? ""));
-    setChewyPrice(String(row?.chewy_price ?? ""));
-    setChewyUrl(String(row?.chewy_url ?? ""));
-    setPetMedsPrice(String(row?.petMeds_price ?? ""));
-    setPetMedsUrl(String(row?.petMeds_url ?? ""));
-    setWalmartPrice(String(row?.walmart_price ?? ""));
-    setCostcoPrice(String(row?.costco_price ?? ""));
+    setPetType(String(normalized?.pet_type ?? "dog").toLowerCase() || "dog");
+    setPrescription(normalizePrescriptionValue(normalized?.prescription));
+    setNoteText(String(normalized?.Note ?? normalized?.note ?? ""));
+    setClinicPrice(String(normalized?.clinic_price ?? ""));
+    setChewyPrice(String(normalized?.chewy_price ?? ""));
+    setChewyUrl(String(normalized?.chewy_url ?? ""));
+    setPetMedsPrice(String(normalized?.petMeds_price ?? ""));
+    setPetMedsUrl(String(normalized?.petMeds_url ?? ""));
+    setWalmartPrice(String(normalized?.walmart_price ?? ""));
+    setCostcoPrice(String(normalized?.costco_price ?? ""));
+    setCustomPharmacy1Name(String(normalized?.custom_pharmacy_1_name ?? ""));
+    setCustomPharmacy1Price(String(normalized?.custom_pharmacy_1_price ?? ""));
+    setCustomPharmacy1Url(String(normalized?.custom_pharmacy_1_url ?? ""));
+    setCustomPharmacy2Name(String(normalized?.custom_pharmacy_2_name ?? ""));
+    setCustomPharmacy2Price(String(normalized?.custom_pharmacy_2_price ?? ""));
+    setCustomPharmacy2Url(String(normalized?.custom_pharmacy_2_url ?? ""));
     setShowCatalog(false);
   };
 
@@ -582,6 +761,8 @@ const MedicationDatabase = () => {
         body.append("id", String(editingMedicationId));
       }
       body.append("medication_name", medName);
+      body.append("strength", strength.trim());
+      body.append("quantity", quantity.trim());
       body.append("generic_name", genericName.trim());
       body.append("category_id", String(category.id || ""));
       body.append("pet_type", petType);
@@ -594,6 +775,12 @@ const MedicationDatabase = () => {
       body.append("petMeds_url", petMedsUrl.trim());
       body.append("walmart_price", String(walmartPrice).trim());
       body.append("costco_price", String(costcoPrice).trim());
+      body.append("custom_pharmacy_1_name", customPharmacy1Name.trim());
+      body.append("custom_pharmacy_1_price", String(customPharmacy1Price).trim());
+      body.append("custom_pharmacy_1_url", customPharmacy1Url.trim());
+      body.append("custom_pharmacy_2_name", customPharmacy2Name.trim());
+      body.append("custom_pharmacy_2_price", String(customPharmacy2Price).trim());
+      body.append("custom_pharmacy_2_url", customPharmacy2Url.trim());
 
       const res = await apiRequest({ body });
       if (res?.result === false) {
@@ -680,6 +867,14 @@ const MedicationDatabase = () => {
                   <div className="med-detail-dd">{detailRow?.generic_name || "—"}</div>
                 </div>
                 <div className="med-detail-item">
+                  <div className="med-detail-dt">Strength</div>
+                  <div className="med-detail-dd">{detailRow?.strength || "—"}</div>
+                </div>
+                <div className="med-detail-item">
+                  <div className="med-detail-dt">Quantity</div>
+                  <div className="med-detail-dd">{detailRow?.quantity || "—"}</div>
+                </div>
+                <div className="med-detail-item">
                   <div className="med-detail-dt">Category</div>
                   <div className="med-detail-dd">{resolveCategoryLabel(detailRow)}</div>
                 </div>
@@ -689,13 +884,7 @@ const MedicationDatabase = () => {
                 </div>
                 <div className="med-detail-item">
                   <div className="med-detail-dt">Prescription</div>
-                  <div className="med-detail-dd">
-                    {String(detailRow?.prescription ?? "")
-                      .toLowerCase()
-                      .trim() === "no"
-                      ? "OTC"
-                      : "Rx"}
-                  </div>
+                  <div className="med-detail-dd">{prettyPrescription(detailRow?.prescription)}</div>
                 </div>
               </div>
             </section>
@@ -761,6 +950,8 @@ const MedicationDatabase = () => {
                   <div className="med-detail-dt">Costco price</div>
                   <div className="med-detail-dd">{formatMoney(detailRow?.costco_price)}</div>
                 </div>
+                <CustomPharmacyDetail row={detailRow} index={1} />
+                <CustomPharmacyDetail row={detailRow} index={2} />
               </div>
             </section>
 
@@ -900,11 +1091,15 @@ const MedicationDatabase = () => {
               <thead>
                 <tr>
                   <th>Medication</th>
+                  <th>Strength</th>
+                  <th>Quantity</th>
                   <th>Category</th>
                   <th>Pet</th>
                   <th>Rx</th>
                   <th>Vet price</th>
                   <th>Chewy</th>
+                  <th>Other 1</th>
+                  <th>Other 2</th>
                   <th>Last updated</th>
                   <th>Status</th>
                   <th>Actions</th>
@@ -913,23 +1108,20 @@ const MedicationDatabase = () => {
               <tbody>
                 {medicationsLoading ? (
                   <tr>
-                    <td colSpan={9} style={{ textAlign: "center", padding: 24 }}>
+                    <td colSpan={13} style={{ textAlign: "center", padding: 24 }}>
                       <Spinner size={'sm'} color="inherit" />
                     </td>
                   </tr>
                 ) : medications.length === 0 ? (
                   <tr>
-                    <td colSpan={9} style={{ textAlign: "center", padding: 24 }}>
+                    <td colSpan={13} style={{ textAlign: "center", padding: 24 }}>
                       <ProductTableNoData title="No medications found." subtitle="There is nothing to show yet." />
                     </td>
                   </tr>
                 ) : (
                   medications.map((row) => {
                     const categoryLabel = resolveCategoryLabel(row);
-                    const rx = String(row?.prescription ?? "")
-                      .toLowerCase()
-                      .trim();
-                    const rxText = rx === "yes" ? "Rx" : "OTC";
+                    const rxText = prettyPrescription(row?.prescription);
                     const statusRaw = String(row?.status ?? "current")
                       .toLowerCase()
                       .trim();
@@ -937,17 +1129,19 @@ const MedicationDatabase = () => {
                     return (
                       <tr key={row.id}>
                         <td className="med-bold">{row?.medication_name || "—"}</td>
+                        <td>{row?.strength || "—"}</td>
+                        <td>{row?.quantity || "—"}</td>
                         <td>{categoryLabel}</td>
                         <td>{prettyPetType(row?.pet_type)}</td>
                         <td>
-                          <span
-                            className={`med-tag ${rx === "yes" ? "med-tg-a" : "med-tg-b"}`}
-                          >
+                          <span className={`med-tag ${prescriptionTagClass(row?.prescription)}`}>
                             {rxText}
                           </span>
                         </td>
                         <td className="med-price-red">{formatMoney(row?.clinic_price)}</td>
                         <td className="med-price-green">{formatMoney(row?.chewy_price)}</td>
+                        <td>{renderCustomPharmacyTableCell(row, 1)}</td>
+                        <td>{renderCustomPharmacyTableCell(row, 2)}</td>
                         <td>{prettyDate(row?.updated_at || row?.created_at)}</td>
                         <td>
                           <span
@@ -1068,7 +1262,34 @@ const MedicationDatabase = () => {
                       marginTop: 3,
                     }}
                   >
-                    Include dosage and quantity — this is what users see
+                    This is the primary name users see in the catalog
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 10,
+                    marginBottom: 12,
+                  }}
+                >
+                  <div>
+                    <div className="med-field-lbl">Strength</div>
+                    <input
+                      className="med-finput"
+                      value={strength}
+                      onChange={(e) => setStrength(e.target.value)}
+                      placeholder="e.g. 75mg"
+                    />
+                  </div>
+                  <div>
+                    <div className="med-field-lbl">Quantity</div>
+                    <input
+                      className="med-finput"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      placeholder="e.g. 30 tabs"
+                    />
                   </div>
                 </div>
                 <div style={{ marginBottom: 12 }}>
@@ -1157,12 +1378,9 @@ const MedicationDatabase = () => {
                   </div>
                 </div>
                 <div style={{ marginBottom: 12 }}>
-                  <div className="med-field-lbl">Prescription *</div>
+                  <div className="med-field-lbl">Prescription / availability *</div>
                   <div className="med-pet-row">
-                    {[
-                      { id: "yes", label: "Yes" },
-                      { id: "no", label: "No" },
-                    ].map((p) => (
+                    {PRESCRIPTION_OPTIONS.map((p) => (
                       <button
                         key={p.id}
                         type="button"
@@ -1308,6 +1526,38 @@ const MedicationDatabase = () => {
                     placeholder="0.00"
                   />
                 </div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: "var(--med-ink2)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    margin: "16px 0 10px",
+                    paddingTop: 12,
+                    borderTop: "1px solid var(--med-border)",
+                  }}
+                >
+                  Additional sources (optional)
+                </div>
+                <CustomPharmacyFields
+                  slotLabel="Other source 1"
+                  name={customPharmacy1Name}
+                  price={customPharmacy1Price}
+                  url={customPharmacy1Url}
+                  onNameChange={setCustomPharmacy1Name}
+                  onPriceChange={setCustomPharmacy1Price}
+                  onUrlChange={setCustomPharmacy1Url}
+                />
+                <CustomPharmacyFields
+                  slotLabel="Other source 2"
+                  name={customPharmacy2Name}
+                  price={customPharmacy2Price}
+                  url={customPharmacy2Url}
+                  onNameChange={setCustomPharmacy2Name}
+                  onPriceChange={setCustomPharmacy2Price}
+                  onUrlChange={setCustomPharmacy2Url}
+                />
                 <button
                   type="button"
                   className="med-btn med-btn-primary"

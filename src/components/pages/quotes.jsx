@@ -263,20 +263,106 @@ const Quotes = () => {
   }, [lastId]);
 
   const safeParse = (value) => {
-    if (!value || typeof value !== "string") return value;
+    if (value == null || value === "") return null;
+    if (typeof value === "object") return value;
+    if (typeof value !== "string") return null;
+
+    const trimmed = value.trim();
+    if (!trimmed) return null;
 
     try {
-      return JSON.parse(value);
+      const parsed = JSON.parse(trimmed);
+      if (typeof parsed === "string") {
+        return safeParse(parsed);
+      }
+      return parsed;
     } catch (e) {
-      //   console.error("Pet JSON parse failed:", value);
       return null;
     }
   };
 
+  const readPetFieldFromRaw = (raw, field) => {
+    if (typeof raw !== "string") return undefined;
+    const stringMatch = raw.match(
+      new RegExp(`"${field}"\\s*:\\s*"([^"]*?)"`, "i"),
+    );
+    if (stringMatch) return stringMatch[1];
+    const numberMatch = raw.match(
+      new RegExp(`"${field}"\\s*:\\s*([\\d.]+)`, "i"),
+    );
+    if (numberMatch) return numberMatch[1];
+    return undefined;
+  };
+
+  const resolveQuotePetInformation = (quote) => {
+    const rawPet = quote?.pet;
+    const parsedPet = safeParse(rawPet);
+    const base =
+      parsedPet && typeof parsedPet === "object" && !Array.isArray(parsedPet)
+        ? { ...parsedPet }
+        : {};
+
+    const userPet = safeParse(quote?.user?.pet);
+    const nestedUserPet =
+      userPet && typeof userPet === "object" && !Array.isArray(userPet)
+        ? userPet
+        : null;
+
+    const sources = [base, nestedUserPet, quote].filter(
+      (item) => item && typeof item === "object" && !Array.isArray(item),
+    );
+
+    const pick = (...keys) => {
+      for (const src of sources) {
+        for (const key of keys) {
+          const val = src[key];
+          if (val != null && String(val).trim() !== "") return val;
+        }
+      }
+      if (typeof rawPet === "string") {
+        for (const key of keys) {
+          const fromRaw = readPetFieldFromRaw(rawPet, key);
+          if (fromRaw != null && String(fromRaw).trim() !== "") return fromRaw;
+        }
+      }
+      return undefined;
+    };
+
+    return {
+      ...base,
+      ...(nestedUserPet || {}),
+      name: pick("name") ?? base.name,
+      species: pick("species") ?? base.species,
+      breed: pick("breed") ?? base.breed,
+      gender: pick("gender") ?? base.gender,
+      weight: pick("weight", "pet_weight"),
+      avg_weight: pick(
+        "avg_weight",
+        "avgWeight",
+        "average_weight",
+        "averageWeight",
+        "pet_avg_weight",
+      ),
+      spayed: pick("spayed", "spayed_neutered"),
+      dob: pick("dob"),
+      image: pick("image") ?? base.image,
+      thumb: pick("thumb") ?? base.thumb,
+    };
+  };
+
+  const hasPetField = (value) => value != null && String(value).trim() !== "";
+
+  const formatPetAvgWeight = (value) => {
+    if (value == null || value === "") return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    if (/lbs/i.test(raw)) return raw;
+    return `${raw} lbs`;
+  };
+
   const QuoteCard = ({ quote }) => {
-    console.log("quote :>> ", quote);
     const statusInfo = getStatusInfo(quote?.quote_status);
-    const petInformation = safeParse(quote?.pet);
+    const petInformation = resolveQuotePetInformation(quote);
     const subCategories = safeParse(quote?.sub_categories);
     const subCategoriesList = Array.isArray(subCategories) ? subCategories : [];
 
@@ -427,7 +513,7 @@ const Quotes = () => {
             >
               PET INFORMATION
             </p>
-            {petInformation ? (
+            {petInformation && (petInformation.name || petInformation.species || petInformation.weight) ? (
               <div
                 className="d-flex flex-column flex-sm-row align-items-start align-items-sm-center mb-3 p-2"
                 style={{
@@ -479,7 +565,12 @@ const Quotes = () => {
                       petInformation?.species,
                       petInformation?.breed,
                       petInformation?.gender,
-                      petInformation?.weight ? `Weight: ${petInformation.weight}` : null,
+                      hasPetField(petInformation?.weight)
+                        ? `Weight: ${petInformation.weight}`
+                        : null,
+                      hasPetField(petInformation?.avg_weight)
+                        ? `Avg weight: ${formatPetAvgWeight(petInformation.avg_weight)}`
+                        : null,
                       petInformation?.spayed ? `Spayed/Neutered: ${petInformation.spayed}` : null,
                     ]
                       .filter(Boolean)

@@ -29,6 +29,7 @@ import {
   HiOutlineDocumentText,
   HiOutlineArrowTrendingUp,
   HiOutlineChartBar,
+  HiOutlinePresentationChartLine,
   HiOutlineQuestionMarkCircle,
   HiOutlineChatBubbleOvalLeftEllipsis,
   HiOutlineLockClosed,
@@ -86,6 +87,7 @@ const MENU_SECTION_CONFIG = [
       "Quotes",
       "Fund Campaign",
       "Services Budget",
+      "FareVet Intelligence Report",
       "Customer Support",
       "Rewards",
     ],
@@ -631,6 +633,12 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
       items: "Services Budget",
       path: "/pet_services_budget",
       tableName: "services_budget",
+    },
+    {
+      badge: false,
+      Icon: HiOutlinePresentationChartLine,
+      items: "FareVet Intelligence Report",
+      path: "/farevet-intelligence",
     },
     {
       badge: true,

@@ -2,12 +2,12 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import Spinner from "../Spinner";
-import { Modal, message, Tooltip, Avatar } from 'antd';
-import React, { useEffect, useState } from 'react';
+import { Modal, message, Tooltip, Avatar, Select, Input } from 'antd';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheetManager } from 'styled-components';
 import { apiRequest } from '../../api/auth_api';
 import ProductTable from '../DataTable/productTable';
-import { Eye, Trash, MessageSquare } from "react-feather";
+import { Eye, Trash, MessageSquare, Edit2, Plus } from "react-feather";
 import moment from "moment";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
@@ -15,6 +15,204 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { Navigation, Pagination } from "swiper";
 import CKEditorIframe from "../ckeditor/CKEditorIframe";
+
+const MAX_FAREVET_SERVICES = 3;
+const EMPTY_SERVICE_ROW = { name: "", cost: "" };
+
+function normalizeImageFilename(value) {
+    let raw = String(value ?? "").trim();
+    if (!raw) return "";
+    if (raw.startsWith("[") && raw.endsWith("]")) {
+        try {
+            const nested = JSON.parse(raw);
+            if (Array.isArray(nested) && nested.length === 1) {
+                return normalizeImageFilename(nested[0]);
+            }
+        } catch (e) {
+            // keep raw
+        }
+    }
+    const base = String(global.IMAGEURL || "").replace(/\/$/, "");
+    if (base && raw.startsWith(base)) {
+        raw = raw.slice(base.length).replace(/^\//, "");
+    }
+    if (/^https?:\/\//i.test(raw)) {
+        try {
+            raw = decodeURIComponent(raw.split("/").pop() || raw);
+        } catch (e) {
+            // keep raw
+        }
+    }
+    return raw.replace(/^\/+/, "");
+}
+
+function parseImages(images) {
+    if (images == null || images === "") return [];
+
+    const parsed = parseLooseJsonField(images, null);
+    if (Array.isArray(parsed)) {
+        return parsed
+            .flatMap((item) => {
+                if (item == null || item === "") return [];
+                if (typeof item === "string") {
+                    const nested = parseLooseJsonField(item, null);
+                    if (Array.isArray(nested)) return parseImages(nested);
+                }
+                return [normalizeImageFilename(item)];
+            })
+            .filter(Boolean);
+    }
+
+    if (Array.isArray(images)) {
+        return images
+            .flatMap((item) => parseImages(item))
+            .filter(Boolean);
+    }
+
+    if (typeof images === "string") {
+        const trimmed = images.trim();
+        if (!trimmed) return [];
+        if (trimmed.includes(",") && !trimmed.startsWith("[")) {
+            return trimmed
+                .split(",")
+                .map((item) => normalizeImageFilename(item))
+                .filter(Boolean);
+        }
+        return [normalizeImageFilename(trimmed)];
+    }
+
+    return [];
+}
+
+function parseLooseJsonField(value, fallback = null) {
+    if (value == null || value === "") return fallback;
+    if (Array.isArray(value)) return value;
+    if (typeof value === "object") return value;
+
+    let raw = String(value).trim();
+    if (!raw) return fallback;
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+        try {
+            const parsed = JSON.parse(raw);
+            if (typeof parsed === "string") {
+                const next = parsed.trim();
+                if (!next || next === raw) break;
+                raw = next;
+                continue;
+            }
+            return parsed;
+        } catch (e) {
+            const unescaped = raw
+                .replace(/\\"/g, '"')
+                .replace(/\\'/g, "'")
+                .replace(/\\\\/g, "\\");
+            if (unescaped !== raw) {
+                raw = unescaped;
+                continue;
+            }
+
+            if (
+                (raw.startsWith('"') && raw.endsWith('"')) ||
+                (raw.startsWith("'") && raw.endsWith("'"))
+            ) {
+                raw = raw.slice(1, -1);
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    return fallback;
+}
+
+function parseTags(tags) {
+    const parsed = parseLooseJsonField(tags, null);
+    if (Array.isArray(parsed)) {
+        return parsed
+            .map((tag) => String(tag ?? "").trim())
+            .filter(Boolean);
+    }
+    if (typeof parsed === "string") {
+        const trimmed = parsed.trim();
+        if (!trimmed) return [];
+        if (trimmed.includes(",")) {
+            return trimmed.split(",").map((t) => t.trim()).filter(Boolean);
+        }
+        return [trimmed];
+    }
+    if (typeof tags === "string" && tags.includes(",")) {
+        return tags.split(",").map((t) => t.trim()).filter(Boolean);
+    }
+    return [];
+}
+
+function parseServices(services) {
+    const parsed = parseLooseJsonField(services, []);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+        .map((item) => ({
+            name: String(item?.name ?? item?.service_name ?? "").trim(),
+            cost: String(item?.cost ?? item?.price ?? "").trim(),
+        }))
+        .filter((item) => item.name || item.cost);
+}
+
+function stringifyJsonField(value) {
+    return JSON.stringify(value ?? []);
+}
+
+function imagePreviewUrl(filename) {
+    const clean = normalizeImageFilename(filename);
+    if (!clean) return "";
+    if (/^https?:\/\//i.test(clean)) return clean;
+    return `${global.IMAGEURL}/${clean}`;
+}
+
+function formatPostDateTimeForInput(row) {
+    const raw = row?.post_date_time || row?.created_at;
+    if (!raw) return "";
+    const direct = moment(raw);
+    if (direct.isValid()) return direct.format("YYYY-MM-DDTHH:mm");
+    const parsed = moment(
+        String(raw),
+        [
+            "MMM DD, YYYY hh:mm A",
+            "MMM DD, YYYY h:mm A",
+            "YYYY-MM-DD HH:mm:ss",
+            "YYYY-MM-DD HH:mm",
+            moment.ISO_8601,
+        ],
+        true,
+    );
+    return parsed.isValid() ? parsed.format("YYYY-MM-DDTHH:mm") : "";
+}
+
+function formatPostDateTimeForSave(value, fallbackRow) {
+    if (value) {
+        const parsed = moment(value, [moment.ISO_8601, "YYYY-MM-DDTHH:mm"], true);
+        if (parsed.isValid()) return parsed.format("YYYY-MM-DD HH:mm:ss");
+    }
+    const fallbackRaw = fallbackRow?.post_date_time || fallbackRow?.created_at;
+    if (!fallbackRaw) return "";
+    const fallback = moment(fallbackRaw);
+    if (fallback.isValid()) return fallback.format("YYYY-MM-DD HH:mm:ss");
+    return String(fallbackRaw).trim();
+}
+
+function formatPostDateTimeDisplay(row) {
+    const raw = row?.post_date_time || row?.created_at;
+    if (!raw) return "—";
+    const direct = moment(raw);
+    if (direct.isValid()) return direct.format("MMM DD, YYYY h:mm A");
+    const parsed = moment(
+        String(raw),
+        ["MMM DD, YYYY hh:mm A", "MMM DD, YYYY h:mm A", "YYYY-MM-DD HH:mm:ss"],
+        true,
+    );
+    return parsed.isValid() ? parsed.format("MMM DD, YYYY h:mm A") : String(raw);
+}
 
 const Community = () => {
     const [lastId, setLastId] = useState(1);
@@ -41,6 +239,23 @@ const Community = () => {
     const [replyContent, setReplyContent] = useState("");
     const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
+    // Edit Modal State
+    const [editModal, setEditModal] = useState(false);
+    const [editPost, setEditPost] = useState(null);
+    const [editForm, setEditForm] = useState({
+        question: "",
+        tags: [],
+        post_type: "",
+        post_date_time: "",
+        admin_tip_reply: "",
+        images: [],
+        services: [{ ...EMPTY_SERVICE_ROW }],
+    });
+    const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+    const [imageUploading, setImageUploading] = useState(false);
+    const originalEditImagesRef = useRef([]);
+    const editImageInputRef = useRef(null);
+
     const handleFetchBusiness = async () => {
         setIsProcessing(true);
         try {
@@ -66,33 +281,181 @@ const Community = () => {
         handleFetchBusiness()
     }, [lastId])
 
-    const parseImages = (images) => {
-        if (!images) return [];
-        if (Array.isArray(images)) return images;
-        if (typeof images === 'string') {
-            try {
-                return JSON.parse(images);
-            } catch (e) {
-                return [images];
-            }
+    const buildServiceRowsForEdit = (row) => {
+        const parsed = parseServices(row?.services);
+        if (parsed.length) {
+            return parsed.map((item) => ({ name: item.name, cost: item.cost }));
         }
-        return [];
+        return [{ ...EMPTY_SERVICE_ROW }];
     };
 
-    const parseTags = (tags) => {
-        if (!tags) return [];
-        if (Array.isArray(tags)) return tags;
-        if (typeof tags === 'string') {
-            try {
-                return JSON.parse(tags);
-            } catch (e) {
-                if (tags.includes(',')) {
-                    return tags.split(',').map(t => t.trim());
+    const formatServicesSummary = (row) => {
+        const items = parseServices(row?.services);
+        if (!items.length) return "";
+        return items
+            .map((item) => {
+                const cost = item.cost ? `$${item.cost}` : "";
+                return cost ? `${item.name} (${cost})` : item.name;
+            })
+            .join(", ");
+    };
+
+    const stripHtml = (html) => {
+        if (!html) return "";
+        return String(html)
+            .replace(/<[^>]*>/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+    };
+
+    const openEditModal = (row) => {
+        const parsedImages = parseImages(row?.images);
+        originalEditImagesRef.current = parsedImages;
+        setEditPost(row);
+        setEditForm({
+            question: row?.question || "",
+            tags: parseTags(row?.tags),
+            post_type: row?.post_type || "",
+            post_date_time: formatPostDateTimeForInput(row),
+            admin_tip_reply: row?.admin_tip_reply || "",
+            images: parsedImages,
+            services: buildServiceRowsForEdit(row),
+        });
+        setEditModal(true);
+    };
+
+    const updateEditField = (key, value) => {
+        setEditForm((prev) => ({ ...prev, [key]: value }));
+    };
+
+    const addServiceRow = () => {
+        setEditForm((prev) => {
+            const current = prev.services || [];
+            if (current.length >= MAX_FAREVET_SERVICES) return prev;
+            return { ...prev, services: [...current, { ...EMPTY_SERVICE_ROW }] };
+        });
+    };
+
+    const updateServiceRow = (index, field, value) => {
+        setEditForm((prev) => {
+            const next = [...(prev.services || [])];
+            next[index] = { ...next[index], [field]: value };
+            return { ...prev, services: next };
+        });
+    };
+
+    const removeServiceRow = (index) => {
+        setEditForm((prev) => {
+            const next = (prev.services || []).filter((_, i) => i !== index);
+            return {
+                ...prev,
+                services: next.length ? next : [{ ...EMPTY_SERVICE_ROW }],
+            };
+        });
+    };
+
+    const removeEditImage = (index) => {
+        setEditForm((prev) => ({
+            ...prev,
+            images: (prev.images || []).filter((_, i) => i !== index),
+        }));
+    };
+
+    const handleEditImageUpload = async (e) => {
+        const files = Array.from(e.target.files || []);
+        e.target.value = "";
+        if (!files.length) return;
+
+        setImageUploading(true);
+        try {
+            const uploaded = [];
+            for (const file of files) {
+                if (!file.type.startsWith("image/")) {
+                    message.warning(`${file.name} is not an image.`);
+                    continue;
                 }
-                return [tags];
+                const body = new FormData();
+                body.append("type", "upload_data");
+                body.append("file", new Blob([file], { type: file.type }), file.name);
+                const response = await apiRequest({ body });
+                if (response?.file_name) {
+                    uploaded.push(normalizeImageFilename(response.file_name));
+                }
             }
+            if (uploaded.length) {
+                setEditForm((prev) => ({
+                    ...prev,
+                    images: [...(prev.images || []), ...uploaded],
+                }));
+                message.success(
+                    uploaded.length === 1 ? "Image uploaded." : "Images uploaded.",
+                );
+            } else {
+                message.error("Image upload failed.");
+            }
+        } catch (error) {
+            console.error(error);
+            message.error("Image upload failed.");
+        } finally {
+            setImageUploading(false);
         }
-        return [];
+    };
+
+    const handleEditSubmit = async () => {
+        if (!editPost?.id) return;
+        setIsSubmittingEdit(true);
+        try {
+            const cleanedTags = (editForm.tags || [])
+                .map((tag) => String(tag || "").trim())
+                .filter(Boolean);
+            const cleanedImages = (editForm.images || [])
+                .map((img) => normalizeImageFilename(img))
+                .filter(Boolean);
+            const imagesToSave = cleanedImages.length
+                ? cleanedImages
+                : originalEditImagesRef.current;
+            const cleanedServices = (editForm.services || [])
+                .map((item) => ({
+                    name: String(item?.name || "").trim(),
+                    cost: String(item?.cost || "").trim(),
+                }))
+                .filter((item) => item.name || item.cost);
+            const postDateTime = formatPostDateTimeForSave(
+                editForm.post_date_time,
+                editPost,
+            );
+
+            const body = new FormData();
+            body.append("type", "update_data");
+            body.append("table_name", "community");
+            body.append("id", String(editPost.id));
+            body.append("question", editForm.question.trim());
+            body.append("tags", stringifyJsonField(cleanedTags));
+            body.append("post_type", editForm.post_type.trim());
+            body.append("post_date_time", postDateTime);
+            body.append("admin_tip_reply", editForm.admin_tip_reply || "");
+            body.append("images", stringifyJsonField(imagesToSave));
+            body.append("services", stringifyJsonField(cleanedServices));
+
+            const res = await apiRequest({ body });
+            if (!res) {
+                message.error("Failed to update post.");
+                return;
+            }
+            if (res.result === false) {
+                message.error(res?.message || "Failed to update post.");
+                return;
+            }
+            message.success("Post updated successfully.");
+            handleFetchBusiness();
+            setEditModal(false);
+            setEditPost(null);
+        } catch (error) {
+            console.error(error);
+            message.error("An error occurred while updating the post.");
+        } finally {
+            setIsSubmittingEdit(false);
+        }
     };
 
     const columns = [
@@ -123,28 +486,66 @@ const Community = () => {
         {
             name: 'Post Details',
             sortable: true,
-            minWidth: '350px',
+            minWidth: '300px',
+            cell: (row) => (
+                <div className="flex flex-col gap-1 py-2">
+                    <div className="text_dark plusJakara_semibold line-clamp-2" style={{ fontSize: "13px", lineHeight: "1.4" }}>
+                        {row?.question || "No Question"}
+                    </div>
+                    <div className="text_secondary plusJakara_regular text-[11px] mt-1">
+                        Posted: {formatPostDateTimeDisplay(row)}
+                    </div>
+                    {row?.post_type ? (
+                        <div className="text_secondary plusJakara_regular text-[11px] capitalize">
+                            Type: {row.post_type}
+                        </div>
+                    ) : null}
+                </div>
+            )
+        },
+        {
+            name: 'Tags',
+            sortable: false,
+            minWidth: '160px',
             cell: (row) => {
                 const tagsArray = parseTags(row?.tags);
+                if (!tagsArray.length) {
+                    return <span className="text_secondary plusJakara_regular text-[12px]">—</span>;
+                }
                 return (
-                    <div className="flex flex-col gap-1 py-2">
-                        <div className="text_dark plusJakara_semibold line-clamp-2" style={{ fontSize: "13px", lineHeight: "1.4" }}>
-                            {row?.question || "No Question"}
-                        </div>
-                        {tagsArray.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                                {tagsArray.map((tag, idx) => (
-                                    <span key={idx} className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full plusJakara_medium">
-                                        #{tag}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                        <div className="text_secondary plusJakara_regular text-[11px] mt-1">
-                            Posted: {row?.post_date_time || moment(row?.created_at).format("MMM DD, YYYY hh:mm A")}
-                        </div>
+                    <div className="flex flex-wrap gap-1 py-2">
+                        {tagsArray.map((tag, idx) => (
+                            <span
+                                key={`${tag}-${idx}`}
+                                className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full plusJakara_medium"
+                            >
+                                #{tag}
+                            </span>
+                        ))}
                     </div>
-                )
+                );
+            }
+        },
+        {
+            name: 'FareVet Data',
+            sortable: false,
+            minWidth: '170px',
+            cell: (row) => {
+                const summary = formatServicesSummary(row);
+                if (!summary) {
+                    return <span className="text_secondary plusJakara_regular text-[12px]">—</span>;
+                }
+                return (
+                    <Tooltip
+                        title={summary}
+                        color="#e5e7eb"
+                        overlayInnerStyle={{ color: "black", maxWidth: 320 }}
+                    >
+                        <span className="plusJakara_regular text-[12px] text_dark line-clamp-2 cursor-help">
+                            {summary}
+                        </span>
+                    </Tooltip>
+                );
             }
         },
         {
@@ -198,12 +599,43 @@ const Community = () => {
             )
         },
         {
+            name: 'Tip',
+            sortable: false,
+            minWidth: '180px',
+            cell: (row) => {
+                const tipText = stripHtml(row?.admin_tip_reply);
+                if (!tipText) {
+                    return <span className="text_secondary plusJakara_regular text-[12px]">—</span>;
+                }
+                const preview = tipText.length > 90 ? `${tipText.slice(0, 90)}…` : tipText;
+                return (
+                    <Tooltip
+                        title={tipText}
+                        color="#e5e7eb"
+                        overlayInnerStyle={{ color: "black", maxWidth: 320 }}
+                    >
+                        <span className="text-[#8930F9] plusJakara_regular text-[12px] line-clamp-2 cursor-help">
+                            {preview}
+                        </span>
+                    </Tooltip>
+                );
+            }
+        },
+        {
             name: 'Action',
             center: true,
-            minWidth: '180px',
+            minWidth: '220px',
             cell: (row) => {
                 return (
                     <div className='flex gap-2 justify-center items-center'>
+                        <Tooltip title="Edit Post" color="#e5e7eb" overlayInnerStyle={{ color: "black" }}>
+                            <button
+                                className="bg-[#fef3c7] hover:bg-[#fde68a] p-1.5 rounded-md transition-colors"
+                                onClick={() => openEditModal(row)}
+                            >
+                                <Edit2 size={16} color="#d97706" />
+                            </button>
+                        </Tooltip>
                         <Tooltip title="View Details" color="#e5e7eb" overlayInnerStyle={{ color: "black" }}>
                             <button
                                 className="bg-[#f1f5f9] hover:bg-[#e2e8f0] p-1.5 rounded-md transition-colors"
@@ -381,6 +813,29 @@ const Community = () => {
                             </div>
                         )}
 
+                        {parseServices(selectedPost?.services).length > 0 && (
+                            <div className="flex flex-col gap-2">
+                                <span className="text_secondary text-[12px] uppercase font-bold tracking-wider">
+                                    FareVet Data
+                                </span>
+                                <div className="flex flex-col gap-2">
+                                    {parseServices(selectedPost?.services).map((item, idx) => (
+                                        <div
+                                            key={`${item.name}-${idx}`}
+                                            className="flex items-center justify-between gap-3 bg-[#f8fafc] border border-gray-100 rounded-lg px-3 py-2"
+                                        >
+                                            <span className="plusJakara_medium text_dark text-[13px]">
+                                                {item.name}
+                                            </span>
+                                            <span className="plusJakara_semibold text-[#8930F9] text-[13px]">
+                                                {item.cost ? `$${item.cost}` : "—"}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Admin Tip Reply Display */}
                         {selectedPost?.admin_tip_reply && (
                             <div className="flex flex-col gap-2">
@@ -425,7 +880,7 @@ const Community = () => {
                             <div className="bg-[#f8fafc] p-3 rounded-lg border border-gray-100 flex flex-col items-center justify-center">
                                 <span className="text_secondary text-[11px] uppercase font-bold mb-1">Posted On</span>
                                 <span className="plusJakara_semibold text_dark text-[13px]">
-                                    {selectedPost?.post_date_time || moment(selectedPost?.created_at).format("MMM DD, YYYY hh:mm A")}
+                                    {formatPostDateTimeDisplay(selectedPost)}
                                 </span>
                             </div>
                             <div className="bg-[#f8fafc] p-3 rounded-lg border border-gray-100 flex flex-col items-center justify-center">
@@ -446,6 +901,232 @@ const Community = () => {
                         )}
                     </div>
                 )}
+            </Modal>
+
+            {/* Edit Post Modal */}
+            <Modal
+                title={
+                    <span className="plusJakara_bold text_dark" style={{ fontSize: "18px" }}>
+                        Edit Community Post
+                    </span>
+                }
+                open={editModal}
+                onCancel={() => {
+                    if (isSubmittingEdit) return;
+                    setEditModal(false);
+                    setEditPost(null);
+                }}
+                footer={null}
+                width={820}
+                centered
+                zIndex={9999}
+                destroyOnClose
+            >
+                {editPost ? (
+                    <div className="flex flex-col gap-4 mt-2">
+                        <div className="flex flex-col gap-2">
+                            <span className="text_secondary text-[12px] uppercase font-bold tracking-wider">
+                                Question / Content
+                            </span>
+                            <Input.TextArea
+                                rows={4}
+                                value={editForm.question}
+                                onChange={(e) => updateEditField("question", e.target.value)}
+                                placeholder="Post question or content"
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <span className="text_secondary text-[12px] uppercase font-bold tracking-wider">
+                                Tags
+                            </span>
+                            <Select
+                                mode="tags"
+                                style={{ width: "100%" }}
+                                placeholder="Type a tag and press Enter"
+                                value={editForm.tags}
+                                onChange={(value) => updateEditField("tags", value)}
+                                tokenSeparators={[","]}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="flex flex-col gap-2">
+                                <span className="text_secondary text-[12px] uppercase font-bold tracking-wider">
+                                    Post type
+                                </span>
+                                <Input
+                                    value={editForm.post_type}
+                                    onChange={(e) => updateEditField("post_type", e.target.value)}
+                                    placeholder="regular, tip, etc."
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <span className="text_secondary text-[12px] uppercase font-bold tracking-wider">
+                                    Post date / time
+                                </span>
+                                <Input
+                                    type="datetime-local"
+                                    value={editForm.post_date_time}
+                                    onChange={(e) => updateEditField("post_date_time", e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="text_secondary text-[12px] uppercase font-bold tracking-wider">
+                                    Post images
+                                </span>
+                                <button
+                                    type="button"
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#8930F9] text-white plusJakara_semibold text-[12px] hover:bg-[#7221d6] transition-colors disabled:opacity-60"
+                                    onClick={() => editImageInputRef.current?.click()}
+                                    disabled={imageUploading || isSubmittingEdit}
+                                >
+                                    {imageUploading ? "Uploading…" : "Upload image"}
+                                </button>
+                                <input
+                                    ref={editImageInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    className="hidden"
+                                    onChange={handleEditImageUpload}
+                                    disabled={imageUploading || isSubmittingEdit}
+                                />
+                            </div>
+
+                            {(editForm.images || []).length ? (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    {(editForm.images || []).map((img, index) => (
+                                        <div
+                                            key={`${img}-${index}`}
+                                            className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50"
+                                        >
+                                            <img
+                                                src={imagePreviewUrl(img)}
+                                                alt=""
+                                                className="w-full h-28 object-cover"
+                                                onError={(e) => {
+                                                    e.currentTarget.src =
+                                                        "https://placehold.co/240x160?text=Image";
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                className="absolute top-2 right-2 bg-white/95 text-red-600 text-[11px] px-2 py-1 rounded-md shadow plusJakara_semibold"
+                                                onClick={() => removeEditImage(index)}
+                                                disabled={isSubmittingEdit}
+                                            >
+                                                Remove
+                                            </button>
+                                            <div
+                                                className="px-2 py-1 text-[10px] text_secondary truncate border-t border-gray-100 bg-white"
+                                                title={normalizeImageFilename(img)}
+                                            >
+                                                {normalizeImageFilename(img)}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="rounded-xl border border-dashed border-gray-300 bg-[#fafafa] px-4 py-8 text-center text_secondary plusJakara_regular text-[13px]">
+                                    No images attached. Upload to add, or save to keep existing post images.
+                                </div>
+                            )}
+                        </div>
+
+                        <div
+                            className="rounded-xl border border-gray-200 bg-[#fafafa] p-4 flex flex-col gap-3"
+                        >
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <div className="plusJakara_bold text_dark text-[15px]">
+                                        FareVet Data (Optional)
+                                    </div>
+                                    <div className="text_secondary plusJakara_regular text-[12px] mt-1">
+                                        Add up to 3 service name + cost pairs
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border border-[#8930F9] text-[#8930F9] plusJakara_semibold text-[12px] hover:bg-[#f3e8ff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    onClick={addServiceRow}
+                                    disabled={(editForm.services || []).length >= MAX_FAREVET_SERVICES}
+                                >
+                                    <Plus size={14} />
+                                    Add
+                                </button>
+                            </div>
+
+                            {(editForm.services || []).map((service, index) => (
+                                <div key={`service-row-${index}`} className="flex flex-col gap-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-[1fr_140px_auto] gap-2 items-center">
+                                        <Input
+                                            value={service.name}
+                                            onChange={(e) =>
+                                                updateServiceRow(index, "name", e.target.value)
+                                            }
+                                            placeholder="Service name"
+                                        />
+                                        <Input
+                                            value={service.cost}
+                                            onChange={(e) =>
+                                                updateServiceRow(index, "cost", e.target.value)
+                                            }
+                                            placeholder="Cost"
+                                        />
+                                        {(editForm.services || []).length > 1 ? (
+                                            <button
+                                                type="button"
+                                                className="text-red-500 plusJakara_medium text-[12px] px-2 py-1 hover:bg-red-50 rounded-md"
+                                                onClick={() => removeServiceRow(index)}
+                                            >
+                                                Remove
+                                            </button>
+                                        ) : (
+                                            <span />
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <span className="text-[#8930F9] text-[12px] uppercase font-bold tracking-wider">
+                                Admin tip reply
+                            </span>
+                            <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                <CKEditorIframe
+                                    value={editForm.admin_tip_reply}
+                                    onChange={(value) => updateEditField("admin_tip_reply", value)}
+                                    minHeight={260}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-2">
+                            <button
+                                className="px-5 py-2.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors plusJakara_semibold text-[14px]"
+                                onClick={() => {
+                                    setEditModal(false);
+                                    setEditPost(null);
+                                }}
+                                disabled={isSubmittingEdit}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="px-5 py-2.5 rounded-lg bg-[#8930F9] text-white hover:bg-[#7221d6] transition-colors plusJakara_semibold text-[14px] flex items-center justify-center min-w-[120px]"
+                                onClick={handleEditSubmit}
+                                disabled={isSubmittingEdit}
+                            >
+                                {isSubmittingEdit ? <Spinner size={18} color="white" /> : "Save changes"}
+                            </button>
+                        </div>
+                    </div>
+                ) : null}
             </Modal>
 
             {/* Admin Tip Reply Modal */}

@@ -124,6 +124,9 @@ const ConciergeRequests = lazy(() =>
 const ConciergeRequestDetail = lazy(() =>
   import("./components/pages/conciergeRequestDetail"),
 );
+const FarevetIntelligence = lazy(() =>
+  import("./components/pages/farevetIntelligence"),
+);
 
 const suspenseFallback = (
   <main className="h-screen flex flex-col justify-center items-center">
@@ -205,6 +208,7 @@ function App() {
       <Route path="/quotes" element={<Quotes />} />
       <Route path="/fund_campaign" element={<FundCampaign />} />
       <Route path="/pet_services_budget" element={<ServicesBudget />} />
+      <Route path="/farevet-intelligence" element={<FarevetIntelligence />} />
       <Route path="/sub-admin" element={<SubAdmin />} />
       <Route path="/change-password" element={<ChangePassword />} />
       <Route path="/chat" element={<Message2 />} />

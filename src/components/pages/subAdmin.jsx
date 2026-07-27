@@ -32,6 +32,7 @@ const pagesOptions = [
   { value: "Quotes", label: "Quotes" },
   { value: "Fund Campaign", label: "Fund Campaign" },
   { value: "Services Budget", label: "Services Budget" },
+  { value: "FareVet Intelligence Report", label: "FareVet Intelligence Report" },
   { value: "Customer Support", label: "Customer Support" },
   { value: "Chat", label: "Chat" },
   { value: "Change Password", label: "Change Password" }

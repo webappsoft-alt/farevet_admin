@@ -8,7 +8,14 @@ import { Check } from "react-feather";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { apiRequest } from "../../../api/auth_api";
 import ProductTableNoData from "../../DataTable/NoDataComponent";
-import { arrowleft2, arrowright2, edit2, preview, trash } from "../../icons/icon";
+import {
+  arrowleft2,
+  arrowright2,
+  edit2,
+  imagecloud,
+  preview,
+  trash,
+} from "../../icons/icon";
 import "../medicationDatabase.scss";
 
 const { TextArea } = Input;
@@ -133,6 +140,15 @@ function formatStatusLabel(value) {
 
 function compactLine(value) {
   return String(value || "").trim();
+}
+
+function resolveImageUrl(imageUrl) {
+  const raw = compactLine(imageUrl);
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const base = String(global.IMAGEURL || "").replace(/\/$/, "");
+  if (!base) return raw;
+  return `${base}/${raw.replace(/^\//, "")}`;
 }
 
 function isAdminThreadMessage(message) {
@@ -400,6 +416,11 @@ const Reward = () => {
   const [rewardPendingStatus, setRewardPendingStatus] = useState(null);
   const [rewardNextIsActive, setRewardNextIsActive] = useState(0);
   const [rewardForm] = Form.useForm();
+  const [rewardImageUrl, setRewardImageUrl] = useState("");
+  const [rewardImagePreview, setRewardImagePreview] = useState("");
+  const [rewardImageUploading, setRewardImageUploading] = useState(false);
+  const rewardImageBlobRef = useRef(null);
+  const rewardImageInputRef = useRef(null);
 
   const [activeRedemptionCategory, setActiveRedemptionCategory] = useState("all");
   const [redemptionsStatus, setRedemptionsStatus] = useState("all");
@@ -755,6 +776,54 @@ const Reward = () => {
     detailThreadRef.current.scrollTop = detailThreadRef.current.scrollHeight;
   }, [detailMessages, detailLoading]);
 
+  const clearRewardImageBlobPreview = () => {
+    if (rewardImageBlobRef.current) {
+      URL.revokeObjectURL(rewardImageBlobRef.current);
+      rewardImageBlobRef.current = null;
+    }
+  };
+
+  const setRewardImageFromValue = (imageUrl) => {
+    clearRewardImageBlobPreview();
+    const raw = compactLine(imageUrl);
+    setRewardImageUrl(raw);
+    setRewardImagePreview(raw ? resolveImageUrl(raw) : "");
+  };
+
+  const handleRewardImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      message.warning("Please choose an image file.");
+      return;
+    }
+
+    setRewardImageUploading(true);
+    const body = new FormData();
+    body.append("type", "upload_data");
+    body.append("file", new Blob([file], { type: file.type }), file.name);
+
+    try {
+      const response = await apiRequest({ body });
+      if (response?.file_name) {
+        clearRewardImageBlobPreview();
+        const objectUrl = URL.createObjectURL(file);
+        rewardImageBlobRef.current = objectUrl;
+        setRewardImagePreview(objectUrl);
+        setRewardImageUrl(String(response.file_name));
+        message.success("Image uploaded successfully.");
+      } else {
+        message.error("Failed to upload image.");
+      }
+    } catch (error) {
+      console.error("Error uploading reward image:", error);
+      message.error("Error uploading image.");
+    } finally {
+      setRewardImageUploading(false);
+    }
+  };
+
   const openCreateReward = () => {
     setRewardEditing(null);
     setRewardModalMode("create");
@@ -768,6 +837,7 @@ const Reward = () => {
       credits_amount: undefined,
       sort_order: activeItemRows.length + 1,
     });
+    setRewardImageFromValue("");
     setRewardModalOpen(true);
   };
 
@@ -787,6 +857,7 @@ const Reward = () => {
       sort_order:
         row?.sort_order !== undefined ? Number(row.sort_order) : undefined,
     });
+    setRewardImageFromValue(row?.image_url);
     setRewardModalOpen(true);
   };
 
@@ -819,6 +890,10 @@ const Reward = () => {
         sort_order: toPositiveInt(values.sort_order),
         is_active: 1,
       };
+      const trimmedImageUrl = compactLine(rewardImageUrl);
+      if (trimmedImageUrl) {
+        payload.image_url = trimmedImageUrl;
+      }
       const rewardId = rewardEditing?.reward_id || rewardEditing?.id;
       if (rewardModalMode === "edit" && rewardId) {
         payload.reward_id = rewardId;
@@ -857,7 +932,7 @@ const Reward = () => {
     try {
       const categoryKey =
         rewardPendingStatus?.category || activeItemCategory || "credits";
-      const res = await postType({
+      const payload = {
         type: "admin_save_reward",
         admin_id: adminId,
         reward_id: rewardId,
@@ -878,7 +953,12 @@ const Reward = () => {
             : undefined,
         sort_order: toPositiveInt(rewardPendingStatus?.sort_order),
         is_active: rewardNextIsActive,
-      });
+      };
+      const statusImageUrl = compactLine(rewardPendingStatus?.image_url);
+      if (statusImageUrl) {
+        payload.image_url = statusImageUrl;
+      }
+      const res = await postType(payload);
       if (res?.result === false) {
         message.error(res?.message || "Reward update failed.");
         return;
@@ -1134,6 +1214,7 @@ const Reward = () => {
           <table className="med-tbl" style={{ minWidth: 1080 }}>
             <thead>
               <tr>
+                <th>Image</th>
                 <th>Title</th>
                 <th>Category</th>
                 <th>Points Cost</th>
@@ -1145,13 +1226,13 @@ const Reward = () => {
             <tbody>
               {rewardsLoading ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: "center", padding: 24 }}>
+                  <td colSpan={7} style={{ textAlign: "center", padding: 24 }}>
                     <Spinner size="sm" color="inherit" />
                   </td>
                 </tr>
               ) : visibleItemRows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: "center", padding: 24 }}>
+                  <td colSpan={7} style={{ textAlign: "center", padding: 24 }}>
                     <ProductTableNoData
                       title="No rewards found."
                       subtitle="Create the first reward for this category."
@@ -1161,6 +1242,23 @@ const Reward = () => {
               ) : (
                 visibleItemRows.map((row, index) => (
                   <tr key={row?.reward_id || row?.id || index}>
+                    <td>
+                      {row?.image_url ? (
+                        <img
+                          src={resolveImageUrl(row.image_url)}
+                          alt=""
+                          style={{
+                            width: 40,
+                            height: 40,
+                            objectFit: "cover",
+                            borderRadius: 6,
+                            border: "1px solid #e8e8f0",
+                          }}
+                        />
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td>
                       <div className="med-bold">{row?.title || "—"}</div>
                       <div style={{ fontSize: 11, color: "var(--med-ink3)" }}>
@@ -1248,7 +1346,10 @@ const Reward = () => {
             : `Edit ${categoryLabel(activeItemCategory)} Reward`
         }
         open={rewardModalOpen}
-        onCancel={() => setRewardModalOpen(false)}
+        onCancel={() => {
+          setRewardModalOpen(false);
+          clearRewardImageBlobPreview();
+        }}
         onOk={saveReward}
         okText={rewardModalMode === "create" ? "Create" : "Save"}
         confirmLoading={rewardSaving}
@@ -1281,6 +1382,58 @@ const Reward = () => {
           </Form.Item>
           <Form.Item name="description" label="Description">
             <TextArea rows={3} placeholder="Reward description" />
+          </Form.Item>
+          <Form.Item label="Reward image">
+            <div className="reward-image-upload">
+              <div className="reward-image-upload-preview" aria-hidden>
+                {rewardImageUploading ? (
+                  <Spinner size="sm" color="inherit" />
+                ) : rewardImagePreview ? (
+                  <img src={rewardImagePreview} alt="" />
+                ) : (
+                  <img src={imagecloud} alt="" className="reward-image-upload-icon" />
+                )}
+              </div>
+              <div className="reward-image-upload-body">
+                <div className="reward-image-upload-title">
+                  {rewardImagePreview ? "Image attached" : "Add a reward image"}
+                </div>
+                <div className="reward-image-upload-hint">
+                  PNG or JPG. Shown in the rewards catalog.
+                </div>
+                <div className="reward-image-upload-actions">
+                  <input
+                    ref={rewardImageInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="reward-image-upload-input"
+                    disabled={rewardImageUploading || rewardSaving}
+                    onChange={handleRewardImageChange}
+                  />
+                  <Button
+                    type="primary"
+                    disabled={rewardSaving}
+                    loading={rewardImageUploading}
+                    onClick={() => rewardImageInputRef.current?.click()}
+                    style={{
+                      backgroundColor: "#8930F9",
+                      borderColor: "#8930F9",
+                    }}
+                  >
+                    {rewardImagePreview ? "Change image" : "Choose image"}
+                  </Button>
+                  {rewardImageUrl ? (
+                    <Button
+                      type="default"
+                      disabled={rewardImageUploading || rewardSaving}
+                      onClick={() => setRewardImageFromValue("")}
+                    >
+                      Remove
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
           </Form.Item>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Form.Item
