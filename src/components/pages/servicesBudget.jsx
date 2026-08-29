@@ -3,10 +3,13 @@
 /* eslint-disable no-unused-vars */
 import { Image } from "antd";
 import React, { useEffect, useState } from "react";
+import { Modal } from "react-bootstrap";
+import { MessageSquare } from "react-feather";
 import { apiRequest } from "../../api/auth_api";
 import { FaPhone } from "react-icons/fa6";
 import Spinner from "../Spinner";
 import moment from "moment";
+import ChatMessageList from "./messages/chatMessageList";
 
 const ServicesBudget = () => {
   const [lastId, setLastId] = useState(1);
@@ -14,6 +17,8 @@ const ServicesBudget = () => {
   const [count, setCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [chatUserDetail, setChatUserDetail] = useState(null);
 
   const robustParse = (value) => {
     if (!value || typeof value !== "string") return null;
@@ -158,6 +163,21 @@ const ServicesBudget = () => {
     handleFetchBudget();
   }, [lastId]);
 
+  const handleShowChatModal = (budget) => {
+    const userId = budget?.user?.id || budget?.user_id;
+    if (!userId) return;
+
+    setChatUserDetail({
+      sender_id: userId,
+      sender_name: budget?.user?.name || "User",
+      sender_email: budget?.user?.email || "",
+      sender_img: budget?.user?.image
+        ? `${global.IMAGEURL}/${budget.user.image}`
+        : "",
+    });
+    setShowChatModal(true);
+  };
+
   const BudgetCard = ({ budget }) => {
     const petInformation = robustParse(budget?.pet);
     return (
@@ -178,7 +198,7 @@ const ServicesBudget = () => {
                 marginBottom: "0.75rem",
               }}
             >
-              <div className="d-flex justify-content-between align-items-start">
+              <div className="d-flex justify-content-between align-items-start gap-2">
                 <div className="d-flex flex-column">
                   <span
                     className="plusJakara_semibold"
@@ -204,6 +224,32 @@ const ServicesBudget = () => {
                     {budget?.user?.phone || "---"}
                   </span>
                 </div>
+                {(budget?.user?.id || budget?.user_id) && (
+                  <button
+                    type="button"
+                    onClick={() => handleShowChatModal(budget)}
+                    className="d-flex align-items-center justify-content-center"
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "50%",
+                      backgroundColor: "#F3EEFF",
+                      border: "1px solid #D8B4FE",
+                      flexShrink: 0,
+                      cursor: "pointer",
+                      transition: "background-color 0.2s ease",
+                    }}
+                    title={`Message ${budget?.user?.name || "user"}`}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#EDE9FE";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "#F3EEFF";
+                    }}
+                  >
+                    <MessageSquare size={14} color="#8930F9" />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -454,6 +500,33 @@ const ServicesBudget = () => {
           </>
         )}
       </main>
+
+      <Modal
+        show={showChatModal}
+        onHide={() => setShowChatModal(false)}
+        centered
+        size="lg"
+      >
+        <Modal.Header closeButton>
+          <div className="flex justify-start">
+            <span className="text_dark text-xl plusJakara_medium">
+              Chat with {chatUserDetail?.sender_name}
+            </span>
+          </div>
+        </Modal.Header>
+        <Modal.Body style={{ height: "600px", padding: 0 }}>
+          {chatUserDetail && (
+            <ChatMessageList
+              chatDetail={chatUserDetail}
+              setShowChat={setShowChatModal}
+              setCheckMsg={() => {}}
+              checkMsg={false}
+              setReload={() => {}}
+              activeId={chatUserDetail?.sender_id}
+            />
+          )}
+        </Modal.Body>
+      </Modal>
     </>
   );
 };

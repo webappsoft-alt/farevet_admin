@@ -793,3 +793,83 @@
   opacity: 0;
   pointer-events: none;
 }
+
+.reward-modal .ant-modal-content {
+  border-radius: 12px;
+}
+
+.reward-modal .ant-modal-body {
+  padding-top: 16px;
+}
+
+.reward-form .reward-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+
+.reward-form .reward-form-full {
+  grid-column: 1 / -1;
+}
+
+.reward-form .ant-form-item {
+  margin-bottom: 14px;
+}
+
+.reward-description-editor {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.reward-type-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.reward-type-picker__option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 2px solid #e8e8f2;
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.reward-type-picker__option:hover {
+  border-color: #c4b5fd;
+  background: #faf8ff;
+}
+
+.reward-type-picker__option--active {
+  border-color: #8930f9;
+  background: #f6f0ff;
+  box-shadow: 0 0 0 1px rgba(137, 48, 249, 0.15);
+}
+
+.reward-type-picker__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.reward-type-picker__hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #6b7280;
+}
+
+@media (max-width: 640px) {
+  .reward-form .reward-form-grid,
+  .reward-type-picker {
+    grid-template-columns: 1fr;
+  }
+}

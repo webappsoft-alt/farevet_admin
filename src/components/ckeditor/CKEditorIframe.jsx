@@ -5,28 +5,77 @@ import { apiRequest } from "../../api/auth_api";
 const CDN_SCRIPT =
   "https://cdn.ckeditor.com/ckeditor5/41.4.2/super-build/ckeditor.js";
 
-function buildIframeHtml(editableMinPx) {
+const DEFAULT_TOOLBAR_RESERVE = 96;
+
+function buildIframeHtml({ editableMinPx, autoGrow, maxEditablePx }) {
+  const editableMaxRule = autoGrow
+    ? `max-height: ${maxEditablePx}px !important;`
+    : "max-height: none !important;";
+
+  const layoutStyles = autoGrow
+    ? `
+          body { margin: 0; padding: 0; font-family: sans-serif; height: auto; display: block; overflow: visible; background: #fff; box-sizing: border-box; }
+          #editor-container { display: flex; flex-direction: column; border-radius: 12px; overflow: visible; }
+          .ck-editor { display: flex !important; flex-direction: column !important; height: auto !important; border-radius: 12px !important; }
+          .ck-editor__main { display: flex !important; flex-direction: column !important; overflow: visible !important; }
+          .ck-editor__editable_inline { overflow-y: auto !important; min-height: unset !important; padding: 0.75rem 1rem !important; }
+    `
+    : `
+          body { margin: 0; padding: 0; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: #fff; box-sizing: border-box; }
+          #editor-container { flex-grow: 1; display: flex; flex-direction: column; height: 100vh; border-radius: 12px; overflow: hidden; }
+          .ck-editor { display: flex !important; flex-direction: column !important; flex-grow: 1 !important; height: 100% !important; border-radius: 12px !important; }
+          .ck-editor__main { flex-grow: 1 !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; }
+          .ck-editor__editable_inline { flex-grow: 1 !important; overflow-y: auto !important; min-height: unset !important; padding: 1rem 2rem !important; }
+    `;
+
+  const autoGrowScript = autoGrow
+    ? `
+          function reportHeight() {
+            if (!editorInstance) return;
+            const editable = editorInstance.ui.view.editable.element;
+            const toolbar = editorInstance.ui.view.toolbar.element;
+            const toolbarH = toolbar ? toolbar.offsetHeight : 0;
+            const editableH = editable ? editable.scrollHeight : 0;
+            window.parent.postMessage({
+              type: 'resize',
+              height: toolbarH + editableH + 12,
+            }, '*');
+          }
+    `
+    : "";
+
+  const changeHandler = autoGrow
+    ? `
+              editor.model.document.on('change:data', () => {
+                window.parent.postMessage({ type: 'change', data: editor.getData() }, '*');
+                requestAnimationFrame(reportHeight);
+              });
+              requestAnimationFrame(reportHeight);
+    `
+    : `
+              editor.model.document.on('change:data', () => {
+                window.parent.postMessage({ type: 'change', data: editor.getData() }, '*');
+              });
+    `;
+
   return `
     <!DOCTYPE html>
     <html>
       <head>
         <meta charset="UTF-8">
         <style>
-          body { margin: 0; padding: 0; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: #fff; box-sizing: border-box; }
-          #editor-container { flex-grow: 1; display: flex; flex-direction: column; height: 100vh; border-radius: 12px; overflow: hidden; }
-          .ck-editor { display: flex !important; flex-direction: column !important; flex-grow: 1 !important; height: 100% !important; border-radius: 12px !important; }
-          .ck-editor__main { flex-grow: 1 !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; }
-          .ck-editor__editable_inline { flex-grow: 1 !important; overflow-y: auto !important; min-height: unset !important; padding: 1rem 2rem !important; }
+          ${layoutStyles}
           .ck.ck-editor__main > .ck-editor__editable {
             background: white !important;
             border-radius: 0 0 12px 12px !important;
             border-top: none !important;
             min-height: ${editableMinPx}px !important;
-            max-height: none !important;
-            padding: 1.5rem !important;
+            ${editableMaxRule}
+            padding: ${autoGrow ? "0.75rem 1rem" : "1.5rem"} !important;
             overflow-y: auto !important;
             word-break: break-word !important;
             overflow-wrap: anywhere !important;
+            height: auto !important;
           }
           .ck.ck-editor__top .ck-sticky-panel .ck-toolbar { border-radius: 12px 12px 0 0 !important; border-bottom: 1px solid #ccced1 !important; }
           .ck-content figure.image {
@@ -87,6 +136,7 @@ function buildIframeHtml(editableMinPx) {
 
         <script>
           let editorInstance;
+          ${autoGrowScript}
           function handleLoadError() {
             window.parent.postMessage({ type: 'error', error: 'Failed to load script' }, '*');
           }
@@ -177,9 +227,7 @@ function buildIframeHtml(editableMinPx) {
             }).then(editor => {
               editorInstance = editor;
               window.parent.postMessage({ type: 'ready' }, '*');
-              editor.model.document.on('change:data', () => {
-                window.parent.postMessage({ type: 'change', data: editor.getData() }, '*');
-              });
+              ${changeHandler}
             }).catch(error => {
               window.parent.postMessage({ type: 'error', error: error.message }, '*');
             });
@@ -189,6 +237,7 @@ function buildIframeHtml(editableMinPx) {
               if (editorInstance.getData() !== event.data.data) {
                 editorInstance.setData(event.data.data || '');
               }
+              ${autoGrow ? "requestAnimationFrame(reportHeight);" : ""}
             }
           });
         </script>
@@ -206,16 +255,35 @@ function CKEditorIframe({
   value = "",
   onChange,
   minHeight = 400,
+  maxHeight,
+  autoGrow = false,
   className = "",
 }) {
   const iframeRef = useRef(null);
   const [loading, setLoading] = useState(true);
-  const editableMin = Math.max(280, minHeight);
-  const iframeHeight = Math.min(Math.max(editableMin + 120, 520), 900);
+  const editableMin = autoGrow ? Math.max(72, minHeight) : Math.max(280, minHeight);
+  const maxEditablePx = autoGrow
+    ? Math.max(editableMin + 40, maxHeight ? maxHeight - DEFAULT_TOOLBAR_RESERVE : 360)
+    : null;
+  const initialIframeHeight = autoGrow
+    ? editableMin + DEFAULT_TOOLBAR_RESERVE
+    : Math.min(Math.max(editableMin + 120, 520), 900);
+  const maxIframeHeight = autoGrow
+    ? Math.max(
+        initialIframeHeight,
+        maxHeight || editableMin + DEFAULT_TOOLBAR_RESERVE + 280,
+      )
+    : initialIframeHeight;
+  const [iframeHeight, setIframeHeight] = useState(initialIframeHeight);
   /* Stable srcDoc — changing string every parent re-render would reload the iframe */
   const iframeHtml = useMemo(
-    () => buildIframeHtml(editableMin),
-    [editableMin],
+    () =>
+      buildIframeHtml({
+        editableMinPx: editableMin,
+        autoGrow,
+        maxEditablePx,
+      }),
+    [editableMin, autoGrow, maxEditablePx],
   );
 
   const runUpload = useCallback(async (file) => {
@@ -263,6 +331,12 @@ function CKEditorIframe({
 
       if (event.data.type === "ready") {
         setLoading(false);
+      } else if (event.data.type === "resize" && autoGrow) {
+        const nextHeight = Math.min(
+          maxIframeHeight,
+          Math.max(initialIframeHeight, Number(event.data.height) || initialIframeHeight),
+        );
+        setIframeHeight(nextHeight);
       } else if (event.data.type === "change" && typeof onChange === "function") {
         onChange(event.data.data);
       } else if (event.data.type === "uploadImage") {
@@ -277,7 +351,12 @@ function CKEditorIframe({
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [onChange, runUpload]);
+  }, [autoGrow, initialIframeHeight, maxIframeHeight, onChange, runUpload]);
+
+  useEffect(() => {
+    if (!autoGrow) return;
+    setIframeHeight(initialIframeHeight);
+  }, [autoGrow, initialIframeHeight, iframeHtml]);
 
   useEffect(() => {
     if (!loading && iframeRef.current?.contentWindow) {
@@ -306,7 +385,7 @@ function CKEditorIframe({
           <Skeleton
             active
             avatar={{ size: "small", shape: "square" }}
-            paragraph={{ rows: 12 }}
+            paragraph={{ rows: autoGrow ? 3 : 12 }}
           />
         </div>
       ) : null}

@@ -283,6 +283,9 @@ const CreatePetService = () => {
     };
     const handleCost = (title) => {
         setCost(title);
+        if (title !== "Average Cost") {
+            form.setFieldsValue({ lowestCost: undefined, highestCost: undefined });
+        }
     };
     const handlePetType = (title) => {
         setPet(title);
@@ -316,6 +319,10 @@ const CreatePetService = () => {
         body.append("table_name", "services");
         body.append("amount", values?.amountPet);
         body.append("cost_type", cost);
+        if (cost === "Average Cost") {
+            body.append("lowest_cost", values?.lowestCost ?? "");
+            body.append("highest_cost", values?.highestCost ?? "");
+        }
         body.append("service_name", value);
         body.append("sub_service", JSON.stringify(servicePet));
         body.append("weight", weightPet);
@@ -658,7 +665,7 @@ const CreatePetService = () => {
                 </div>
                 <div className="flex gap-3 mb-4 w-full max-md:flex-col justify-start">
                     <span className="inter_medium text-sm text_dark w-full md:w-[30%]">
-                        Amount
+                        {cost === "Average Cost" ? "Average Cost" : "Amount"}
                     </span>
                     <div className="w-full md:w-[70%] flex flex-wrap gap-2 items-center">
                         <Form.Item
@@ -717,6 +724,30 @@ const CreatePetService = () => {
                         ))}
                     </div>
                 </div>
+                {cost === "Average Cost" && (
+                    <>
+                        <div className="flex gap-3 mb-4 w-full max-md:flex-col justify-start">
+                            <span className="inter_medium text-sm text_dark w-full md:w-[30%]">
+                                Lowest Cost
+                            </span>
+                            <div className="w-full md:w-[70%] flex flex-wrap gap-2 items-center">
+                                <Form.Item className="w-full mb-0" name="lowestCost">
+                                    <Input type="number" size="large" placeholder="e.g. 42.31" />
+                                </Form.Item>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 mb-4 w-full max-md:flex-col justify-start">
+                            <span className="inter_medium text-sm text_dark w-full md:w-[30%]">
+                                Highest Cost
+                            </span>
+                            <div className="w-full md:w-[70%] flex flex-wrap gap-2 items-center">
+                                <Form.Item className="w-full mb-0" name="highestCost">
+                                    <Input type="number" size="large" placeholder="e.g. 502.13" />
+                                </Form.Item>
+                            </div>
+                        </div>
+                    </>
+                )}
                 <div className="flex gap-3 mb-4 w-full max-md:flex-col justify-start">
                     <span className="inter_medium text-sm text_dark w-full md:w-[30%]">
                         Weight(LBS)

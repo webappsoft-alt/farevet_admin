@@ -88,31 +88,22 @@ function prettyPetType(raw) {
 }
 
 const PRESCRIPTION_OPTIONS = [
-  { id: "yes", label: "Rx" },
-  { id: "no", label: "OTC" },
-  { id: "in_store", label: "In store" },
+  { id: "RX", label: "RX" },
+  { id: "OTC", label: "OTC" },
+  { id: "In store", label: "In store" },
 ];
 
-function normalizePrescriptionValue(raw) {
-  const v = String(raw ?? "yes").toLowerCase().trim();
-  if (v === "no") return "no";
-  if (v === "in_store" || v === "instore" || v === "in-store") {
-    return "in_store";
-  }
-  return "yes";
-}
+const DEFAULT_PRESCRIPTION = "RX";
 
-function prettyPrescription(raw) {
-  const v = normalizePrescriptionValue(raw);
-  if (v === "no") return "OTC";
-  if (v === "in_store") return "In store";
-  return "Rx";
+function displayPrescription(raw) {
+  const v = String(raw ?? "").trim();
+  return v || "—";
 }
 
 function prescriptionTagClass(raw) {
-  const v = normalizePrescriptionValue(raw);
-  if (v === "yes") return "med-tg-a";
-  if (v === "in_store") return "med-tg-c";
+  const v = String(raw ?? "").trim();
+  if (v === "RX") return "med-tg-a";
+  if (v === "In store") return "med-tg-c";
   return "med-tg-b";
 }
 
@@ -162,7 +153,7 @@ function normalizeMedicationRow(row) {
     ...row,
     strength: row.strength ?? row.Strength ?? "",
     quantity: row.quantity ?? row.Quantity ?? "",
-    prescription: normalizePrescriptionValue(row.prescription ?? row.Prescription),
+    prescription: String(row.prescription ?? row.Prescription ?? "").trim(),
     custom_pharmacy_1_name:
       row.custom_pharmacy_1_name ?? row.customPharmacy1Name ?? "",
     custom_pharmacy_1_price:
@@ -346,7 +337,7 @@ const MedicationDatabase = () => {
   const navigate = useNavigate();
   const [showCatalog, setShowCatalog] = useState(true);
   const [petType, setPetType] = useState("dog");
-  const [prescription, setPrescription] = useState("yes");
+  const [prescription, setPrescription] = useState(DEFAULT_PRESCRIPTION);
   const [category, setCategory] = useState(null);
   const [medicationName, setMedicationName] = useState("");
   const [strength, setStrength] = useState("");
@@ -629,7 +620,7 @@ const MedicationDatabase = () => {
     setEditingMedicationId(null);
     setCategory(categorySelectOptions[0] ?? null);
     setPetType("dog");
-    setPrescription("yes");
+    setPrescription(DEFAULT_PRESCRIPTION);
     setMedicationName("");
     setStrength("");
     setQuantity("");
@@ -678,7 +669,7 @@ const MedicationDatabase = () => {
     setGenericName(String(normalized?.generic_name ?? ""));
     setCategory(selectedCat);
     setPetType(String(normalized?.pet_type ?? "dog").toLowerCase() || "dog");
-    setPrescription(normalizePrescriptionValue(normalized?.prescription));
+    setPrescription(normalized?.prescription || DEFAULT_PRESCRIPTION);
     setNoteText(String(normalized?.Note ?? normalized?.note ?? ""));
     setClinicPrice(String(normalized?.clinic_price ?? ""));
     setChewyPrice(String(normalized?.chewy_price ?? ""));
@@ -884,7 +875,7 @@ const MedicationDatabase = () => {
                 </div>
                 <div className="med-detail-item">
                   <div className="med-detail-dt">Prescription</div>
-                  <div className="med-detail-dd">{prettyPrescription(detailRow?.prescription)}</div>
+                  <div className="med-detail-dd">{displayPrescription(detailRow?.prescription)}</div>
                 </div>
               </div>
             </section>
@@ -1121,7 +1112,7 @@ const MedicationDatabase = () => {
                 ) : (
                   medications.map((row) => {
                     const categoryLabel = resolveCategoryLabel(row);
-                    const rxText = prettyPrescription(row?.prescription);
+                    const rxText = displayPrescription(row?.prescription);
                     const statusRaw = String(row?.status ?? "current")
                       .toLowerCase()
                       .trim();

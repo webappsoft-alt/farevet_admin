@@ -1,12 +1,13 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Badge, Button, Form, Input, InputNumber, Modal, message } from "antd";
+import { Badge, Button, Form, Input, InputNumber, Modal, Select, message } from "antd";
 import { Spinner } from "react-bootstrap";
 import moment from "moment";
 import ReactPaginate from "react-paginate";
 import { Check } from "react-feather";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { apiRequest } from "../../../api/auth_api";
+import CKEditorIframe from "../../ckeditor/CKEditorIframe";
 import ProductTableNoData from "../../DataTable/NoDataComponent";
 import {
   arrowleft2,
@@ -23,12 +24,31 @@ const { TextArea } = Input;
 const PAGE_SIZE = 10;
 const REDEMPTION_PAGE_SIZE = 50;
 const REWARD_CATEGORIES = [
-  { key: "credits", label: "Credits" },
+  { key: "credits", label: "Credits & Premium" },
   { key: "gift_cards", label: "Gift Cards" },
   { key: "swag", label: "Swag" },
   { key: "donate", label: "Donate" },
 ];
+const CREDIT_REWARD_KINDS = [
+  {
+    key: "credits",
+    label: "Account credits",
+    hint: "Adds dollar credits to the user's FareVet balance when approved.",
+  },
+  {
+    key: "premium",
+    label: "Premium access",
+    hint: "Extends premium subscription by the number of months you set.",
+  },
+];
 const REDEMPTION_TABS = [{ key: "all", label: "All" }, ...REWARD_CATEGORIES];
+const SWAG_CATEGORY_PRESETS = [
+  "Badges & Pins",
+  "Hats",
+  "Stickers",
+  "T-Shirts",
+  "Accessories",
+];
 
 function getAdminId() {
   const data = JSON.parse(
@@ -54,7 +74,22 @@ function safeArray(value) {
   if (Array.isArray(value)) return value;
   if (Array.isArray(value?.data)) return value.data;
   if (Array.isArray(value?.list)) return value.list;
+  if (Array.isArray(value?.rewards)) return value.rewards;
   return [];
+}
+
+/** Admin table: newest rewards first (by id or created_at). */
+function sortRewardsNewestFirst(rows) {
+  return [...rows].sort((a, b) => {
+    const aCreated = Date.parse(a?.created_at ?? a?.created_date ?? "");
+    const bCreated = Date.parse(b?.created_at ?? b?.created_date ?? "");
+    if (Number.isFinite(aCreated) && Number.isFinite(bCreated) && aCreated !== bCreated) {
+      return bCreated - aCreated;
+    }
+    const aId = Number(a?.reward_id ?? a?.id) || 0;
+    const bId = Number(b?.reward_id ?? b?.id) || 0;
+    return bId - aId;
+  });
 }
 
 function safeNumber(value) {
@@ -69,11 +104,185 @@ function formatDate(value) {
   return date.format("DD MMM YYYY, hh:mm A");
 }
 
+function CreditRewardTypePicker({ value, onChange }) {
+  return (
+    <div className="reward-type-picker" role="radiogroup" aria-label="Reward type">
+      {CREDIT_REWARD_KINDS.map((item) => {
+        const selected = value === item.key;
+        return (
+          <button
+            key={item.key}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            className={`reward-type-picker__option${
+              selected ? " reward-type-picker__option--active" : ""
+            }`}
+            onClick={() => onChange?.(item.key)}
+          >
+            <span className="reward-type-picker__label">{item.label}</span>
+            <span className="reward-type-picker__hint">{item.hint}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function categoryLabel(categoryKey) {
   return (
     REWARD_CATEGORIES.find((item) => item.key === categoryKey)?.label ||
     String(categoryKey || "—")
   );
+}
+
+function mergeSwagCategoryOptions(presetList, customList, rows) {
+  const fromRows = (rows || [])
+    .map((row) => String(row?.swag_category || "").trim())
+    .filter(Boolean);
+  return [...new Set([...presetList, ...customList, ...fromRows])].sort(
+    (a, b) => a.localeCompare(b),
+  );
+}
+
+function SwagCategorySelect({ value, onChange, options = [], disabled, onCustomCategory }) {
+  const [customName, setCustomName] = useState("");
+
+  const selectOptions = options.map((label) => ({
+    value: label,
+    label,
+  }));
+
+  const addCustomCategory = () => {
+    const trimmed = compactLine(customName);
+    if (!trimmed) return;
+    onCustomCategory?.(trimmed);
+    onChange?.(trimmed);
+    setCustomName("");
+  };
+
+  return (
+    <Select
+      showSearch
+      allowClear
+      disabled={disabled}
+      placeholder="Select swag category"
+      value={value || undefined}
+      onChange={onChange}
+      options={selectOptions}
+      optionFilterProp="label"
+      dropdownRender={(menu) => (
+        <>
+          {menu}
+          <div
+            className="reward-swag-category-custom"
+            style={{
+              display: "flex",
+              gap: 8,
+              padding: "8px 12px",
+              borderTop: "1px solid #f0f0f0",
+            }}
+          >
+            <Input
+              placeholder="Custom category name"
+              value={customName}
+              disabled={disabled}
+              onChange={(e) => setCustomName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCustomCategory();
+                }
+              }}
+            />
+            <Button
+              type="default"
+              disabled={disabled || !compactLine(customName)}
+              onClick={addCustomCategory}
+            >
+              Add
+            </Button>
+          </div>
+        </>
+      )}
+    />
+  );
+}
+
+function suggestRewardKey({ category, kind, creditsAmount, premiumMonths }) {
+  if (category !== "credits") return "";
+  if (kind === "premium") {
+    const months = Number(premiumMonths) || 1;
+    return months === 1 ? "premium_1mo" : `premium_${months}mo`;
+  }
+  const credits = Number(creditsAmount);
+  if (Number.isFinite(credits) && credits > 0) {
+    return `credit_${credits}`;
+  }
+  return "credit_25";
+}
+
+function inferCreditRewardKind(row) {
+  const rewardType = String(row?.reward_type || "").toLowerCase();
+  if (rewardType === "premium") return "premium";
+  if (rewardType === "account_credits") return "credits";
+  if (Number(row?.premium_months) > 0) return "premium";
+  if (Number(row?.credits_amount) > 0) return "credits";
+  const key = String(row?.reward_key || "").toLowerCase();
+  if (key.startsWith("premium")) return "premium";
+  return "credits";
+}
+
+function formatRedemptionGrant(row) {
+  const source = {
+    ...row,
+    credits_amount: row?.credits_amount ?? row?.reward?.credits_amount,
+    premium_months: row?.premium_months ?? row?.reward?.premium_months,
+    reward_type: row?.reward_type ?? row?.reward?.reward_type,
+  };
+  const credits = Number(source.credits_amount);
+  if (Number.isFinite(credits) && credits > 0) {
+    return `Grant: ${credits} credit${credits === 1 ? "" : "s"}`;
+  }
+  const months = Number(source.premium_months);
+  if (Number.isFinite(months) && months >= 1) {
+    return months === 1
+      ? "Grant: 1 month premium"
+      : `Grant: ${months} months premium`;
+  }
+  return null;
+}
+
+function creditRewardKindLabel(kind) {
+  return (
+    CREDIT_REWARD_KINDS.find((item) => item.key === kind)?.label ||
+    String(kind || "—")
+  );
+}
+
+function formatCreditRewardSummary(row) {
+  const rewardType = String(row?.reward_type || "").toLowerCase();
+  if (rewardType === "premium") {
+    const months = Number(row?.premium_months) || 1;
+    return `${months} mo premium`;
+  }
+  if (rewardType === "account_credits") {
+    const credits = Number(row?.credits_amount);
+    if (Number.isFinite(credits) && credits > 0) {
+      return `$${credits} credits`;
+    }
+    return "Account credits";
+  }
+  const kind = inferCreditRewardKind(row);
+  if (kind === "premium") {
+    const months = Number(row?.premium_months) || 1;
+    return `${months} mo premium`;
+  }
+  const credits = Number(row?.credits_amount);
+  if (Number.isFinite(credits) && credits > 0) {
+    return `$${credits} credits`;
+  }
+  return "Account credits";
 }
 
 function isRewardActive(value) {
@@ -313,10 +522,16 @@ function normalizeRedemptionDetail(payload) {
     root.user || root.user_info || root.customer || payload?.user || payload?.customer || {};
   const reward = root.reward || root.reward_details || payload?.reward || {};
   const messages = extractAdminDetailMessages(payload);
+  const premiumGrant =
+    root.premium_grant ??
+    payload?.premium_grant ??
+    reward?.premium_grant ??
+    null;
 
   return {
     ...root,
     category: root.category ?? reward.category ?? root.reward_category,
+    reward_type: root.reward_type ?? reward.reward_type,
     reward_key: root.reward_key ?? reward.reward_key ?? reward.key,
     reward_title:
       root.reward_title ??
@@ -333,6 +548,14 @@ function normalizeRedemptionDetail(payload) {
     points_cost: root.points_cost ?? reward.points_cost,
     status: root.status ?? root.redemption_status,
     credits_amount: root.credits_amount ?? reward.credits_amount,
+    premium_months: root.premium_months ?? reward.premium_months,
+    badge_label: root.badge_label ?? reward.badge_label,
+    reward,
+    premium_grant: premiumGrant,
+    subscription_expires_at:
+      premiumGrant?.subscription_expires_at ??
+      root.subscription_expires_at ??
+      payload?.subscription_expires_at,
     user_name:
       root.user_name ?? root.name ?? user.name ?? user.user_name ?? user.customer_name,
     user_email: root.user_email ?? root.email ?? user.email ?? user.user_email,
@@ -416,11 +639,24 @@ const Reward = () => {
   const [rewardPendingStatus, setRewardPendingStatus] = useState(null);
   const [rewardNextIsActive, setRewardNextIsActive] = useState(0);
   const [rewardForm] = Form.useForm();
+  const creditRewardKind = Form.useWatch("credit_reward_kind", rewardForm);
   const [rewardImageUrl, setRewardImageUrl] = useState("");
   const [rewardImagePreview, setRewardImagePreview] = useState("");
   const [rewardImageUploading, setRewardImageUploading] = useState(false);
   const rewardImageBlobRef = useRef(null);
   const rewardImageInputRef = useRef(null);
+  const rewardKeyTouchedRef = useRef(false);
+  const [customSwagCategories, setCustomSwagCategories] = useState([]);
+
+  const swagCategoryOptions = useMemo(
+    () =>
+      mergeSwagCategoryOptions(
+        SWAG_CATEGORY_PRESETS,
+        customSwagCategories,
+        rewardRowsByCategory.swag,
+      ),
+    [customSwagCategories, rewardRowsByCategory.swag],
+  );
 
   const [activeRedemptionCategory, setActiveRedemptionCategory] = useState("all");
   const [redemptionsStatus, setRedemptionsStatus] = useState("all");
@@ -500,6 +736,8 @@ const Reward = () => {
   const activeItemRows = rewardRowsByCategory[activeItemCategory] || [];
   const itemPage = itemPages[activeItemCategory] || 1;
   const itemPageCount = Math.max(1, Math.ceil(activeItemRows.length / PAGE_SIZE));
+  const rewardItemTableColSpan =
+    activeItemCategory === "credits" || activeItemCategory === "swag" ? 8 : 7;
   const visibleItemRows = activeItemRows.slice(
     (itemPage - 1) * PAGE_SIZE,
     itemPage * PAGE_SIZE,
@@ -629,14 +867,23 @@ const Reward = () => {
         type: "admin_list_rewards",
         admin_id: adminId,
         category,
-       
       });
+      if (res?.result === false) {
+        message.error(res?.message || "Failed to load rewards.");
+        setRewardRowsByCategory((prev) => ({
+          ...prev,
+          [category]: [],
+        }));
+        return;
+      }
       setRewardRowsByCategory((prev) => ({
         ...prev,
-        [category]: safeArray(res).map((row) => ({
-          ...row,
-          category: row?.category || category,
-        })),
+        [category]: sortRewardsNewestFirst(
+          safeArray(res).map((row) => ({
+            ...row,
+            category: row?.category || category,
+          })),
+        ),
       }));
     } catch (error) {
       setRewardRowsByCategory((prev) => ({
@@ -824,19 +1071,45 @@ const Reward = () => {
     }
   };
 
-  const openCreateReward = () => {
+  const openCreateReward = (preset) => {
     setRewardEditing(null);
     setRewardModalMode("create");
+    rewardKeyTouchedRef.current = false;
     rewardForm.resetFields();
-    rewardForm.setFieldsValue({
+    const defaults = {
+      credit_reward_kind: "credits",
       reward_key: "",
       title: "",
       description: "",
       points_cost: undefined,
       dollar_value: "",
       credits_amount: undefined,
+      premium_months: 1,
+      badge_label: "",
       sort_order: activeItemRows.length + 1,
-    });
+      swag_category: activeItemCategory === "swag" ? SWAG_CATEGORY_PRESETS[0] : undefined,
+    };
+    if (preset === "credits") {
+      Object.assign(defaults, {
+        credit_reward_kind: "credits",
+        reward_key: "credit_25",
+        title: "$25 Account Credits",
+        description: "Redeem points for $25 in FareVet account credits.",
+        credits_amount: 25,
+        dollar_value: 25,
+        badge_label: "Credits",
+      });
+    } else if (preset === "premium") {
+      Object.assign(defaults, {
+        credit_reward_kind: "premium",
+        reward_key: "premium_1mo",
+        title: "1 Month Premium Access",
+        description: "Unlock premium features for 30 days.",
+        premium_months: 1,
+        badge_label: "Premium",
+      });
+    }
+    rewardForm.setFieldsValue(defaults);
     setRewardImageFromValue("");
     setRewardModalOpen(true);
   };
@@ -844,8 +1117,11 @@ const Reward = () => {
   const openEditReward = (row) => {
     setRewardEditing(row);
     setRewardModalMode("edit");
+    rewardKeyTouchedRef.current = true;
     rewardForm.resetFields();
+    const kind = inferCreditRewardKind(row);
     rewardForm.setFieldsValue({
+      credit_reward_kind: kind,
       reward_key: row?.reward_key || "",
       title: row?.title || "",
       description: row?.description || "",
@@ -854,11 +1130,38 @@ const Reward = () => {
       dollar_value: row?.dollar_value || "",
       credits_amount:
         row?.credits_amount !== undefined ? Number(row.credits_amount) : undefined,
+      premium_months:
+        row?.premium_months !== undefined ? Number(row.premium_months) : 1,
+      badge_label: row?.badge_label || "",
       sort_order:
         row?.sort_order !== undefined ? Number(row.sort_order) : undefined,
+      swag_category: row?.swag_category || "",
     });
     setRewardImageFromValue(row?.image_url);
     setRewardModalOpen(true);
+  };
+
+  const handleRewardFormValuesChange = (changedValues, allValues) => {
+    if (rewardModalMode !== "create" || rewardKeyTouchedRef.current) return;
+    if (Object.prototype.hasOwnProperty.call(changedValues, "reward_key")) {
+      rewardKeyTouchedRef.current = true;
+      return;
+    }
+    if (activeItemCategory !== "credits") return;
+    const shouldRefreshKey =
+      Object.prototype.hasOwnProperty.call(changedValues, "credit_reward_kind") ||
+      Object.prototype.hasOwnProperty.call(changedValues, "premium_months") ||
+      Object.prototype.hasOwnProperty.call(changedValues, "credits_amount");
+    if (!shouldRefreshKey) return;
+    const suggested = suggestRewardKey({
+      category: activeItemCategory,
+      kind: allValues.credit_reward_kind || "credits",
+      creditsAmount: allValues.credits_amount,
+      premiumMonths: allValues.premium_months,
+    });
+    if (suggested) {
+      rewardForm.setFieldValue("reward_key", suggested);
+    }
   };
 
   const saveReward = async () => {
@@ -871,6 +1174,10 @@ const Reward = () => {
 
     setRewardSaving(true);
     try {
+      const isCreditsCategory = activeItemCategory === "credits";
+      const kind = isCreditsCategory
+        ? values.credit_reward_kind || "credits"
+        : null;
       const payload = {
         type: "admin_save_reward",
         admin_id: adminId,
@@ -884,12 +1191,20 @@ const Reward = () => {
             ? undefined
             : toPositiveMoney(values.dollar_value),
         credits_amount:
-          activeItemCategory === "credits"
+          isCreditsCategory && kind === "credits"
             ? toPositiveInt(values.credits_amount)
             : undefined,
+        premium_months:
+          isCreditsCategory && kind === "premium"
+            ? toPositiveInt(values.premium_months) || 1
+            : undefined,
+        badge_label: compactLine(values.badge_label) || undefined,
         sort_order: toPositiveInt(values.sort_order),
         is_active: 1,
       };
+      if (activeItemCategory === "swag") {
+        payload.swag_category = compactLine(values.swag_category) || undefined;
+      }
       const trimmedImageUrl = compactLine(rewardImageUrl);
       if (trimmedImageUrl) {
         payload.image_url = trimmedImageUrl;
@@ -932,6 +1247,7 @@ const Reward = () => {
     try {
       const categoryKey =
         rewardPendingStatus?.category || activeItemCategory || "credits";
+      const pendingKind = inferCreditRewardKind(rewardPendingStatus);
       const payload = {
         type: "admin_save_reward",
         admin_id: adminId,
@@ -948,12 +1264,21 @@ const Reward = () => {
             ? undefined
             : toPositiveMoney(rewardPendingStatus?.dollar_value),
         credits_amount:
-          String(categoryKey) === "credits"
+          String(categoryKey) === "credits" && pendingKind === "credits"
             ? toPositiveInt(rewardPendingStatus?.credits_amount)
             : undefined,
+        premium_months:
+          String(categoryKey) === "credits" && pendingKind === "premium"
+            ? toPositiveInt(rewardPendingStatus?.premium_months) || 1
+            : undefined,
+        badge_label: compactLine(rewardPendingStatus?.badge_label) || undefined,
         sort_order: toPositiveInt(rewardPendingStatus?.sort_order),
         is_active: rewardNextIsActive,
       };
+      if (String(categoryKey) === "swag") {
+        payload.swag_category =
+          compactLine(rewardPendingStatus?.swag_category) || undefined;
+      }
       const statusImageUrl = compactLine(rewardPendingStatus?.image_url);
       if (statusImageUrl) {
         payload.image_url = statusImageUrl;
@@ -1076,6 +1401,14 @@ const Reward = () => {
       }
 
       message.success(isApprove ? "Redemption approved." : "Redemption rejected.");
+      if (isApprove) {
+        const expiresAt =
+          res?.premium_grant?.subscription_expires_at ??
+          res?.subscription_expires_at;
+        if (expiresAt) {
+          message.info(`Premium expires: ${formatDate(expiresAt)}`);
+        }
+      }
       setActionModalOpen(false);
       setActionModalTargetId(null);
       setActionNote("");
@@ -1187,7 +1520,8 @@ const Reward = () => {
         <div>
           <div className="med-page-title">Rewards</div>
           <div className="med-page-sub">
-            Manage rewards category-wise with the same backend payload structure.
+            Manage rewards by category. Use Credits &amp; Premium for account
+            credits or premium access passes.
           </div>
         </div>
       </div>
@@ -1202,13 +1536,33 @@ const Reward = () => {
           <div className="med-pt">
             {categoryLabel(activeItemCategory)} - {activeItemRows.length || 0}
           </div>
-          <button
-            type="button"
-            className="med-btn med-btn-primary"
-            onClick={openCreateReward}
-          >
-            + Create Reward
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {activeItemCategory === "credits" ? (
+              <>
+                <button
+                  type="button"
+                  className="med-btn med-btn-ghost"
+                  onClick={() => openCreateReward("credits")}
+                >
+                  + Credit reward
+                </button>
+                <button
+                  type="button"
+                  className="med-btn med-btn-ghost"
+                  onClick={() => openCreateReward("premium")}
+                >
+                  + Premium (1 mo)
+                </button>
+              </>
+            ) : null}
+            <button
+              type="button"
+              className="med-btn med-btn-primary"
+              onClick={() => openCreateReward()}
+            >
+              + Create Reward
+            </button>
+          </div>
         </div>
         <div style={{ overflowX: "auto" }}>
           <table className="med-tbl" style={{ minWidth: 1080 }}>
@@ -1216,7 +1570,8 @@ const Reward = () => {
               <tr>
                 <th>Image</th>
                 <th>Title</th>
-                <th>Category</th>
+                <th>{activeItemCategory === "swag" ? "Swag Category" : "Category"}</th>
+                {activeItemCategory === "credits" ? <th>Type</th> : null}
                 <th>Points Cost</th>
                 <th>Dollar Value</th>
                 <th>Active</th>
@@ -1226,13 +1581,13 @@ const Reward = () => {
             <tbody>
               {rewardsLoading ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: "center", padding: 24 }}>
+                  <td colSpan={rewardItemTableColSpan} style={{ textAlign: "center", padding: 24 }}>
                     <Spinner size="sm" color="inherit" />
                   </td>
                 </tr>
               ) : visibleItemRows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: "center", padding: 24 }}>
+                  <td colSpan={rewardItemTableColSpan} style={{ textAlign: "center", padding: 24 }}>
                     <ProductTableNoData
                       title="No rewards found."
                       subtitle="Create the first reward for this category."
@@ -1265,7 +1620,14 @@ const Reward = () => {
                         {row?.reward_key || "—"}
                       </div>
                     </td>
-                    <td>{categoryLabel(row?.category || activeItemCategory)}</td>
+                    <td>
+                      {activeItemCategory === "swag"
+                        ? row?.swag_category || "—"
+                        : categoryLabel(row?.category || activeItemCategory)}
+                    </td>
+                    {activeItemCategory === "credits" ? (
+                      <td>{formatCreditRewardSummary(row)}</td>
+                    ) : null}
                     <td>{row?.points_cost ?? "—"}</td>
                     <td>{row?.dollar_value || "—"}</td>
                     <td>
@@ -1346,6 +1708,9 @@ const Reward = () => {
             : `Edit ${categoryLabel(activeItemCategory)} Reward`
         }
         open={rewardModalOpen}
+        width={780}
+        centered
+        className="reward-modal"
         onCancel={() => {
           setRewardModalOpen(false);
           clearRewardImageBlobPreview();
@@ -1362,28 +1727,185 @@ const Reward = () => {
         }}
         destroyOnClose
       >
-        <Form form={rewardForm} layout="vertical">
-          <Form.Item label="Category">
-            <Input value={categoryLabel(activeItemCategory)} disabled />
-          </Form.Item>
+        <Form
+          form={rewardForm}
+          layout="vertical"
+          className="reward-form"
+          onValuesChange={handleRewardFormValuesChange}
+        >
+          {activeItemCategory === "credits" ? (
+            <Form.Item
+              name="credit_reward_kind"
+              label="What does the user receive?"
+              rules={[{ required: true, message: "Choose a reward type" }]}
+              className="reward-form-full"
+            >
+              <CreditRewardTypePicker />
+            </Form.Item>
+          ) : activeItemCategory === "swag" ? (
+            <Form.Item
+              name="swag_category"
+              label="Swag category"
+              rules={[{ required: true, message: "Swag category is required" }]}
+              className="reward-form-full"
+            >
+              <SwagCategorySelect
+                options={swagCategoryOptions}
+                onCustomCategory={(name) => {
+                  setCustomSwagCategories((prev) =>
+                    prev.includes(name) ? prev : [...prev, name],
+                  );
+                }}
+              />
+            </Form.Item>
+          ) : (
+            <Form.Item label="Category" className="reward-form-full">
+              <Input value={categoryLabel(activeItemCategory)} disabled />
+            </Form.Item>
+          )}
+
+          <div className="reward-form-grid">
+            <Form.Item
+              name="reward_key"
+              label="Reward key"
+              tooltip="Internal unique ID for this catalog item — set once when creating the reward, not per user redemption."
+              extra={
+                activeItemCategory === "credits"
+                  ? "One key per reward product. For 2-month premium, create a new reward with key like premium_2mo — do not reuse premium_1mo."
+                  : "Unique slug for this reward (e.g. amazon_25). Set once at creation."
+              }
+              rules={[{ required: true, message: "Reward key is required" }]}
+            >
+              <Input
+                placeholder={
+                  activeItemCategory === "credits"
+                    ? creditRewardKind === "premium"
+                      ? "premium_1mo"
+                      : "credit_25"
+                    : "amazon_25"
+                }
+              />
+            </Form.Item>
+            <Form.Item
+              name="title"
+              label="Title"
+              rules={[{ required: true, message: "Title is required" }]}
+            >
+              <Input placeholder="Reward title" />
+            </Form.Item>
+            <Form.Item
+              name="points_cost"
+              label="Points cost"
+              rules={[{ required: true, message: "Points cost is required" }]}
+            >
+              <InputNumber
+                className="w-full"
+                min={0}
+                precision={0}
+                parser={parsePositiveIntInput}
+              />
+            </Form.Item>
+            {activeItemCategory === "credits" && creditRewardKind === "premium" ? (
+              <Form.Item
+                name="premium_months"
+                label="Premium months"
+                rules={[{ required: true, message: "Premium months is required" }]}
+              >
+                <InputNumber
+                  className="w-full"
+                  min={1}
+                  precision={0}
+                  parser={parsePositiveIntInput}
+                  placeholder="1"
+                />
+              </Form.Item>
+            ) : activeItemCategory === "credits" ? (
+              <Form.Item
+                name="credits_amount"
+                label="Credits amount ($)"
+                rules={[{ required: true, message: "Credits amount is required" }]}
+              >
+                <InputNumber
+                  className="w-full"
+                  min={1}
+                  precision={0}
+                  parser={parsePositiveIntInput}
+                  placeholder="25"
+                />
+              </Form.Item>
+            ) : (
+              <Form.Item name="dollar_value" label="Dollar value">
+                <InputNumber
+                  className="w-full"
+                  min={0}
+                  precision={2}
+                  step={0.01}
+                  parser={parsePositiveMoneyInput}
+                  placeholder="25.00"
+                />
+              </Form.Item>
+            )}
+            {activeItemCategory === "credits" && creditRewardKind !== "premium" ? (
+              <Form.Item name="dollar_value" label="Display value ($)">
+                <InputNumber
+                  className="w-full"
+                  min={0}
+                  precision={2}
+                  step={0.01}
+                  parser={parsePositiveMoneyInput}
+                  placeholder="25.00"
+                />
+              </Form.Item>
+            ) : null}
+            <Form.Item name="badge_label" label="Badge label">
+              <Input
+                placeholder={
+                  activeItemCategory === "credits"
+                    ? creditRewardKind === "premium"
+                      ? "Premium"
+                      : "Credits"
+                    : "Optional badge"
+                }
+              />
+            </Form.Item>
+            <Form.Item name="sort_order" label="Sort order">
+              <InputNumber
+                className="w-full"
+                min={0}
+                precision={0}
+                parser={parsePositiveIntInput}
+              />
+            </Form.Item>
+          </div>
+
           <Form.Item
-            name="reward_key"
-            label="Reward Key"
-            rules={[{ required: true, message: "Reward key is required" }]}
+            name="description"
+            label="Description"
+            className="reward-form-full"
+            rules={
+              activeItemCategory === "swag"
+                ? [{ required: true, message: "Description is required" }]
+                : undefined
+            }
+            extra={
+              activeItemCategory === "swag"
+                ? "Rich text (HTML) shown in the swag rewards catalog."
+                : undefined
+            }
           >
-            <Input placeholder="amazon_25 / credit_5" />
+            {activeItemCategory === "swag" ? (
+              <CKEditorIframe
+                minHeight={88}
+                maxHeight={360}
+                autoGrow
+                className="reward-description-editor"
+              />
+            ) : (
+              <TextArea rows={2} placeholder="Short description shown in the rewards catalog" />
+            )}
           </Form.Item>
-          <Form.Item
-            name="title"
-            label="Title"
-            rules={[{ required: true, message: "Title is required" }]}
-          >
-            <Input placeholder="Reward title" />
-          </Form.Item>
-          <Form.Item name="description" label="Description">
-            <TextArea rows={3} placeholder="Reward description" />
-          </Form.Item>
-          <Form.Item label="Reward image">
+
+          <Form.Item label="Reward image" className="reward-form-full">
             <div className="reward-image-upload">
               <div className="reward-image-upload-preview" aria-hidden>
                 {rewardImageUploading ? (
@@ -1435,52 +1957,6 @@ const Reward = () => {
               </div>
             </div>
           </Form.Item>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Form.Item
-              name="points_cost"
-              label="Points Cost"
-              rules={[{ required: true, message: "Points cost is required" }]}
-            >
-              <InputNumber
-                className="w-full"
-                min={0}
-                precision={0}
-                parser={parsePositiveIntInput}
-              />
-            </Form.Item>
-            <Form.Item name="dollar_value" label="Dollar Value">
-              <InputNumber
-                className="w-full"
-                min={0}
-                precision={2}
-                step={0.01}
-                parser={parsePositiveMoneyInput}
-                placeholder="25.00"
-              />
-            </Form.Item>
-            {activeItemCategory === "credits" ? (
-              <Form.Item
-                name="credits_amount"
-                label="Credits Amount"
-                rules={[{ required: true, message: "Credits amount is required" }]}
-              >
-                <InputNumber
-                  className="w-full"
-                  min={0}
-                  precision={0}
-                  parser={parsePositiveIntInput}
-                />
-              </Form.Item>
-            ) : null}
-            <Form.Item name="sort_order" label="Sort Order">
-              <InputNumber
-                className="w-full"
-                min={0}
-                precision={0}
-                parser={parsePositiveIntInput}
-              />
-            </Form.Item>
-          </div>
         </Form>
       </Modal>
 
@@ -1560,6 +2036,7 @@ const Reward = () => {
               <tr>
                 <th>User</th>
                 <th>Reward</th>
+                <th>Grant</th>
                 <th>Category</th>
                 <th>Points</th>
                 <th>Status</th>
@@ -1572,13 +2049,13 @@ const Reward = () => {
             <tbody>
               {redemptionsLoading ? (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: "center", padding: 24 }}>
+                  <td colSpan={10} style={{ textAlign: "center", padding: 24 }}>
                     <Spinner size="sm" color="inherit" />
                   </td>
                 </tr>
               ) : redemptionRows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: "center", padding: 24 }}>
+                  <td colSpan={10} style={{ textAlign: "center", padding: 24 }}>
                     <ProductTableNoData
                       title="No redemptions found."
                       subtitle="There is nothing to show for this filter."
@@ -1597,6 +2074,9 @@ const Reward = () => {
                       </div>
                     </td>
                     <td>{row?.reward_title || row?.title || "—"}</td>
+                    <td className="med-bold" style={{ fontSize: 12 }}>
+                      {formatRedemptionGrant(row) || "—"}
+                    </td>
                     <td>{categoryLabel(row?.category)}</td>
                     <td>{row?.points_cost ?? "—"}</td>
                     <td>
@@ -1750,6 +2230,32 @@ const Reward = () => {
                           : "—"}
                       </dd>
                     </div>
+                    <div className="med-detail-item med-detail-item-full">
+                      <dt className="med-detail-dt">On approve</dt>
+                      <dd className="med-detail-dd med-detail-strong">
+                        {formatRedemptionGrant(redemptionDetail) || "—"}
+                      </dd>
+                    </div>
+                    {redemptionDetail?.subscription_expires_at ? (
+                      <div className="med-detail-item med-detail-item-full">
+                        <dt className="med-detail-dt">Premium expires</dt>
+                        <dd className="med-detail-dd">
+                          {formatDate(redemptionDetail.subscription_expires_at)}
+                        </dd>
+                      </div>
+                    ) : null}
+                    <div className="med-detail-item">
+                      <dt className="med-detail-dt">Reward type</dt>
+                      <dd className="med-detail-dd">
+                        {displayValue(redemptionDetail?.reward_type)}
+                      </dd>
+                    </div>
+                    <div className="med-detail-item">
+                      <dt className="med-detail-dt">Badge</dt>
+                      <dd className="med-detail-dd">
+                        {displayValue(redemptionDetail?.badge_label)}
+                      </dd>
+                    </div>
                     <div className="med-detail-item">
                       <dt className="med-detail-dt">Points Cost</dt>
                       <dd className="med-detail-dd">{displayValue(redemptionDetail?.points_cost)}</dd>
@@ -1761,6 +2267,10 @@ const Reward = () => {
                     <div className="med-detail-item">
                       <dt className="med-detail-dt">Credits Amount</dt>
                       <dd className="med-detail-dd">{displayValue(redemptionDetail?.credits_amount)}</dd>
+                    </div>
+                    <div className="med-detail-item">
+                      <dt className="med-detail-dt">Premium Months</dt>
+                      <dd className="med-detail-dd">{displayValue(redemptionDetail?.premium_months)}</dd>
                     </div>
                   </dl>
                 </div>
