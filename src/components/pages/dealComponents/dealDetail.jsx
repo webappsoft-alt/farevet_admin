@@ -32,15 +32,45 @@ const DealDetail = () => {
                 <span className="text_dark text-sm inter_medium">{dealDetail?.expiry_date}</span>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="rounded-full text_primary p-3" style={{ backgroundColor: '#e5cfff' }}>
-                <MdDiscount size={24} className='' />
+            {(dealDetail?.discount !== undefined &&
+              dealDetail?.discount !== null &&
+              String(dealDetail.discount).trim() !== "") ||
+            !(
+              dealDetail?.cost !== undefined &&
+              dealDetail?.cost !== null &&
+              String(dealDetail.cost).trim() !== ""
+            ) ? (
+              <div className="flex items-center gap-4">
+                <div className="rounded-full text_primary p-3" style={{ backgroundColor: '#e5cfff' }}>
+                  <MdDiscount size={24} className='' />
+                </div>
+                <div className="flex flex-col items-start">
+                  <h6 className="text_black mb-0 inter_semibold">Discount:</h6>
+                  <span className="text_dark text-sm inter_medium">
+                    {dealDetail?.discount !== undefined &&
+                    dealDetail?.discount !== null &&
+                    String(dealDetail.discount).trim() !== ""
+                      ? `${dealDetail.discount} %`
+                      : "—"}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col items-start">
-                <h6 className="text_black mb-0 inter_semibold">Discount:</h6>
-                <span className="text_dark text-sm inter_medium">{dealDetail?.discount} %</span>
+            ) : null}
+            {dealDetail?.cost !== undefined &&
+            dealDetail?.cost !== null &&
+            String(dealDetail.cost).trim() !== "" ? (
+              <div className="flex items-center gap-4">
+                <div className="rounded-full text_primary p-3" style={{ backgroundColor: '#e5cfff' }}>
+                  <MdDiscount size={24} className='' />
+                </div>
+                <div className="flex flex-col items-start">
+                  <h6 className="text_black mb-0 inter_semibold">Cost:</h6>
+                  <span className="text_dark text-sm inter_medium">
+                    ${dealDetail.cost}
+                  </span>
+                </div>
               </div>
-            </div>
+            ) : null}
             <div className="flex items-center gap-4">
               <div className="rounded-full text_primary p-3" style={{ backgroundColor: '#cfdcff', color: '#405fb3' }}>
                 <Code size={24} className='' />

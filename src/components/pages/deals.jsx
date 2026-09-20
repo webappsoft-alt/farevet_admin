@@ -193,7 +193,22 @@ const Deals = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xl plusJakara_medium text-[#FF6F61]">
-                    {item?.discount}% off
+                    {(() => {
+                      const hasDiscount =
+                        item?.discount !== undefined &&
+                        item?.discount !== null &&
+                        String(item.discount).trim() !== "";
+                      const hasCost =
+                        item?.cost !== undefined &&
+                        item?.cost !== null &&
+                        String(item.cost).trim() !== "";
+                      if (hasDiscount && hasCost) {
+                        return `${item.discount}% off · $${item.cost}`;
+                      }
+                      if (hasDiscount) return `${item.discount}% off`;
+                      if (hasCost) return `$${item.cost}`;
+                      return "—";
+                    })()}
                   </span>
                   {item?.deal_type === 'clinic' && <div className="flex items-center gap-1">
                     <span

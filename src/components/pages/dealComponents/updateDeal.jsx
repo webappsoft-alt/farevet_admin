@@ -8,7 +8,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { cameradark } from "../../icons/icon";
 import { apiRequest } from "../../../api/auth_api";
 import Spinner from "../../Spinner";
-import debounce from "debounce";
 
 const petsArray = [
   // { title: "All", value: 'all' },
@@ -66,6 +65,7 @@ const UpdateDeal = () => {
   const [bookNow, setBookNow] = useState("yes");
   const [initialValues, setInitialValues] = useState({
     discountDeal: dealData?.discount || "",
+    dealCost: dealData?.cost || "",
     business_name: dealData?.business_name || "",
     website_link: dealData?.website_link || "",
     descriptionPet: dealData?.description || "",
@@ -79,10 +79,24 @@ const UpdateDeal = () => {
     button_text: dealData?.button_text || "",
   });
 
+  const hasDiscountOrCostValue = (discount, cost) => {
+    const hasDiscount =
+      discount !== undefined &&
+      discount !== null &&
+      String(discount).trim() !== "";
+    const hasCost =
+      cost !== undefined && cost !== null && String(cost).trim() !== "";
+    return hasDiscount || hasCost;
+  };
+
   const handlePetType = (title) => {
     setPet(title);
     setCount2("");
-    handleFetchServices(selectedBusinessId);
+    setHasLoader2(false);
+    setServicesOfDeals([]);
+    if (selectedBusinessId) {
+      handleFetchServices(selectedBusinessId, title, "");
+    }
   };
 
   const handlePayType = (title) => {
@@ -99,12 +113,31 @@ const UpdateDeal = () => {
       setSelectedCategory(dealData?.category);
       setPay(dealData?.pay_type);
       setDealType(dealData?.deal_type);
+      if (dealData?.business_id) {
+        setSelectedBusinessId(String(dealData.business_id));
+      }
+      setInitialValues((prev) => ({
+        ...prev,
+        discountDeal: dealData?.discount || "",
+        dealCost: dealData?.cost || "",
+        business_name: dealData?.business_name || "",
+        website_link: dealData?.website_link || "",
+        descriptionPet: dealData?.description || "",
+        selectCategory: dealData?.category || "",
+        promoCode: dealData?.promo_code || "",
+        expiryDate: dealData?.expiry_date || "",
+        button_text: dealData?.button_text || "",
+      }));
+      form.setFieldsValue({
+        discountDeal: dealData?.discount || "",
+        dealCost: dealData?.cost || "",
+      });
     }
   }, [dealData]);
 
   useEffect(() => {
     const matchBusiness = businessCategories?.find(
-      (item) => item?.id === selectedBusinessId,
+      (item) => String(item?.id) === String(selectedBusinessId),
     );
     if (matchBusiness) {
       setBusinessDetail(matchBusiness);
@@ -135,40 +168,69 @@ const UpdateDeal = () => {
   const handleDealType = (title) => {
     setDealType(title);
     form.resetFields();
+    setSelectedBusinessId(null);
+    setServicesOfDeals([]);
+    setSelectedServices([]);
+    setCount2("");
+    setHasLoader2(false);
   };
 
-  const handleFetchServices = debounce(async (businessId) => {
+  const matchesPetType = (servicePetType, selectedPet) => {
+    const servicePet = String(servicePetType || "")
+      .toLowerCase()
+      .trim();
+    const selected = String(selectedPet || "")
+      .toLowerCase()
+      .trim();
+    if (!selected) return true;
+    if (!servicePet) return true;
+    if (servicePet === "all" || servicePet === "both") return true;
+    return servicePet === selected;
+  };
+
+  const handleFetchServices = async (
+    businessId,
+    petType = pet,
+    lastId = "",
+  ) => {
+    if (!businessId) {
+      setServicesOfDeals([]);
+      return;
+    }
     try {
       const body = new FormData();
       body.append("type", "get_data");
       body.append("table_name", "services");
-      body.append("business_id", businessId);
-      body.append("last_id", count2);
+      body.append("business_id", String(businessId));
+      body.append("limit", "200");
+      if (lastId) {
+        body.append("last_id", String(lastId));
+      }
       const res = await apiRequest({ body });
-      if (!res?.data) {
+      const rows = Array.isArray(res?.data) ? res.data : [];
+      if (!rows.length) {
+        setHasLoader2(true);
+        if (!lastId) setServicesOfDeals([]);
+        return;
+      }
+      const filteredServices = rows.filter((service) =>
+        matchesPetType(service?.pet_type, petType),
+      );
+      const nextLastId = rows[rows.length - 1]?.id || "";
+      setCount2(nextLastId);
+      if (rows.length < 10) {
         setHasLoader2(true);
       }
-      if (res && res?.data) {
-        const filteredServices = res?.data?.filter(
-          (service) => service?.pet_type === pet,
-        );
-        setCount2(res?.data?.[res?.data?.length - 1]?.id);
-        if (!count2) {
-          setServicesOfDeals(filteredServices);
-        } else {
-          setServicesOfDeals([...servicesOfDeals, ...filteredServices]);
-        }
-      } else if (res?.data.length === 0 && count2) {
-        setServicesOfDeals(servicesOfDeals);
+      if (!lastId) {
+        setServicesOfDeals(filteredServices);
       } else {
-        setServicesOfDeals([]);
+        setServicesOfDeals((prev) => [...prev, ...filteredServices]);
       }
-      setIsProcessing(false);
     } catch (error) {
       console.error(error);
-      setIsProcessing(false);
+      if (!lastId) setServicesOfDeals([]);
     }
-  }, 300);
+  };
 
   const handleScroll2 = (e) => {
     const { target } = e;
@@ -176,14 +238,24 @@ const UpdateDeal = () => {
       Math.ceil(target.scrollHeight) - Math.ceil(target.scrollTop) ===
       Math.ceil(target.clientHeight)
     ) {
-      if (!hasLoader2) {
-        return handleFetchServices(selectedBusinessId);
+      if (!hasLoader2 && selectedBusinessId && count2) {
+        handleFetchServices(selectedBusinessId, pet, count2);
       }
     }
   };
   useEffect(() => {
     handleFetchBusiness(count, valueFilter);
   }, [count, valueFilter]);
+
+  useEffect(() => {
+    if (dealData?.business_id && dealData?.deal_type === "clinic") {
+      handleFetchServices(
+        String(dealData.business_id),
+        dealData?.pet_type || pet,
+        "",
+      );
+    }
+  }, [dealData?.business_id]);
 
   const handleBusinessStore = (value) => {
     const searchValue = value?.toLowerCase().trim();
@@ -215,6 +287,14 @@ const UpdateDeal = () => {
   }, [selectedFile]);
 
   const handleSubmit = async (values) => {
+    if (
+      dealType === "other" &&
+      !hasDiscountOrCostValue(values?.discountDeal, values?.dealCost)
+    ) {
+      message.error("Enter a discount or a cost for Other deals");
+      return;
+    }
+
     setIsProcessing(true);
     const formattedExpiryDate = values?.expiryDate
       ? new Date(values?.expiryDate).toISOString().split("T")[0]
@@ -223,12 +303,17 @@ const UpdateDeal = () => {
     body.append("type", "update_data");
     body.append("table_name", "deals");
     body.append("id", dealData?.id);
-    body.append("discount", values?.discountDeal);
+    body.append(
+      "discount",
+      values?.discountDeal !== undefined && values?.discountDeal !== null
+        ? String(values.discountDeal).trim()
+        : "",
+    );
     body.append("deal_type", dealType);
     if (selectedCategory) {
       body.append("category", selectedCategory);
     }
-    body.append("promo_code", values?.promoCode);
+    body.append("promo_code", values?.promoCode || "");
     if (dealType === "clinic") {
       body.append("book_now", bookNow);
       body.append("pet_type", pet);
@@ -251,10 +336,17 @@ const UpdateDeal = () => {
         "business_id",
         selectedBusinessId ? selectedBusinessId : dealData?.business_id,
       );
+      body.append("cost", "");
     } else {
       body.append("business_name", values?.business_name);
       body.append("website_link", values?.website_link);
       body.append("button_text", values?.button_text);
+      body.append(
+        "cost",
+        values?.dealCost !== undefined && values?.dealCost !== null
+          ? String(values.dealCost).trim()
+          : "",
+      );
     }
     body.append("image", loadselectedFile ? loadselectedFile : dealData?.image);
     body.append("expiry_date", formattedExpiryDate);
@@ -349,19 +441,30 @@ const UpdateDeal = () => {
                     size="large"
                     placeholder="Search business store"
                     allowClear
-                    value={selectedBusinessId}
+                    optionFilterProp="children"
+                    value={selectedBusinessId || undefined}
                     onChange={(value) => {
-                      setSelectedBusinessId(value?.split(" ").pop());
-                      handleFetchServices(value?.split(" ").pop());
+                      const businessId = value ? String(value) : null;
+                      setSelectedBusinessId(businessId);
+                      setSelectedServices([]);
+                      setServicesOfDeals([]);
+                      setCount2("");
+                      setHasLoader2(false);
+                      form.setFieldsValue({ selectServices: undefined });
+                      if (businessId) {
+                        handleFetchServices(businessId, pet, "");
+                      }
                     }}
                     onSearch={(value) => handleBusinessStore(value)}
+                    onClear={() => {
+                      setSelectedBusinessId(null);
+                      setServicesOfDeals([]);
+                      setSelectedServices([]);
+                      setCount2("");
+                    }}
                   >
                     {businessCategories?.map((item) => (
-                      <Select.Option
-                        key={item?.id}
-                        onChange={() => setSelectedBusinessId(item?.id)}
-                        value={`${item?.name} (${item?.address}) ${item?.id}`}
-                      >
+                      <Select.Option key={item?.id} value={String(item?.id)}>
                         {item?.name} ({item?.address})
                       </Select.Option>
                     ))}
@@ -618,14 +721,94 @@ const UpdateDeal = () => {
 
         <div className="flex gap-3 mb-4 w-full max-md:flex-col justify-start">
           <span className="inter_medium text-sm text_dark w-full md:w-[30%]">
-            Discount
+            Discount {dealType === "other" ? "(optional)" : ""}
           </span>
           <div className="w-full md:w-[70%] flex flex-wrap gap-2 items-center">
-            <Form.Item className="w-full mb-0" name="discountDeal">
-              <Input type="number" size="large" />
+            <Form.Item
+              className="w-full mb-0"
+              name="discountDeal"
+              dependencies={dealType === "other" ? ["dealCost"] : undefined}
+              rules={
+                dealType === "other"
+                  ? [
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          if (
+                            hasDiscountOrCostValue(
+                              value,
+                              getFieldValue("dealCost"),
+                            )
+                          ) {
+                            return Promise.resolve();
+                          }
+                          return Promise.reject(
+                            new Error("Enter a discount (%) or a cost ($)"),
+                          );
+                        },
+                      }),
+                    ]
+                  : []
+              }
+              extra={
+                dealType === "other"
+                  ? "Provide a discount %, a cost $, or both"
+                  : undefined
+              }
+            >
+              <Input
+                type="number"
+                min={0}
+                size="large"
+                placeholder={
+                  dealType === "other" ? "e.g. 20 (% off)" : "Discount %"
+                }
+                addonAfter={dealType === "other" ? "%" : undefined}
+              />
             </Form.Item>
           </div>
         </div>
+
+        {dealType === "other" ? (
+          <div className="flex gap-3 mb-4 w-full max-md:flex-col justify-start">
+            <span className="inter_medium text-sm text_dark w-full md:w-[30%]">
+              Cost (optional)
+            </span>
+            <div className="w-full md:w-[70%] flex flex-wrap gap-2 items-center">
+              <Form.Item
+                className="w-full mb-0"
+                name="dealCost"
+                dependencies={["discountDeal"]}
+                rules={[
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (
+                        hasDiscountOrCostValue(
+                          getFieldValue("discountDeal"),
+                          value,
+                        )
+                      ) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(
+                        new Error("Enter a discount (%) or a cost ($)"),
+                      );
+                    },
+                  }),
+                ]}
+                extra="Use when the deal is a fixed price instead of (or with) a % discount"
+              >
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  size="large"
+                  placeholder="e.g. 1.00"
+                  addonBefore="$"
+                />
+              </Form.Item>
+            </div>
+          </div>
+        ) : null}
 
         <div className="flex gap-3 mb-4 w-full max-md:flex-col justify-start">
           <span className="inter_medium text-sm text_dark w-full md:w-[30%]">

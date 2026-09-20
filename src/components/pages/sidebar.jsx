@@ -136,6 +136,31 @@ function buildGroupedSections(menuItemsFlat) {
   })).filter((section) => section.items.length > 0);
 }
 
+function SidebarCountBadge({ count }) {
+  const value = parseInt(count, 10) || 0;
+  if (value <= 0) return null;
+  const displayCount = value > 99 ? "99+" : value;
+  return (
+    <div
+      className="plusJakara_medium text_white shrink-0 rounded-full"
+      style={{
+        zIndex: 99,
+        fontSize: "10px",
+        backgroundColor: "#e74c3c",
+        padding: value > 99 ? "2px 5px" : value < 10 ? "1px 6px" : "1px 5px",
+        lineHeight: 1.3,
+      }}
+    >
+      {displayCount}
+    </div>
+  );
+}
+
+function getSidebarBadgeCount(unseenCounts, apiKey) {
+  if (!apiKey || !unseenCounts) return 0;
+  return parseInt(unseenCounts[apiKey], 10) || 0;
+}
+
 function SidebarNavIcon({ Icon, active, subtle }) {
   const cls = subtle
     ? `sidebar-farevet-icon ${active ? "text_primary" : "text_secondary"}`
@@ -160,9 +185,7 @@ function renderMenuRow(
     let subMenuBadgeCount = 0;
     if (item.badge && item.tableName) {
       const apiKey = tableToApiKeyMap[item.tableName];
-      if (apiKey && unseenCounts[apiKey]) {
-        subMenuBadgeCount = parseInt(unseenCounts[apiKey], 10) || 0;
-      }
+      subMenuBadgeCount = getSidebarBadgeCount(unseenCounts, apiKey);
     }
     return (
       <Fragment key={key}>
@@ -172,25 +195,7 @@ function renderMenuRow(
               <span className="inter_semibold sidebar-farevet-item-label">
                 {item.items}
               </span>
-              {subMenuBadgeCount > 0 ? (
-                <div
-                  className="plusJakara_medium text_white shrink-0 rounded-full me-2"
-                  style={{
-                    zIndex: 99,
-                    fontSize: "10px",
-                    backgroundColor: "#e74c3c",
-                    padding:
-                      subMenuBadgeCount > 99
-                        ? "2px 5px"
-                        : subMenuBadgeCount < 10
-                          ? "1px 6px"
-                          : "1px 5px",
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {subMenuBadgeCount > 100 ? "99+" : subMenuBadgeCount}
-                </div>
-              ) : null}
+              <SidebarCountBadge count={subMenuBadgeCount} />
             </div>
           }
           icon={<SidebarNavIcon Icon={item.Icon} active={subMenuActive} />}
@@ -202,10 +207,10 @@ function renderMenuRow(
               location.pathname,
               location.search,
             );
-            const subBadgeCount =
-              subItem.badgeKey && unseenCounts[subItem.badgeKey]
-                ? parseInt(unseenCounts[subItem.badgeKey], 10) || 0
-                : 0;
+            const subBadgeCount = getSidebarBadgeCount(
+              unseenCounts,
+              subItem.badgeKey,
+            );
             const linkTo = subItem.search
               ? {
                 pathname: subItem.path,
@@ -218,7 +223,14 @@ function renderMenuRow(
               <MenuItem
                 key={`${key}-${j}`}
                 component={<Link to={linkTo} />}
-                onClick={() => handleLinkClick(`${key}-${j}`, subItem.path)}
+                onClick={() =>
+                  handleLinkClick(
+                    `${key}-${j}`,
+                    subItem.path,
+                    subItem.tableName ||
+                      (subItem.badgeKey ? item.tableName : undefined),
+                  )
+                }
                 className={`inter_semibold mb-0.5 rounded-lg ${subActive
                   ? "sidebar-farevet-item-active bg_primary text_white"
                   : "text_secondary"
@@ -228,25 +240,7 @@ function renderMenuRow(
                   <span className="inter_semibold sidebar-farevet-item-label">
                     {subItem.label}
                   </span>
-                  {subBadgeCount > 0 ? (
-                    <div
-                      className="plusJakara_medium text_white shrink-0 rounded-full"
-                      style={{
-                        zIndex: 99,
-                        fontSize: "10px",
-                        backgroundColor: "#e74c3c",
-                        padding:
-                          subBadgeCount > 99
-                            ? "2px 5px"
-                            : subBadgeCount < 10
-                              ? "1px 6px"
-                              : "1px 5px",
-                        lineHeight: 1.3,
-                      }}
-                    >
-                      {subBadgeCount > 100 ? "99+" : subBadgeCount}
-                    </div>
-                  ) : null}
+                  <SidebarCountBadge count={subBadgeCount} />
                 </div>
               </MenuItem>
             );
@@ -281,36 +275,11 @@ function renderMenuRow(
         {item.badge &&
           item.items !== "Chat" &&
           (() => {
-            let count = 0;
-            if (item.tableName) {
-              const apiKey = tableToApiKeyMap[item.tableName];
-              if (apiKey && unseenCounts[apiKey]) {
-                count = parseInt(unseenCounts[apiKey], 10) || 0;
-              }
-            }
-            if (count === 0) return null;
-
-            const displayCount = count > 100 ? "99+" : count;
-            const isThreeDigits = count > 99;
-
-            return (
-              <div
-                className="plusJakara_medium text_white shrink-0 rounded-full"
-                style={{
-                  zIndex: 99,
-                  fontSize: "10px",
-                  backgroundColor: "#e74c3c",
-                  padding: isThreeDigits
-                    ? "2px 5px"
-                    : count < 10
-                      ? "1px 6px"
-                      : "1px 5px",
-                  lineHeight: 1.3,
-                }}
-              >
-                {displayCount}
-              </div>
-            );
+            const apiKey = item.tableName
+              ? tableToApiKeyMap[item.tableName]
+              : "";
+            const count = getSidebarBadgeCount(unseenCounts, apiKey);
+            return <SidebarCountBadge count={count} />;
           })()}
       </div>
     </MenuItem>
@@ -348,14 +317,21 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
 
   const [unseenCounts, setUnseenCounts] = useState({});
   const intervalRef = useRef(null);
-  const prevPathRef = useRef(location.pathname);
+  const lastMarkedPathRef = useRef("");
   const isLoadingRef = useRef(false);
+  const markingTablesRef = useRef(new Set());
 
   const routeToTableMap = {
-    "/quotes": "quotes",
     "/fund_campaign": "fund_campaign",
     "/pet_services_budget": "services_budget",
+    "/messge-community": "community_message_answers",
+    "/quotes": "quotes",
     "/support": "support",
+    "/appointments": "orders",
+    "/claim-business": "claim_business",
+    "/community-reports": "community_report",
+    "/emergency": "emergancy_assitant",
+    "/reward/redemptions": "redemptions",
   };
 
   const tableToApiKeyMap = {
@@ -364,6 +340,41 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
     services_budget: "service_budget_count",
     support: "support_count",
     redemptions: "redemptions_total_count",
+    orders: "appointments_count",
+    claim_business: "claim_business_count",
+    community_report: "community_reports_count",
+    community_message_answers: "community_messages_count",
+    emergancy_assitant: "emergency_count",
+  };
+
+  const resolveTableForPath = (pathname) => {
+    if (!pathname) return null;
+    if (routeToTableMap[pathname]) return routeToTableMap[pathname];
+    if (pathname.startsWith("/reward/redemptions")) return "redemptions";
+    if (pathname.startsWith("/appointments")) return "orders";
+    if (pathname.startsWith("/quotes")) return "quotes";
+    if (pathname.startsWith("/support")) return "support";
+    if (pathname.startsWith("/claim-business")) return "claim_business";
+    if (pathname.startsWith("/community-reports")) return "community_report";
+    if (pathname.startsWith("/emergency")) return "emergancy_assitant";
+    if (pathname.startsWith("/fund_campaign")) return "fund_campaign";
+    if (pathname.startsWith("/pet_services_budget")) return "services_budget";
+    if (pathname.startsWith("/messge-community")) return "community_message_answers";
+    return null;
+  };
+
+  const clearBadgeLocally = (tableName) => {
+    const apiKey = tableToApiKeyMap[tableName];
+    if (!apiKey) return;
+    setUnseenCounts((prev) => {
+      const next = { ...prev, [apiKey]: 0 };
+      if (tableName === "redemptions") {
+        next.unseen_redemptions_count = 0;
+        next.unseen_messages_count = 0;
+        next.redemptions_total_count = 0;
+      }
+      return next;
+    });
   };
 
   const fetchUnseenCounts = async () => {
@@ -382,6 +393,13 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
       redemptionBody.append("include_list", 0);
       const redemptionResult = await apiRequest({ body: redemptionBody });
 
+      const sidebarPayload =
+        sidebarResult?.data &&
+        typeof sidebarResult.data === "object" &&
+        !Array.isArray(sidebarResult.data)
+          ? { ...sidebarResult, ...sidebarResult.data }
+          : sidebarResult || {};
+
       const redemptionData = redemptionResult?.data || redemptionResult || {};
       const unseenRedemptionsCount = parseInt(
         redemptionData?.unseen_redemptions_count ??
@@ -399,7 +417,7 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
         ) || 0;
 
       const nextCounts = {
-        ...(sidebarResult || {}),
+        ...sidebarPayload,
         unseen_redemptions_count: unseenRedemptionsCount,
         unseen_messages_count: unseenMessagesCount,
         redemptions_total_count: unseenRedemptionsCount + unseenMessagesCount,
@@ -414,16 +432,29 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
   };
 
   const updateUnseen = async (tableName) => {
+    if (!tableName || markingTablesRef.current.has(tableName)) return;
+    markingTablesRef.current.add(tableName);
+    clearBadgeLocally(tableName);
     try {
-      const body = new FormData();
-      body.append("type", "update_unseen");
-      body.append("table_name", tableName);
-      await apiRequest({ body });
+      if (tableName === "redemptions") {
+        const body = new FormData();
+        body.append("type", "admin_redemption_unseen");
+        body.append("action", "mark_all_seen");
+        body.append("admin_id", 0);
+        await apiRequest({ body });
+      } else {
+        const body = new FormData();
+        body.append("type", "update_unseen");
+        body.append("table_name", tableName);
+        await apiRequest({ body });
+      }
       setTimeout(() => {
         fetchUnseenCounts();
-      }, 500);
+      }, 400);
     } catch (error) {
       // minimal handling
+    } finally {
+      markingTablesRef.current.delete(tableName);
     }
   };
 
@@ -445,15 +476,13 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
   }, [isLogin]);
 
   useEffect(() => {
+    if (!isLogin) return;
     const currentPath = location.pathname;
-    const prevPath = prevPathRef.current;
-
-    if (currentPath !== prevPath && routeToTableMap[currentPath] && isLogin) {
-      const tableName = routeToTableMap[currentPath];
+    const tableName = resolveTableForPath(currentPath);
+    if (tableName && lastMarkedPathRef.current !== currentPath) {
+      lastMarkedPathRef.current = currentPath;
       updateUnseen(tableName);
     }
-
-    prevPathRef.current = currentPath;
   }, [location.pathname, isLogin]);
 
   const menuItems2 = [
@@ -512,10 +541,11 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
       path: "/business",
     },
     {
-      badge: false,
+      badge: true,
       Icon: HiOutlineMapPin,
       items: "Claim Business",
       path: "/claim-business",
+      tableName: "claim_business",
     },
     {
       badge: false,
@@ -562,10 +592,11 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
     //   path: "/concierge-requests",
     // },
     {
-      badge: false,
+      badge: true,
       Icon: HiOutlineCalendarDays,
       items: "Appointments",
       path: "/appointments",
+      tableName: "orders",
     },
     {
       badge: false,
@@ -596,22 +627,25 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
       path: "/community",
     },
     {
-      badge: false,
+      badge: true,
       Icon: HiOutlineFlag,
       items: "Community Reports",
       path: "/community-reports",
+      tableName: "community_report",
     },
     {
-      badge: false,
+      badge: true,
       Icon: HiOutlineChatBubbleLeftRight,
       items: "Community Messages",
       path: "/messge-community",
+      tableName: "community_message_answers",
     },
     {
-      badge: false,
+      badge: true,
       Icon: HiOutlineExclamationTriangle,
       items: "Emergency",
       path: "/emergency",
+      tableName: "emergancy_assitant",
     },
     {
       badge: true,
@@ -668,6 +702,7 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
           label: "Redemptions",
           path: "/reward/redemptions",
           badgeKey: "redemptions_total_count",
+          tableName: "redemptions",
         },
       ],
     },
@@ -731,8 +766,10 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
     setToggled(false);
     setShow(false);
 
-    if (tableName && routeToTableMap[path]) {
-      updateUnseen(tableName);
+    const resolvedTable = tableName || resolveTableForPath(path);
+    if (resolvedTable) {
+      lastMarkedPathRef.current = path;
+      updateUnseen(resolvedTable);
     }
 
     navigate(path);
