@@ -4,6 +4,7 @@ import { Menu, MenuItem, Sidebar, SubMenu } from "react-pro-sidebar";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu as DropdownMenu, Transition } from '@headlessui/react';
 import { message } from 'antd';
+import { getStoredAdmin, parsePermittedPages } from "../../lib/adminSession";
 import {
   HiOutlineSquares2X2,
   HiOutlineUsers,
@@ -293,9 +294,7 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
   const location = useLocation();
   const isLogin = useAuth();
   const user_type = window.localStorage.getItem("user_type");
-  const adminData = JSON.parse(
-    window.localStorage.getItem("login_farevet_formData"),
-  ) || {};
+  const adminData = getStoredAdmin();
 
   const profileName = adminData.name || adminData.first_name || "Admin";
   const profileEmail = adminData.email || "admin@farevet.com";
@@ -722,14 +721,19 @@ const SidebarMenu = ({ children, setToggled, toggled, setBroken }) => {
 
   let menuItems;
   if (adminData && adminData.admin_type === "sub_admin") {
-    const parsedPages = JSON.parse(adminData.pages);
+    const parsedPages = parsePermittedPages(adminData.pages);
     menuItems = menuItems2.filter((item) => {
-      if (!item.subItems) {
-        return parsedPages.includes(item.items);
-      }
-      return item.subItems.some((subItem) =>
+      if (parsedPages.includes(item.items)) return true;
+      return (item.subItems || []).some((subItem) =>
         parsedPages.includes(subItem.label),
       );
+    });
+    // Account items every logged-in sub-admin needs, even with no pages assigned
+    const alwaysAllowed = ["Dashboard", "Change Password"];
+    menuItems2.forEach((item) => {
+      if (alwaysAllowed.includes(item.items) && !menuItems.includes(item)) {
+        menuItems.push(item);
+      }
     });
   } else if (adminData && adminData?.admin_type === "main") {
     menuItems = menuItems2;

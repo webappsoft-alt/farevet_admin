@@ -7,6 +7,7 @@ import Select from "react-select";
 import { apiRequest } from "../../api/auth_api";
 import ProductTable from '../DataTable/productTable';
 import { edit2, trash } from "../icons/icon";
+import { parsePermittedPages } from "../../lib/adminSession";
 
 const pagesOptions = [
   { value: "Dashboard", label: "Dashboard" },
@@ -58,7 +59,7 @@ const SubAdmin = () => {
 
   useEffect(() => {
     if (selectedItem2) {
-      const parsedPages = selectedItem2.pages ? JSON.parse(selectedItem2.pages) : [];
+      const parsedPages = parsePermittedPages(selectedItem2.pages);
       const formattedPages = parsedPages.map(page => ({ value: page, label: page }));
       setselectPages(formattedPages);
       form.setFieldsValue({
@@ -90,7 +91,7 @@ const SubAdmin = () => {
     body.append("admin_type", 'sub_admin');
     body.append("email", value?.email);
     body.append("password", value?.password);
-    body.append("pages", JSON.stringify(selectPages?.map(item => item?.label)));
+    body.append("pages", JSON.stringify((selectPages || []).map(item => item?.label).filter(Boolean)));
     console.log({ body });
     // return
     await apiRequest({ body })
@@ -121,7 +122,7 @@ const SubAdmin = () => {
     body.append("admin_type", 'sub_admin');
     body.append("email", value?.email);
     // body.append("password", value?.password);
-    body.append("pages", JSON.stringify(selectPages?.map(item => item?.label)));
+    body.append("pages", JSON.stringify((selectPages || []).map(item => item?.label).filter(Boolean)));
     body.append("id", selectedItem2?.id);
     console.log({ body });
     await apiRequest({ body })
@@ -223,7 +224,7 @@ const SubAdmin = () => {
       cell: (row) => {
         return (
           <div className="flex plusJakara_semibold gap-1">
-            {JSON.parse(row.pages || '[]').join(', ') || 'No found'}
+            {parsePermittedPages(row.pages).join(', ') || 'No found'}
           </div>
         );
       },

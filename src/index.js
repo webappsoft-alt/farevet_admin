@@ -9,6 +9,7 @@ import reportWebVitals from './reportWebVitals';
 import { SocketProvider } from './socket/socketProvider';
 import { store } from './redux/store';
 import { Provider } from 'react-redux';
+import ErrorBoundary from './components/ErrorBoundary';
 const App = lazy(() => import('./App'))
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -23,7 +24,9 @@ root.render(
       <Provider store={store}>
         <HashRouter>
           <SocketProvider>
-            <App />
+            <ErrorBoundary>
+              <App />
+            </ErrorBoundary>
           </SocketProvider>
         </HashRouter>
       </Provider>
