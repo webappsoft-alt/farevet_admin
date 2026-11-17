@@ -5,6 +5,7 @@
 /.pnp
 .pnp.js
 
+
 # testing
 /coverage
 
@@ -17,6 +18,8 @@ farevet-admin-panel.*
 /build.zip
 .build.zip
 
+# env files (can opt-in for committing if needed)
+.env*
 
 .fareVet-admin-panel.html
 fareVet-admin-panel.html

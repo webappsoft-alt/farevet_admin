@@ -87,6 +87,19 @@ const generateSecure6DigitCode = (existingPartners = []) => {
   return code;
 };
 
+// Base URL of the public web app, e.g. https://www.farevet.online (set in .env)
+const WEB_APP_URL = (process.env.REACT_APP_WEB_APP_URL || "").trim().replace(/\/+$/, "");
+
+if (!WEB_APP_URL) {
+  console.warn(
+    "[partners] REACT_APP_WEB_APP_URL is not set. Partner signup links are disabled. " +
+      "Add REACT_APP_WEB_APP_URL to the admin .env file and rebuild."
+  );
+}
+
+const buildPartnerSignupUrl = (code) =>
+  WEB_APP_URL && code ? `${WEB_APP_URL}/auth/signup?partner=${encodeURIComponent(code)}` : "";
+
 const Partners = () => {
   const [partners, setPartners] = useState([]);
   const [selectedPartnerId, setSelectedPartnerId] = useState(1);
@@ -94,7 +107,11 @@ const Partners = () => {
 
   const copySignupUrl = (code) => {
     if (!code) return;
-    const url = `https://farevet-web.vercel.app/auth/signup?partner=${code}`;
+    const url = buildPartnerSignupUrl(code);
+    if (!url) {
+      message.error("Signup link unavailable: REACT_APP_WEB_APP_URL is not configured.");
+      return;
+    }
     navigator.clipboard.writeText(url)
       .then(() => {
         message.success("Signup link copied to clipboard!");
@@ -581,7 +598,7 @@ const Partners = () => {
                         Partner Signup URL
                       </span>
                       <a
-                        href={`https://farevet-web.vercel.app/auth/signup?partner=${selectedPartner.partnerCode}`}
+                        href={buildPartnerSignupUrl(selectedPartner.partnerCode) || undefined}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="partner-signup-link"
@@ -593,7 +610,7 @@ const Partners = () => {
                           wordBreak: "break-all"
                         }}
                       >
-                        https://farevet-web.vercel.app/auth/signup?partner={selectedPartner.partnerCode}
+                        {buildPartnerSignupUrl(selectedPartner.partnerCode) || "Signup URL not configured"}
                       </a>
                     </div>
                     <button
@@ -971,7 +988,7 @@ const Partners = () => {
               <label>signup URL</label>
               <div style={{ display: "flex", gap: "6px" }}>
                 <Input
-                  value={formPartnerCode ? `https://farevet-web.vercel.app/auth/signup?partner=${formPartnerCode}` : ""}
+                  value={buildPartnerSignupUrl(formPartnerCode)}
                   readOnly
                   disabled
                   size="large"
